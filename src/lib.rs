@@ -30,15 +30,11 @@ mod engine_to_gui_message;
 pub use gui_to_engine_message::*;
 pub use engine_to_gui_message::*;
 
-use std::fmt::{Display, Formatter};
 use std::process::{Child, Command, Stdio};
 use std::io;
-use std::io::{Read, Write};
-use std::num::NonZeroUsize;
-use shakmaty::{Move, MoveList};
 use shakmaty::uci::Uci as UciMove;
 
-pub(crate) fn join_uci_moves(moves: Vec<UciMove>) -> String {
+pub(crate) fn join_uci_moves(moves: &[UciMove]) -> String {
     // AFAIK the maximum length of a UCI move is 5 chars
     let mut moves_joined = String::with_capacity(moves.len() * 5);
 

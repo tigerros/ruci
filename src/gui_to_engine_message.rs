@@ -24,7 +24,7 @@ pub struct GoMessage {
     /// https://backscattering.de/chess/uci/#gui-go-searchmoves
     pub search_moves: Option<Vec<UciMove>>,
     /// https://backscattering.de/chess/uci/#gui-go-ponder
-    pub ponder: Option<bool>,
+    pub ponder: bool,
     /// https://backscattering.de/chess/uci/#gui-go-wtime
     pub white_time: Option<usize>,
     /// https://backscattering.de/chess/uci/#gui-go-btime
@@ -44,7 +44,7 @@ pub struct GoMessage {
     /// https://backscattering.de/chess/uci/#gui-go-movetime
     pub move_time: Option<usize>,
     /// https://backscattering.de/chess/uci/#gui-go-infinite
-    pub infinite: Option<bool>,
+    pub infinite: bool,
 }
 
 /// Every message that is sent from the GUI to the engine.
@@ -94,34 +94,54 @@ impl Display for GuiToEngineMessage {
             Self::Go(message) => {
                 f.write_str("go")?;
 
-                if let Some(search_moves) = message.search_moves {
+                if let Some(search_moves) = &message.search_moves {
                     write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
                 }
 
-                if let Some(search_moves) = message.search_moves {
-                    write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
+                if message.ponder {
+                    f.write_str(" ponder")?;
                 }
 
-                if let Some(search_moves) = message.search_moves {
-                    write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
+                if let Some(white_time) = message.white_time {
+                    write!(f, " wtime {white_time}")?;
                 }
 
-                if let Some(search_moves) = message.search_moves {
-                    write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
+                if let Some(black_time) = message.black_time {
+                    write!(f, " btime {black_time}")?;
                 }
 
-                if let Some(search_moves) = message.search_moves {
-                    write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
+                if let Some(white_increment) = message.white_increment {
+                    write!(f, " winc {white_increment}")?;
                 }
 
-                if let Some(search_moves) = message.search_moves {
-                    write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
+                if let Some(black_increment) = message.black_increment {
+                    write!(f, " binc {black_increment}")?;
                 }
 
-                if let Some(search_moves) = message.search_moves {
-                    write!(f, " searchmoves {}", join_uci_moves(search_moves))?;
+                if let Some(moves_to_go) = message.moves_to_go {
+                    write!(f, " moves_to_go {moves_to_go}")?;
                 }
-                
+
+                if let Some(depth) = message.depth {
+                    write!(f, " depth {depth}")?;
+                }
+
+                if let Some(nodes) = message.nodes {
+                    write!(f, " nodes {nodes}")?;
+                }
+
+                if let Some(mate) = message.mate {
+                    write!(f, " mate {mate}")?;
+                }
+
+                if let Some(move_time) = message.move_time {
+                    write!(f, " movetime {move_time}")?;
+                }
+
+                if message.infinite {
+                    f.write_str(" infinite")?;
+                }
+
                 Ok(())
             },
             Self::Stop => f.write_str("stop"),
