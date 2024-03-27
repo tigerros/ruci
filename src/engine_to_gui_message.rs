@@ -1,8 +1,11 @@
 use std::str::FromStr;
 use shakmaty::uci::Uci as UciMove;
 
+/// <https://backscattering.de/chess/uci/#engine-id>
 pub struct IdMessage {
+    /// <https://backscattering.de/chess/uci/#engine-id-name>
     pub name: Option<String>,
+    /// <https://backscattering.de/chess/uci/#engine-id-author>
     pub author: Option<String>
 }
 
@@ -88,8 +91,33 @@ pub struct InfoMessage {
     pub current_line: Option<InfoMessageCurrentLineField>,
 }
 
+/// <https://backscattering.de/chess/uci/#engine-option-type>
+pub enum OptionMessageTypeField {
+    /// <https://backscattering.de/chess/uci/#engine-option-type-check>
+    Check,
+    /// <https://backscattering.de/chess/uci/#engine-option-type-spin>
+    Spin,
+    /// <https://backscattering.de/chess/uci/#engine-option-type-combo>
+    Combo,
+    /// <https://backscattering.de/chess/uci/#engine-option-type-button>
+    Button,
+    /// <https://backscattering.de/chess/uci/#engine-option-type-string>
+    String
+}
+
 pub struct OptionMessage {
-    
+    /// <https://backscattering.de/chess/uci/#engine-option-name>
+    pub name: String,
+    /// <https://backscattering.de/chess/uci/#engine-option-type>
+    pub r#type: OptionMessageTypeField,
+    /// <https://backscattering.de/chess/uci/#engine-option-default>
+    pub default: Option<String>,
+    /// <https://backscattering.de/chess/uci/#engine-option-min>
+    pub min: Option<isize>,
+    /// <https://backscattering.de/chess/uci/#engine-option-max>
+    pub max: Option<isize>,
+    /// <https://backscattering.de/chess/uci/#engine-option-var>
+    pub variation: Option<String>
 }
 
 pub enum EngineToGuiMessage {
@@ -105,11 +133,10 @@ pub enum EngineToGuiMessage {
     CopyProtection(CopyProtectionMessageKind),
     /// <https://backscattering.de/chess/uci/#engine-registration>
     Registration(RegistrationMessageKind),
-    // TODO: Make structs for option messages
     /// <https://backscattering.de/chess/uci/#engine-info>
     Info(Box<InfoMessage>),
     /// <https://backscattering.de/chess/uci/#engine-option>
-    Option(String)
+    Option(OptionMessage)
 }
 
 pub struct EngineToGuiMessages(Vec<EngineToGuiMessage>);
@@ -124,7 +151,7 @@ impl FromStr for EngineToGuiMessages {
             match part {
                 "id" => todo!(),
                 "uciok" => { messages.push(EngineToGuiMessage::UciOk); },
-                "readoky" => { messages.push(EngineToGuiMessage::ReadyOk); },
+                "readyok" => { messages.push(EngineToGuiMessage::ReadyOk); },
                 _ => todo!()
             }
         }
@@ -138,11 +165,11 @@ impl FromStr for EngineToGuiMessage {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts = s.split(' ');
 
-
         for part in parts {
             match part {
                 "id" => todo!(),
-                "uciok" => todo!(),
+                "uciok" => return Ok(Self::UciOk),
+                "readyok" => return Ok(Self::ReadyOk),
                 _ => todo!()
             }
         }
