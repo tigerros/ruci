@@ -82,7 +82,7 @@ impl GuiToEngineUci {
             return Err(UciSendMessageError::StdinIsNone);
         };
 
-        //stdin.write_all();
+        //stdin.write();
 
         Ok(())
     }
