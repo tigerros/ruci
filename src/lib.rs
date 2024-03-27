@@ -77,8 +77,8 @@ impl GuiToEngineUci {
         })
     }
 
-    pub fn send_message(&mut self, message: Message) -> Result<(), UciSendMessageError> {
-        let Some(stdin) = &mut self.process.stdin else {
+    pub fn send_message(&mut self, _message: Message) -> Result<(), UciSendMessageError> {
+        let Some(_stdin) = &mut self.process.stdin else {
             return Err(UciSendMessageError::StdinIsNone);
         };
 

@@ -21,56 +21,56 @@ pub enum RegisterMessageKind {
 }
 
 pub struct GoMessage {
-    /// https://backscattering.de/chess/uci/#gui-go-searchmoves
+    /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
     pub search_moves: Option<Vec<UciMove>>,
-    /// https://backscattering.de/chess/uci/#gui-go-ponder
+    /// <https://backscattering.de/chess/uci/#gui-go-ponder>
     pub ponder: bool,
-    /// https://backscattering.de/chess/uci/#gui-go-wtime
+    /// <https://backscattering.de/chess/uci/#gui-go-wtime>
     pub white_time: Option<usize>,
-    /// https://backscattering.de/chess/uci/#gui-go-btime
+    /// <https://backscattering.de/chess/uci/#gui-go-btime>
     pub black_time: Option<usize>,
-    /// https://backscattering.de/chess/uci/#gui-go-winc
+    /// <https://backscattering.de/chess/uci/#gui-go-winc>
     pub white_increment: Option<NonZeroUsize>,
-    /// https://backscattering.de/chess/uci/#gui-go-binc
+    /// <https://backscattering.de/chess/uci/#gui-go-binc>
     pub black_increment: Option<NonZeroUsize>,
-    /// https://backscattering.de/chess/uci/#gui-go-movestogo
+    /// <https://backscattering.de/chess/uci/#gui-go-movestogo>
     pub moves_to_go: Option<NonZeroUsize>,
-    /// https://backscattering.de/chess/uci/#gui-go-depth
+    /// <https://backscattering.de/chess/uci/#gui-go-depth>
     pub depth: Option<usize>,
-    /// https://backscattering.de/chess/uci/#gui-go-nodes
+    /// <https://backscattering.de/chess/uci/#gui-go-nodes>
     pub nodes: Option<usize>,
-    /// https://backscattering.de/chess/uci/#gui-go-mate
+    /// <https://backscattering.de/chess/uci/#gui-go-mate>
     pub mate: Option<usize>,
-    /// https://backscattering.de/chess/uci/#gui-go-movetime
+    /// <https://backscattering.de/chess/uci/#gui-go-movetime>
     pub move_time: Option<usize>,
-    /// https://backscattering.de/chess/uci/#gui-go-infinite
+    /// <https://backscattering.de/chess/uci/#gui-go-infinite>
     pub infinite: bool,
 }
 
 /// Every message that is sent from the GUI to the engine.
 /// Each variant links to a section of the UCI standard where that variant's message is documented.
 pub enum GuiToEngineMessage {
-    /// https://backscattering.de/chess/uci/#gui-uci
+    /// <https://backscattering.de/chess/uci/#gui-uci>
     UseUci,
-    /// https://backscattering.de/chess/uci/#gui-debug
+    /// <https://backscattering.de/chess/uci/#gui-debug>
     Debug(bool),
-    /// https://backscattering.de/chess/uci/#gui-isready
+    /// <https://backscattering.de/chess/uci/#gui-isready>
     IsReady,
-    /// https://backscattering.de/chess/uci/#gui-setoption
+    /// <https://backscattering.de/chess/uci/#gui-setoption>
     SetOption(SetOptionMessage),
-    /// https://backscattering.de/chess/uci/#gui-register
+    /// <https://backscattering.de/chess/uci/#gui-register>
     Register(RegisterMessageKind),
-    /// https://backscattering.de/chess/uci/#gui-ucinewgame
+    /// <https://backscattering.de/chess/uci/#gui-ucinewgame>
     UciNewGame,
-    /// https://backscattering.de/chess/uci/#gui-position
+    /// <https://backscattering.de/chess/uci/#gui-position>
     SetPosition(SetPositionMessageKind),
-    /// https://backscattering.de/chess/uci/#gui-go
+    /// <https://backscattering.de/chess/uci/#gui-go>
     Go(GoMessage),
-    /// https://backscattering.de/chess/uci/#gui-stop
+    /// <https://backscattering.de/chess/uci/#gui-stop>
     Stop,
-    /// https://backscattering.de/chess/uci/#gui-ponderhit
+    /// <https://backscattering.de/chess/uci/#gui-ponderhit>
     PonderHit,
-    /// https://backscattering.de/chess/uci/#gui-quite
+    /// <https://backscattering.de/chess/uci/#gui-quite>
     Quit
 }
 
