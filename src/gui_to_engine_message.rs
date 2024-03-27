@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 use std::num::NonZeroUsize;
 use shakmaty::uci::Uci as UciMove;
 use crate::join_uci_moves;

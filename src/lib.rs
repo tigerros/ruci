@@ -36,7 +36,7 @@ use shakmaty::uci::Uci as UciMove;
 
 pub(crate) fn join_uci_moves(moves: &[UciMove]) -> String {
     // AFAIK the maximum length of a UCI move is 5 chars
-    let mut moves_joined = String::with_capacity(moves.len() * 5);
+    let mut moves_joined = String::with_capacity(moves.len().saturating_mul(5));
 
     for r#move in moves {
         moves_joined.push_str(&r#move.to_string());
