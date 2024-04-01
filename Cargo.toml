@@ -9,6 +9,7 @@ path = "src/bin/main.rs"
 
 [dependencies]
 shakmaty = "0.26.0"
+paste = "1.0.14"
 
 [dev-dependencies]
 assert_cmd = "2.0.14"

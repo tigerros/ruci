@@ -25,14 +25,25 @@
     clippy::print_stderr
 )]
 
-mod gui_to_engine_message;
+mod define_message_enum;
 mod engine_to_gui_message;
-pub use gui_to_engine_message::*;
-pub use engine_to_gui_message::*;
+mod gui_to_engine_message;
+mod traits;
+mod raw_uci_message;
+mod uci_move_list;
 
-use std::process::{Child, Command, Stdio};
-use std::io;
+pub(crate) use define_message_enum::define_message_enum;
+pub use engine_to_gui_message::*;
+pub use gui_to_engine_message::*;
+pub use traits::*;
+pub use raw_uci_message::*;
+pub use uci_move_list::UciMoveList;
+
 use shakmaty::uci::Uci as UciMove;
+use std::io;
+use std::io::{BufRead, BufReader, Read, Write};
+use std::process::{Child, Command, Stdio};
+use std::ptr::read;
 
 pub(crate) fn join_uci_moves(moves: &[UciMove]) -> String {
     // AFAIK the maximum length of a UCI move is 5 chars
@@ -42,27 +53,30 @@ pub(crate) fn join_uci_moves(moves: &[UciMove]) -> String {
         moves_joined.push_str(&r#move.to_string());
         moves_joined.push(' ');
     }
-    
+
     moves_joined
 }
 
 pub enum Message {
     GuiToEngine(GuiToEngineMessage),
-    EngineToGui(EngineToGuiMessage)
+    EngineToGui(EngineToGuiMessage),
 }
 
 // TODO: Finish. Take inspiration from the "uci" crate. Can't use that crate directly cause of bad, panicking code.
 pub struct GuiToEngineUci {
-    process: Child
+    pub process: Child,
 }
 
-pub enum ConnectionReadLineError {
-    StdoutIsNone,
-    ReadIOError(io::Error)
-}
-
-pub enum UciSendMessageError {
+#[derive(Debug)]
+pub enum UciWriteError {
     StdinIsNone,
+    Io(io::Error)
+}
+
+#[derive(Debug)]
+pub enum UciReadError {
+    StdoutIsNone,
+    Io(io::Error)
 }
 
 impl GuiToEngineUci {
@@ -72,22 +86,32 @@ impl GuiToEngineUci {
             .stdout(Stdio::piped())
             .spawn()?;
 
-        Ok(Self {
-            process: cmd
-        })
+        Ok(Self { process: cmd })
     }
 
-    pub fn send_message(&mut self, _message: Message) -> Result<(), UciSendMessageError> {
-        let Some(_stdin) = &mut self.process.stdin else {
-            return Err(UciSendMessageError::StdinIsNone);
+    pub fn write_all(&mut self, message: &str) -> Result<(), UciWriteError> {
+        let Some(stdin) = &mut self.process.stdin else {
+            return Err(UciWriteError::StdinIsNone);
         };
 
-        //stdin.write();
+        stdin.write_all(message.as_bytes()).map_err(UciWriteError::Io)?;
 
         Ok(())
+    }
+
+    pub fn read_line(&mut self) -> Result<String, UciReadError> {
+        let Some(stdout) = &mut self.process.stdout else {
+            return Err(UciReadError::StdoutIsNone);
+        };
+
+        let mut reader = BufReader::with_capacity(100, stdout);
+
+        let mut buf = String::with_capacity(100);
+        reader.read_line(&mut buf).map_err(UciReadError::Io)?;
+
+        Ok(buf)
     }
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}
