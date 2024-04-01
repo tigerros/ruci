@@ -7,7 +7,7 @@ macro_rules! define_message_enum {
             $(
             $(#[$message_attr:meta])*
             %[$message_string:literal]
-            $(%$has_parameters:tt[parameters = [$(($message_parameter_ident:ident, $message_parameter_string:literal)),+]])?
+            $(%$has_parameters:tt[parameters = [$($(*$has_value:tt)?($message_parameter_ident:ident, $message_parameter_string:literal)),+]])?
             $message_ident:ident
             $(($($message_argument:ty),+))?
             $({ $($message_field:ident: $message_field_ty:ty),+ })?
@@ -25,6 +25,16 @@ macro_rules! define_message_enum {
         }
 
         ::paste::paste! {
+            impl $ident {
+                pub fn pointer(&self) -> [< $ident Pointer >] {
+                    match self {
+                        $(
+                        Self::$message_ident $(($($message_argument),+))? $({ $($message_field: $message_field_ty),+ })? => [< $ident Pointer >]::$message_ident
+                        ),+
+                    }
+                }
+            }
+            
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
             $vis enum [< $ident Pointer >] {
                 $(
@@ -95,6 +105,25 @@ macro_rules! define_message_enum {
                         },
                         )?)+
                         _ => Err($crate::MessageParameterPointerParseError::MessageHasNoParameters)
+                    }
+                }
+
+                #[allow(unreachable_patterns)]
+                fn has_value(self) -> bool {
+                    match self {
+                        $($(
+                        #[allow(unused_doc_comments)]
+                        #[doc = define_message_enum!(empty_string=$has_parameters)]
+                        Self::$message_ident(parameter_pointer) => match parameter_pointer {
+                            $($(
+                            #[allow(unused_doc_comments)]
+                            #[doc = define_message_enum!(empty_string=$has_value)]
+                            [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => true,
+                            )?)+
+                            _ => false
+                        },
+                        )?)+
+                        _ => false
                     }
                 }
             }

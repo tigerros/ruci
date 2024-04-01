@@ -36,4 +36,5 @@ pub trait MessageParameterPointer: Copy + Debug + Hash + Eq + PartialEq {
         message_pointer: Self::MessagePointer,
         s: &str,
     ) -> Result<Self, MessageParameterPointerParseError>;
+    fn has_value(self) -> bool;
 }
