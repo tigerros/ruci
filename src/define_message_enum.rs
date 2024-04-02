@@ -1,6 +1,7 @@
 macro_rules! define_message_enum {
     (empty_string=$t:tt) => {""};
     (empty=$t:tt) => {};
+    (dotdot=$t:tt) => {..};
 
     (
         $(#[$attr:meta])*
@@ -10,7 +11,7 @@ macro_rules! define_message_enum {
             %[$message_string:literal]
             $(%$has_parameters:tt[parameters = [$($(*$has_value:tt)?($message_parameter_ident:ident, $message_parameter_string:literal)),+]])?
             $message_ident:ident
-            $(($has_arguments:tt$($message_argument:ty),+))?
+            $(($has_arguments:tt $($message_argument:ty),+))?
             ),+
         }
     ) => {
@@ -28,7 +29,7 @@ macro_rules! define_message_enum {
                 pub fn pointer(&self) -> [< $ident Pointer >] {
                     match self {
                         $(
-                        Self::$message_ident$(($has_arguments))? => [< $ident Pointer >]::$message_ident
+                        Self::$message_ident$((define_message_enum!(dotdot=$has_arguments)))? => [< $ident Pointer >]::$message_ident
                         ),+
                     }
                 }

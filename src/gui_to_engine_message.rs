@@ -64,29 +64,29 @@ define_message_enum! {
         UseUci,
         /// <https://backscattering.de/chess/uci/#gui-debug>
         %["debug"]
-        Debug(bool),
+        Debug(%bool),
         /// <https://backscattering.de/chess/uci/#gui-isready>
         %["isready"]
         IsReady,
         /// <https://backscattering.de/chess/uci/#gui-setoption>
         %["setoption"]
         %%[parameters = [(Name, "name"), (Value, "value")]]
-        SetOption(SetOptionMessage),
+        SetOption(%SetOptionMessage),
         /// <https://backscattering.de/chess/uci/#gui-register>
         %["register"]
         %%[parameters = [(Name, "name"), (Code, "code")]]
-        Register(RegisterMessageKind),
+        Register(%RegisterMessageKind),
         /// <https://backscattering.de/chess/uci/#gui-ucinewgame>
         %["ucinewgame"]
         UciNewGame,
         /// <https://backscattering.de/chess/uci/#gui-position>
         %["setposition"]
         %%[parameters = [(Fen, "fen"), (Moves, "moves")]]
-        SetPosition(SetPositionMessageKind),
+        SetPosition(%SetPositionMessageKind),
         /// <https://backscattering.de/chess/uci/#gui-go>
         %["go"]
         %%[parameters = [(SearchMoves, "searchmoves"), **(Ponder, "ponder"), (WhiteTime, "wtime"), (BlackTime, "btime"), (WhiteIncrement, "winc"), (BlackIncrement, "binc"), (MovesToGo, "movestogo"), (Depth, "depth"), (Nodes, "nodes"), (Mate, "mate"), (MoveTime, "movetime"), **(Infinite, "infinite")]]
-        Go(GoMessage),
+        Go(%GoMessage),
         /// <https://backscattering.de/chess/uci/#gui-stop>
         %["stop"]
         Stop,
