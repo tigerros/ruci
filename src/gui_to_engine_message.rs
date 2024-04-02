@@ -99,27 +99,25 @@ define_message_enum! {
     }
 }
 
-#[allow(clippy::from_over_into)]
-impl Into<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>> for GuiToEngineMessage {
-    fn into(self) -> RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer> {
-        let mut uci = RawUciMessage {
-            message_pointer: self.pointer(),
-            parameters: HashMap::new(),
-            value: None,
-        };
-
-        match self {
-            Self::SetPosition(kind) => {
-                match kind {
-                    SetPositionMessageKind::Fen { fen, moves}
-                }
-            }
-        }
-
-
-        uci
-    }
-}
+// #[allow(clippy::from_over_into)]
+// impl Into<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>> for GuiToEngineMessage {
+//     fn into(self) -> RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer> {
+//         let mut uci = RawUciMessage {
+//             message_pointer: self.pointer(),
+//             parameters: if self.pointer().has_parameters() { HashMap::with_capacity(13) } else { HashMap::with_capacity(0) },
+//             value: None,
+//         };
+//         
+//         match self {
+//             Self::SetOption(message) => {
+//                 uci.parameters.insert(GuiToEngineMessageSetOptionParameterPointer::Name, message.value);
+//                 uci.parameters.insert(GuiToEngineMessageSetOptionParameterPointer::Value, message.name);
+//             }
+//         }
+// 
+//         uci
+//     }
+// }
 
 impl Display for GuiToEngineMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

@@ -11,7 +11,7 @@ where
     MessageParameterPtr: MessageParameterPointer<MessagePointer = MessagePtr>,
 {
     pub message_pointer: MessagePtr,
-    pub parameters: HashMap<MessageParameterPtr, String>,
+    pub parameters: HashMap<MessageParameterPtr, Option<String>>,
     pub value: Option<String>,
 }
 
@@ -52,7 +52,7 @@ where
             });
         }
 
-        let mut parameters = HashMap::<MessageParameterPtr, String>::with_capacity(
+        let mut parameters = HashMap::<MessageParameterPtr, Option<String>>::with_capacity(
             parts.len().saturating_div(2).saturating_sub(1),
         );
         let mut value = None::<String>;
@@ -71,7 +71,12 @@ where
                     current_value = String::with_capacity(30);
                 } else if let Some(last_parameter_some) = last_parameter {
                     //println!("Last parameter exists: {last_parameter_some:?}");
-                    parameters.insert(last_parameter_some, current_value.trim().to_string());
+                    if parameter_pointer.has_value() {
+                        parameters.insert(last_parameter_some, Some(current_value.trim().to_string()));
+                    } else {
+                        parameters.insert(last_parameter_some, None);
+                    }
+
                     current_value = String::with_capacity(30);
                 }
 
@@ -86,7 +91,7 @@ where
         if let Some(last_parameter) = last_parameter {
             current_value.pop();
             //println!("After loop adding last parameter and value: {last_parameter:?}, {current_value}");
-            parameters.insert(last_parameter, current_value);
+            parameters.insert(last_parameter, Some(current_value));
         }
 
         //println!("{parameters:#?}");
@@ -111,7 +116,10 @@ where
             f.write_char(' ')?;
             f.write_str(parameter.as_string())?;
             f.write_char(' ')?;
-            f.write_str(parameter_value)?;
+            
+            if let Some(parameter_value) = parameter_value {
+                f.write_str(parameter_value)?;
+            }
         }
 
         f.write_char('\n')
