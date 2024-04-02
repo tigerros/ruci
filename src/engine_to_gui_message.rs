@@ -149,7 +149,7 @@ define_message_enum! {
         /// <https://backscattering.de/chess/uci/#engine-id>
         %["id"]
         %%[parameters = [(Name, "name"), (Author, "author")]]
-        Id(IdMessageKind),
+        Id(..==IdMessageKind),
         /// <https://backscattering.de/chess/uci/#engine-uciok>
         %["uciok"]
         UciOk,
@@ -159,21 +159,21 @@ define_message_enum! {
         /// <https://backscattering.de/chess/uci/#engine-bestmove>
         %["bestmove"]
         %%[parameters = [(Ponder, "ponder")]]
-        BestMove(BestMoveMessage),
+        BestMove(..==BestMoveMessage),
         /// <https://backscattering.de/chess/uci/#engine-copyprotection>
         %["copyprotection"]
-        CopyProtection(CopyProtectionMessageKind),
+        CopyProtection(..==CopyProtectionMessageKind),
         /// <https://backscattering.de/chess/uci/#engine-registration>
         %["registration"]
-        Registration(RegistrationMessageKind),
+        Registration(..==RegistrationMessageKind),
         /// <https://backscattering.de/chess/uci/#engine-info>
         %["info"]
         %%[parameters = [(Depth, "depth"), (SelectiveSearchDepth, "seldepth"), (Time, "time"), (Nodes, "nodes"), (PrimaryVariation, "pv"), (MultiPrimaryVariation, "multipv"), (Score, "score"), (CurrentMove, "currmove"), (CurrentMoveNumber, "currmovenumber"), (HashFull, "hashfull"), (NodesPerSecond, "nps"), (TableBaseHits, "tbhits"), (ShredderBaseHits, "sbhits"), (CpuLoad, "cpuload"), (String, "string"), (Refutation, "refutation"), (CurrentLine, "currline")]]
-        Info(Box<InfoMessage>),
+        Info(..==Box<InfoMessage>),
         /// <https://backscattering.de/chess/uci/#engine-option>
         %["option"]
         %%[parameters = [(Name, "name"), (Type, "type"), (Default, "default"), (Min, "min"), (Max, "max"), (Variation, "var")]]
-        Option(OptionMessage)
+        Option(..==OptionMessage)
     }
 }
 
@@ -210,13 +210,13 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Id(
                         EngineToGuiMessageIdParameterPointer::Name,
-                    ));
+                    )).unwrap_or(&None);
                 let author =
                     raw_uci_message
                         .parameters
                         .get(&EngineToGuiMessageParameterPointer::Id(
                             EngineToGuiMessageIdParameterPointer::Author,
-                        ));
+                        )).unwrap_or(&None);
 
                 if let Some(name) = name {
                     if let Some(author) = author {
@@ -238,7 +238,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Depth,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| {
                         s.parse().ok().map(|depth| InfoMessageDepthField {
                             depth,
@@ -246,7 +246,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                                 .parameters
                                 .get(&EngineToGuiMessageParameterPointer::Info(
                                     EngineToGuiMessageInfoParameterPointer::SelectiveSearchDepth,
-                                ))
+                                )).unwrap_or(&None)
                                 .and_then(|s| s.parse().ok()),
                         })
                     });
@@ -255,35 +255,35 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Time,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let nodes = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Nodes,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let primary_variation = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::PrimaryVariation,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let multi_primary_variation = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::MultiPrimaryVariation,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let score = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Score,
-                    ))
+                    )).unwrap_or(&None)
                     .map(|s| {
                         let split = s.split(' ').collect::<Vec<_>>();
                         let mut split_iter = split.iter();
@@ -321,63 +321,62 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CurrentMove,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let current_move_number = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CurrentMoveNumber,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let hash_full = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::HashFull,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let nodes_per_second = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::NodesPerSecond,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let table_base_hits = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::TableBaseHits,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let shredder_base_hits = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::ShredderBaseHits,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let cpu_load = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CpuLoad,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse().ok());
 
                 let string = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::String,
-                    ))
-                    .cloned();
+                    )).unwrap_or(&None).clone();
 
                 let refutation = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Refutation,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.parse::<UciMoveList>().ok())
                     .and_then(|move_list| {
                         let Some(refuted_move) = move_list.0.first() else {
@@ -398,7 +397,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CurrentLine,
-                    ))
+                    )).unwrap_or(&None)
                     .and_then(|s| s.split_once(' '))
                     .and_then(|(used_cpu, line)| {
                         let Ok(used_cpu) = used_cpu.parse() else {
