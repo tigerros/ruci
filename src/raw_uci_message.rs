@@ -11,8 +11,27 @@ where
     MessageParameterPtr: MessageParameterPointer<MessagePointer = MessagePtr>,
 {
     pub message_pointer: MessagePtr,
-    pub parameters: HashMap<MessageParameterPtr, Option<String>>,
+    pub parameters: HashMap<MessageParameterPtr, ParameterValue>,
     pub value: Option<String>,
+}
+
+/// This may seem like a [`Option<String>`], but it is different.
+/// The [`ParameterValue::Void`] variant means that the parameter **is present**, but *it doesn't have a value*.
+/// For example, this is the `ponder` parameter.
+#[derive(Debug, Clone)]
+pub enum ParameterValue {
+    Some(String),
+    Void
+}
+
+impl ParameterValue {
+    /// If `self` is [`ParameterValue::Some`], returns [`Some`], if `self` is [`ParameterValue::Void`], returns `None`.
+    pub fn some(&self) -> Option<&String> {
+        match self {
+            Self::Some(s) => Some(s),
+            Self::Void => None,
+        }
+    }
 }
 
 #[allow(clippy::module_name_repetitions)]
@@ -52,7 +71,7 @@ where
             });
         }
 
-        let mut parameters = HashMap::<MessageParameterPtr, Option<String>>::with_capacity(
+        let mut parameters = HashMap::<MessageParameterPtr, ParameterValue>::with_capacity(
             parts.len().saturating_div(2).saturating_sub(1),
         );
         let mut value = None::<String>;
@@ -72,9 +91,9 @@ where
                 } else if let Some(last_parameter_some) = last_parameter {
                     //println!("Last parameter exists: {last_parameter_some:?}");
                     if parameter_pointer.has_value() {
-                        parameters.insert(last_parameter_some, Some(current_value.trim().to_string()));
+                        parameters.insert(last_parameter_some, ParameterValue::Some(current_value.trim().to_string()));
                     } else {
-                        parameters.insert(last_parameter_some, None);
+                        parameters.insert(last_parameter_some, ParameterValue::Void);
                     }
 
                     current_value = String::with_capacity(30);
@@ -91,7 +110,7 @@ where
         if let Some(last_parameter) = last_parameter {
             current_value.pop();
             //println!("After loop adding last parameter and value: {last_parameter:?}, {current_value}");
-            parameters.insert(last_parameter, Some(current_value));
+            parameters.insert(last_parameter, ParameterValue::Some(current_value));
         }
 
         //println!("{parameters:#?}");
@@ -117,7 +136,7 @@ where
             f.write_str(parameter.as_string())?;
             f.write_char(' ')?;
             
-            if let Some(parameter_value) = parameter_value {
+            if let ParameterValue::Some(parameter_value) = parameter_value {
                 f.write_str(parameter_value)?;
             }
         }
