@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use crate::{define_message_enum, ParameterValue, RawUciMessage};
 use crate::UciMoveList;
 use shakmaty::uci::Uci as UciMove;
@@ -127,6 +128,21 @@ pub enum OptionMessageTypeField {
     String,
 }
 
+impl FromStr for OptionMessageTypeField {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "check" => Ok(Self::Check),
+            "spin" => Ok(Self::Spin),
+            "combo" => Ok(Self::Combo),
+            "button" => Ok(Self::Button),
+            "string" => Ok(Self::String),
+            _ => Err(())
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct OptionMessage {
     /// <https://backscattering.de/chess/uci/#engine-option-name>
@@ -172,7 +188,7 @@ define_message_enum! {
         Info(%Box<InfoMessage>),
         /// <https://backscattering.de/chess/uci/#engine-option>
         %["option"]
-        %%[parameters = [(Name, "name"), (Type, "type"), (Default, "default"), (Min, "min"), (Max, "max"), (Variation, "var")]]
+        %%[parameters = [(Name, "name"), (Type, "type"), (Default, "default"), (Min, "min"), (Max, "max"), (Var, "var")]]
         Option(%OptionMessage)
     }
 }
@@ -180,8 +196,9 @@ define_message_enum! {
 #[derive(Debug)]
 pub enum EngineToGuiMessageTryFromRawUciMessageError {
     // TODO: Better errors
-    NeedParameters,
-    NeedValue,
+    /// The parameter is either missing or couldn't be parsed.
+    ParameterError,
+    ValueError,
 }
 
 impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParameterPointer>>
@@ -231,7 +248,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     return Ok(Self::Id(IdMessageKind::Author(author.to_string())));
                 }
 
-                return Err(Self::Error::NeedParameters);
+                return Err(Self::Error::ParameterError);
             }
             EngineToGuiMessagePointer::Info => {
                 let depth = raw_uci_message
@@ -434,13 +451,51 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                 })));
             }
             EngineToGuiMessagePointer::Option => {
+                let Some(name) = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Name))
+                    .and_then(|p| p.some()).cloned() else {
+                    return Err(Self::Error::ParameterError);
+                };
+
+                let Some(r#type) = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Type))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok()) else {
+                    return Err(Self::Error::ParameterError);
+                };
+
+                let default = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Default))
+                    .and_then(|p| p.some()).cloned();
+
+                let min = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Min))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok());
+
+                let max = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Max))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok());
+
+                let var = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Var))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok());
+
                 return Ok(Self::Option(OptionMessage {
-                    name: "".to_string(),
-                    r#type: OptionMessageTypeField::Check,
-                    default: None,
-                    min: None,
-                    max: None,
-                    var: None,
+                    name,
+                    r#type,
+                    default,
+                    min,
+                    max,
+                    var,
                 }));
             }
             _ => todo!(),
