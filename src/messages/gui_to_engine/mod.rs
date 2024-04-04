@@ -2,9 +2,9 @@ dry_mods::mods! {
     mod pub use go, register, set_option, set_position;
 }
 
-use std::fmt::{Debug, Display, Formatter};
 use crate::define_message_enum::define_message_enum;
 use crate::RawUciMessage;
+use std::fmt::{Debug, Display, Formatter};
 
 define_message_enum! {
     /// Every message that is sent from the GUI to the engine.
@@ -50,10 +50,17 @@ define_message_enum! {
     }
 }
 
-impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>> for GuiToEngineMessage {
+impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>>
+    for GuiToEngineMessage
+{
     type Error = ();
 
-    fn try_from(raw_uci_message: RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>) -> Result<Self, Self::Error> {
+    fn try_from(
+        raw_uci_message: RawUciMessage<
+            GuiToEngineMessagePointer,
+            GuiToEngineMessageParameterPointer,
+        >,
+    ) -> Result<Self, Self::Error> {
         // Parameter-less value-less messages
         match raw_uci_message.message_pointer {
             GuiToEngineMessagePointer::UseUci => return Ok(Self::UseUci),
@@ -62,7 +69,7 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
             GuiToEngineMessagePointer::Stop => return Ok(Self::Stop),
             GuiToEngineMessagePointer::PonderHit => return Ok(Self::PonderHit),
             GuiToEngineMessagePointer::Quit => return Ok(Self::Quit),
-            _ => {},
+            _ => {}
         }
 
         // Value-less messages
@@ -72,7 +79,10 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::SetOption(
                         GuiToEngineMessageSetOptionParameterPointer::Name,
-                    )).and_then(|p| p.some()).cloned() else {
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned()
+                else {
                     return Err(());
                 };
 
@@ -80,25 +90,28 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::SetOption(
                         GuiToEngineMessageSetOptionParameterPointer::Name,
-                    )).and_then(|p| p.some()).cloned();
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned();
 
-                return Ok(Self::SetOption(SetOptionMessage {
-                    name,
-                    value,
-                }));
-            },
+                return Ok(Self::SetOption(SetOptionMessage { name, value }));
+            }
             GuiToEngineMessagePointer::Register => {
                 let name = raw_uci_message
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::Register(
                         GuiToEngineMessageRegisterParameterPointer::Name,
-                    )).and_then(|p| p.some()).cloned();
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned();
 
                 let code = raw_uci_message
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::Register(
                         GuiToEngineMessageRegisterParameterPointer::Code,
-                    )).and_then(|p| p.some()).cloned();
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned();
 
                 if let Some(name) = name {
                     if let Some(code) = code {
@@ -112,95 +125,128 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                 } else if let Some(code) = code {
                     return Ok(Self::Register(RegisterMessageKind::Code(code)));
                 }
-            },
+            }
             GuiToEngineMessagePointer::SetPosition => {
                 let fen = raw_uci_message
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::SetPosition(
                         GuiToEngineMessageSetPositionParameterPointer::Fen,
-                    )).and_then(|p| p.some()).cloned();
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned();
 
                 let moves = raw_uci_message
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::SetPosition(
-                        GuiToEngineMessageSetPositionParameterPointer::Moves
-                    )).and_then(|p| p.some()).and_then(|s| s.parse().ok());
+                        GuiToEngineMessageSetPositionParameterPointer::Moves,
+                    ))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok());
 
                 if let Some(fen) = fen {
-                    return Ok(Self::SetPosition(SetPositionMessageKind::Fen { fen, moves }))
+                    return Ok(Self::SetPosition(SetPositionMessageKind::Fen {
+                        fen,
+                        moves,
+                    }));
                 }
 
-                return Ok(Self::SetPosition(SetPositionMessageKind::StartingPosition { moves }));
-            },
+                return Ok(Self::SetPosition(
+                    SetPositionMessageKind::StartingPosition { moves },
+                ));
+            }
             GuiToEngineMessagePointer::Go => {
                 let search_moves = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::SearchMoves))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::SearchMoves,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let ponder = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::Ponder))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::Ponder,
+                    ))
                     .is_some();
 
                 let white_time = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::WhiteTime))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::WhiteTime,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let black_time = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::BlackTime))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::BlackTime,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let white_increment = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::WhiteIncrement))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::WhiteIncrement,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let black_increment = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::BlackIncrement))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::BlackIncrement,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let moves_to_go = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::MovesToGo))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::MovesToGo,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let depth = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::Depth))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::Depth,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let nodes = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::Nodes))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::Nodes,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let mate = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::Mate))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::Mate,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let move_time = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::MoveTime))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::MoveTime,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let infinite = raw_uci_message
                     .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(GuiToEngineMessageGoParameterPointer::Infinite))
+                    .get(&GuiToEngineMessageParameterPointer::Go(
+                        GuiToEngineMessageGoParameterPointer::Infinite,
+                    ))
                     .is_some();
 
                 return Ok(Self::Go(GoMessage {
@@ -217,8 +263,8 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     move_time,
                     infinite,
                 }));
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         let Some(value) = raw_uci_message.value else {
@@ -230,13 +276,13 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
             GuiToEngineMessagePointer::Debug => match value.as_bytes() {
                 b"on" => return Ok(Self::Debug(true)),
                 b"off" => return Ok(Self::Debug(false)),
-                _ => {},
+                _ => {}
             },
             GuiToEngineMessagePointer::Register => match value.as_bytes() {
                 b"later" => return Ok(Self::Register(RegisterMessageKind::Later)),
-                _ => {},
+                _ => {}
             },
-            _ => {},
+            _ => {}
         }
 
         todo!()
@@ -253,9 +299,9 @@ impl Display for GuiToEngineMessage {
                 write!(f, "setoption name {name}")
             }
             Self::SetOption(SetOptionMessage {
-                                value: Some(value),
-                                name,
-                            }) => write!(f, "setoption name {name} value {value}"),
+                value: Some(value),
+                name,
+            }) => write!(f, "setoption name {name} value {value}"),
             Self::Register(RegisterMessageKind::Later) => f.write_str("register later"),
             Self::Register(RegisterMessageKind::Name(name)) => write!(f, "register name {name}"),
             Self::Register(RegisterMessageKind::Code(code)) => write!(f, "register code {code}"),
@@ -273,9 +319,9 @@ impl Display for GuiToEngineMessage {
                 write!(f, "position fen {fen}")
             }
             Self::SetPosition(SetPositionMessageKind::Fen {
-                                  fen,
-                                  moves: Some(moves),
-                              }) => write!(f, "position fen {fen} moves {}", &moves),
+                fen,
+                moves: Some(moves),
+            }) => write!(f, "position fen {fen} moves {}", &moves),
             Self::Go(message) => {
                 f.write_str("go")?;
 

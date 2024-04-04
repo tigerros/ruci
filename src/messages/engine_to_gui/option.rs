@@ -1,6 +1,7 @@
+use std::str::FromStr;
 
-#[derive(Debug, Copy, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-option-type>
+#[derive(Debug, Copy, Clone)]
 pub enum OptionMessageTypeField {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check,
@@ -12,6 +13,21 @@ pub enum OptionMessageTypeField {
     Button,
     /// <https://backscattering.de/chess/uci/#engine-option-type-string>
     String,
+}
+
+impl FromStr for OptionMessageTypeField {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "check" => Ok(Self::Check),
+            "spin" => Ok(Self::Spin),
+            "combo" => Ok(Self::Combo),
+            "button" => Ok(Self::Button),
+            "string" => Ok(Self::String),
+            _ => Err(())
+        }
+    }
 }
 
 #[derive(Debug)]

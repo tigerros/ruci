@@ -21,7 +21,7 @@ where
 #[derive(Debug, Clone)]
 pub enum ParameterValue {
     Some(String),
-    Void
+    Void,
 }
 
 impl ParameterValue {
@@ -98,7 +98,10 @@ where
                 } else if let Some(last_parameter_some) = last_parameter {
                     //println!("Last parameter exists: {last_parameter_some:?}");
                     if parameter_pointer.has_value() {
-                        parameters.insert(last_parameter_some, ParameterValue::Some(current_value.trim().to_string()));
+                        parameters.insert(
+                            last_parameter_some,
+                            ParameterValue::Some(current_value.trim().to_string()),
+                        );
                     } else {
                         parameters.insert(last_parameter_some, ParameterValue::Void);
                     }
@@ -142,7 +145,7 @@ where
             f.write_char(' ')?;
             f.write_str(parameter.as_string())?;
             f.write_char(' ')?;
-            
+
             if let ParameterValue::Some(parameter_value) = parameter_value {
                 f.write_str(parameter_value)?;
             }

@@ -37,7 +37,7 @@ macro_rules! define_message_enum {
                     }
                 }
             }
-            
+
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
             $vis enum [< $ident Pointer >] {
                 $(

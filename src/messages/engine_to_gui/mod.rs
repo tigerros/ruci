@@ -2,9 +2,9 @@ dry_mods::mods! {
     mod pub use id, best_move, copy_protection, info, option, registration;
 }
 
-use std::fmt::{Display, Formatter};
-use crate::{define_message_enum, MessageTryFromRawUciMessageError, RawUciMessage};
 use crate::UciMoveList;
+use crate::{define_message_enum, MessageTryFromRawUciMessageError, RawUciMessage};
+use std::fmt::{Display, Formatter};
 
 define_message_enum! {
     pub enum EngineToGuiMessage {
@@ -40,7 +40,7 @@ define_message_enum! {
 }
 
 impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParameterPointer>>
-for EngineToGuiMessage
+    for EngineToGuiMessage
 {
     type Error = MessageTryFromRawUciMessageError;
 
@@ -65,13 +65,14 @@ for EngineToGuiMessage
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Id(
                         EngineToGuiMessageIdParameterPointer::Name,
-                    )).and_then(|p| p.some());
-                let author =
-                    raw_uci_message
-                        .parameters
-                        .get(&EngineToGuiMessageParameterPointer::Id(
-                            EngineToGuiMessageIdParameterPointer::Author,
-                        )).and_then(|p| p.some());
+                    ))
+                    .and_then(|p| p.some());
+                let author = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::Id(
+                        EngineToGuiMessageIdParameterPointer::Author,
+                    ))
+                    .and_then(|p| p.some());
 
                 if let Some(name) = name {
                     if let Some(author) = author {
@@ -93,7 +94,8 @@ for EngineToGuiMessage
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Depth,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| {
                         s.parse().ok().map(|depth| InfoMessageDepthField {
                             depth,
@@ -101,7 +103,8 @@ for EngineToGuiMessage
                                 .parameters
                                 .get(&EngineToGuiMessageParameterPointer::Info(
                                     EngineToGuiMessageInfoParameterPointer::SelectiveSearchDepth,
-                                )).and_then(|p| p.some())
+                                ))
+                                .and_then(|p| p.some())
                                 .and_then(|s| s.parse().ok()),
                         })
                     });
@@ -110,35 +113,40 @@ for EngineToGuiMessage
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Time,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let nodes = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Nodes,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let primary_variation = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::PrimaryVariation,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let multi_primary_variation = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::MultiPrimaryVariation,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let score = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Score,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .map(|s| {
                         let split = s.split(' ').collect::<Vec<_>>();
                         let mut split_iter = split.iter();
@@ -176,62 +184,72 @@ for EngineToGuiMessage
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CurrentMove,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let current_move_number = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CurrentMoveNumber,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let hash_full = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::HashFull,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let nodes_per_second = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::NodesPerSecond,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let table_base_hits = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::TableBaseHits,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let shredder_base_hits = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::ShredderBaseHits,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let cpu_load = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CpuLoad,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let string = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::String,
-                    )).and_then(|p| p.some()).cloned();
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned();
 
                 let refutation = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::Refutation,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.parse::<UciMoveList>().ok())
                     .and_then(|move_list| {
                         let Some(refuted_move) = move_list.0.first() else {
@@ -252,7 +270,8 @@ for EngineToGuiMessage
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Info(
                         EngineToGuiMessageInfoParameterPointer::CurrentLine,
-                    )).and_then(|p| p.some())
+                    ))
+                    .and_then(|p| p.some())
                     .and_then(|s| s.split_once(' '))
                     .and_then(|(used_cpu, line)| {
                         let Ok(used_cpu) = used_cpu.parse() else {
@@ -291,39 +310,55 @@ for EngineToGuiMessage
             EngineToGuiMessagePointer::Option => {
                 let Some(name) = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Name))
-                    .and_then(|p| p.some()).cloned() else {
+                    .get(&EngineToGuiMessageParameterPointer::Option(
+                        EngineToGuiMessageOptionParameterPointer::Name,
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned()
+                else {
                     return Err(Self::Error::ParameterError);
                 };
 
                 let Some(r#type) = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Type))
+                    .get(&EngineToGuiMessageParameterPointer::Option(
+                        EngineToGuiMessageOptionParameterPointer::Type,
+                    ))
                     .and_then(|p| p.some())
-                    .and_then(|s| s.parse().ok()) else {
+                    .and_then(|s| s.parse().ok())
+                else {
                     return Err(Self::Error::ParameterError);
                 };
 
                 let default = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Default))
-                    .and_then(|p| p.some()).cloned();
+                    .get(&EngineToGuiMessageParameterPointer::Option(
+                        EngineToGuiMessageOptionParameterPointer::Default,
+                    ))
+                    .and_then(|p| p.some())
+                    .cloned();
 
                 let min = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Min))
+                    .get(&EngineToGuiMessageParameterPointer::Option(
+                        EngineToGuiMessageOptionParameterPointer::Min,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let max = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Max))
+                    .get(&EngineToGuiMessageParameterPointer::Option(
+                        EngineToGuiMessageOptionParameterPointer::Max,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let var = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::Option(EngineToGuiMessageOptionParameterPointer::Var))
+                    .get(&EngineToGuiMessageParameterPointer::Option(
+                        EngineToGuiMessageOptionParameterPointer::Var,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
@@ -335,7 +370,7 @@ for EngineToGuiMessage
                     max,
                     var,
                 }));
-            },
+            }
             _ => {}
         }
 
@@ -352,30 +387,29 @@ for EngineToGuiMessage
 
                 let ponder = raw_uci_message
                     .parameters
-                    .get(&EngineToGuiMessageParameterPointer::BestMove(EngineToGuiMessageBestMoveParameterPointer::Ponder))
+                    .get(&EngineToGuiMessageParameterPointer::BestMove(
+                        EngineToGuiMessageBestMoveParameterPointer::Ponder,
+                    ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
-                return Ok(Self::BestMove(BestMoveMessage {
-                    r#move,
-                    ponder,
-                }));
-            },
+                return Ok(Self::BestMove(BestMoveMessage { r#move, ponder }));
+            }
             EngineToGuiMessagePointer::CopyProtection => {
                 let Ok(kind) = value.parse() else {
                     return Err(Self::Error::ValueError);
                 };
 
                 return Ok(Self::CopyProtection(kind));
-            },
+            }
             EngineToGuiMessagePointer::Registration => {
                 let Ok(kind) = value.parse() else {
                     return Err(Self::Error::ValueError);
                 };
 
                 return Ok(Self::Registration(kind));
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         Err(Self::Error::ValueError)

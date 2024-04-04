@@ -27,16 +27,16 @@
 
 mod define_message_enum;
 pub mod messages;
-mod traits;
 mod raw_uci_message;
+mod traits;
 mod uci_move_list;
 
 pub(crate) use define_message_enum::define_message_enum;
-pub use traits::*;
-pub use raw_uci_message::*;
-pub use uci_move_list::UciMoveList;
 use messages::engine_to_gui::*;
 use messages::gui_to_engine::*;
+pub use raw_uci_message::*;
+pub use traits::*;
+pub use uci_move_list::UciMoveList;
 
 use shakmaty::uci::Uci as UciMove;
 use std::io;
@@ -56,13 +56,13 @@ pub struct GuiToEngineUci {
 #[derive(Debug)]
 pub enum UciWriteError {
     StdinIsNone,
-    Io(io::Error)
+    Io(io::Error),
 }
 
 #[derive(Debug)]
 pub enum UciReadError {
     StdoutIsNone,
-    Io(io::Error)
+    Io(io::Error),
 }
 
 impl GuiToEngineUci {
@@ -80,7 +80,9 @@ impl GuiToEngineUci {
             return Err(UciWriteError::StdinIsNone);
         };
 
-        stdin.write_all(message.as_bytes()).map_err(UciWriteError::Io)?;
+        stdin
+            .write_all(message.as_bytes())
+            .map_err(UciWriteError::Io)?;
 
         Ok(())
     }

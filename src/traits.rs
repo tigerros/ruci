@@ -1,9 +1,11 @@
+use crate::RawUciMessage;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::str::FromStr;
-use crate::RawUciMessage;
 
-pub trait Message: Debug + TryFrom<RawUciMessage<Self::MessagePointer, Self::MessageParameterPointer>> + Display {
+pub trait Message:
+    Debug + TryFrom<RawUciMessage<Self::MessagePointer, Self::MessageParameterPointer>> + Display
+{
     type MessagePointer: MessagePointer;
     type MessageParameterPointer: MessageParameterPointer<MessagePointer = Self::MessagePointer>;
     fn pointer(&self) -> Self::MessagePointer;
