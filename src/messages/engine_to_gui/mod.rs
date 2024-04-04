@@ -1,150 +1,12 @@
-use crate::{define_message_enum, ParameterValue, RawUciMessage};
+dry_mods::mods! {
+    mod pub use id, best_move, copy_protection, info, option, registration;
+}
+
+use std::fmt::{Display, Formatter};
+use crate::{define_message_enum, MessageTryFromRawUciMessageError, RawUciMessage};
 use crate::UciMoveList;
-use shakmaty::uci::Uci as UciMove;
-
-#[derive(Debug)]
-/// <https://backscattering.de/chess/uci/#engine-id>
-pub enum IdMessageKind {
-    /// <https://backscattering.de/chess/uci/#engine-id-name>
-    Name(String),
-    /// <https://backscattering.de/chess/uci/#engine-id-author>
-    Author(String),
-    NameAndAuthor(String, String),
-}
-
-#[derive(Debug)]
-pub struct BestMoveMessage {
-    pub r#move: UciMove,
-    pub ponder: Option<UciMove>,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum CopyProtectionMessageKind {
-    Ok,
-    Error,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum RegistrationMessageKind {
-    Checking,
-    Ok,
-    Error,
-}
-
-#[derive(Debug)]
-/// <https://backscattering.de/chess/uci/#engine-info-depth>
-pub struct InfoMessageDepthField {
-    /// <https://backscattering.de/chess/uci/#engine-info-depth>
-    pub depth: usize,
-    /// <https://backscattering.de/chess/uci/#engine-info-seldepth>
-    pub selective_search_depth: Option<usize>,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum InfoMessageScoreFieldBound {
-    /// If neither `lowerbound` nor `upperbound` is present.
-    Unspecified,
-    /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
-    Lowerbound,
-    /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
-    Upperbound,
-}
-
-#[derive(Debug)]
-/// <https://backscattering.de/chess/uci/#engine-info-score>
-pub struct InfoMessageScoreField {
-    /// <https://backscattering.de/chess/uci/#engine-info-score-cp>
-    pub centipawns: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-score-mate>
-    pub mate_in: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
-    /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
-    pub bound: InfoMessageScoreFieldBound,
-}
-
-#[derive(Debug)]
-/// <https://backscattering.de/chess/uci/#engine-info-refutation>
-pub struct InfoMessageRefutationField {
-    pub refuted_move: UciMove,
-    pub refutation: UciMoveList,
-}
-
-#[derive(Debug)]
-/// <https://backscattering.de/chess/uci/#engine-info-currline>
-pub struct InfoMessageCurrentLineField {
-    pub used_cpu: Option<usize>,
-    pub line: UciMoveList,
-}
-
-#[derive(Debug)]
-pub struct InfoMessage {
-    /// <https://backscattering.de/chess/uci/#engine-info-depth>
-    pub depth: Option<InfoMessageDepthField>,
-    /// <https://backscattering.de/chess/uci/#engine-info-time>
-    pub time: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-nodes>
-    pub nodes: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-pv>
-    pub primary_variation: Option<UciMoveList>,
-    /// <https://backscattering.de/chess/uci/#engine-info-multipv>
-    pub multi_primary_variation: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-score>
-    pub score: Option<InfoMessageScoreField>,
-    /// <https://backscattering.de/chess/uci/#engine-info-currmove>
-    pub current_move: Option<UciMove>,
-    /// <https://backscattering.de/chess/uci/#engine-info-currmovenumber>
-    pub current_move_number: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-hashfull>
-    pub hash_full: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-nps>
-    pub nodes_per_second: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-tbhits>
-    pub table_base_hits: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-sbhits>
-    pub shredder_base_hits: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-cpuload>
-    pub cpu_load: Option<usize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-string>
-    pub string: Option<String>,
-    /// <https://backscattering.de/chess/uci/#engine-info-refutation>
-    pub refutation: Option<InfoMessageRefutationField>,
-    /// <https://backscattering.de/chess/uci/#engine-info-currline>
-    pub current_line: Option<InfoMessageCurrentLineField>,
-}
-
-#[derive(Debug, Copy, Clone)]
-/// <https://backscattering.de/chess/uci/#engine-option-type>
-pub enum OptionMessageTypeField {
-    /// <https://backscattering.de/chess/uci/#engine-option-type-check>
-    Check,
-    /// <https://backscattering.de/chess/uci/#engine-option-type-spin>
-    Spin,
-    /// <https://backscattering.de/chess/uci/#engine-option-type-combo>
-    Combo,
-    /// <https://backscattering.de/chess/uci/#engine-option-type-button>
-    Button,
-    /// <https://backscattering.de/chess/uci/#engine-option-type-string>
-    String,
-}
-
-#[derive(Debug)]
-pub struct OptionMessage {
-    /// <https://backscattering.de/chess/uci/#engine-option-name>
-    pub name: String,
-    /// <https://backscattering.de/chess/uci/#engine-option-type>
-    pub r#type: OptionMessageTypeField,
-    /// <https://backscattering.de/chess/uci/#engine-option-default>
-    pub default: Option<String>,
-    /// <https://backscattering.de/chess/uci/#engine-option-min>
-    pub min: Option<isize>,
-    /// <https://backscattering.de/chess/uci/#engine-option-max>
-    pub max: Option<isize>,
-    /// <https://backscattering.de/chess/uci/#engine-option-var>
-    pub var: Option<String>,
-}
 
 define_message_enum! {
-    #[derive(Debug)]
     pub enum EngineToGuiMessage {
         /// <https://backscattering.de/chess/uci/#engine-id>
         %["id"]
@@ -177,17 +39,10 @@ define_message_enum! {
     }
 }
 
-#[derive(Debug)]
-pub enum EngineToGuiMessageTryFromRawUciMessageError {
-    // TODO: Better errors
-    NeedParameters,
-    NeedValue,
-}
-
 impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParameterPointer>>
-    for EngineToGuiMessage
+for EngineToGuiMessage
 {
-    type Error = EngineToGuiMessageTryFromRawUciMessageError;
+    type Error = MessageTryFromRawUciMessageError;
 
     #[allow(clippy::too_many_lines)]
     fn try_from(
@@ -231,7 +86,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     return Ok(Self::Id(IdMessageKind::Author(author.to_string())));
                 }
 
-                return Err(Self::Error::NeedParameters);
+                return Err(Self::Error::ParameterError);
             }
             EngineToGuiMessagePointer::Info => {
                 let depth = raw_uci_message
@@ -442,10 +297,55 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     max: None,
                     var: None,
                 }));
-            }
-            _ => todo!(),
+            },
+            _ => {}
         }
 
         // Messages with parameters/values
+        let Some(value) = raw_uci_message.value else {
+            return Err(Self::Error::ValueError);
+        };
+
+        match raw_uci_message.message_pointer {
+            EngineToGuiMessagePointer::BestMove => {
+                let Ok(r#move) = value.parse() else {
+                    return Err(Self::Error::ValueError);
+                };
+
+                let ponder = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::BestMove(EngineToGuiMessageBestMoveParameterPointer::Ponder))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok());
+
+                return Ok(Self::BestMove(BestMoveMessage {
+                    r#move,
+                    ponder,
+                }));
+            },
+            EngineToGuiMessagePointer::CopyProtection => {
+                let Ok(kind) = value.parse() else {
+                    return Err(Self::Error::ValueError);
+                };
+
+                return Ok(Self::CopyProtection(kind));
+            },
+            EngineToGuiMessagePointer::Registration => {
+                let Ok(kind) = value.parse() else {
+                    return Err(Self::Error::ValueError);
+                };
+
+                return Ok(Self::Registration(kind));
+            },
+            _ => {},
+        }
+
+        Err(Self::Error::ValueError)
+    }
+}
+
+impl Display for EngineToGuiMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

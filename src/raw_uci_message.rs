@@ -34,6 +34,13 @@ impl ParameterValue {
     }
 }
 
+#[derive(Debug)]
+pub enum MessageTryFromRawUciMessageError {
+    // TODO: Better errors
+    ParameterError,
+    ValueError,
+}
+
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
 pub enum RawUciMessageParseError {
