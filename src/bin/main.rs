@@ -1,8 +1,10 @@
 use std::fmt::{Display, Formatter, Write};
 use std::io::Read;
 use std::process::Command;
-use ruci::{EngineToGuiMessage, EngineToGuiMessageParameterPointer, EngineToGuiMessagePointer, GoMessage, GuiToEngineMessage, GuiToEngineMessageParameterPointer, GuiToEngineMessagePointer, GuiToEngineUci, RawUciMessage, SetOptionMessage, SetPositionMessageKind};
 use std::str::FromStr;
+use ruci::messages::engine_to_gui::{EngineToGuiMessage, EngineToGuiMessageParameterPointer, EngineToGuiMessagePointer};
+use ruci::messages::gui_to_engine::{GuiToEngineMessage, GuiToEngineMessageParameterPointer, GuiToEngineMessagePointer};
+use ruci::RawUciMessage;
 
 fn main() {
     // let mut gteuci = GuiToEngineUci::new("stockfish").unwrap();
@@ -47,20 +49,22 @@ fn main() {
     // let response = gteuci.read_line().unwrap();
     // 
     // println!("Stockfish response: [{response}]");
+
+    let raw_message_go =
+        RawUciMessage::<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>::from_str(
+            "go depth 13 ponder nodes 50",
+        )
+            .unwrap();
+
+    let msg_go = GuiToEngineMessage::try_from(raw_message_go).unwrap();
+
+    println!("{:#?}", msg_go);
     
     let raw_message =
         RawUciMessage::<EngineToGuiMessagePointer, EngineToGuiMessageParameterPointer>::from_str(
             "info depth 10 seldepth 12 multipv 1 score cp 31 nodes 7103 nps 591916 hashfull 4 tbhits 0 time 12 pv d2d4 d7d5 e2e3 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3",
         )
         .unwrap();
-
-    let raw_message =
-        RawUciMessage::<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>::from_str(
-            "go ponder depth 20",
-        )
-            .unwrap();
-    println!("{:#?}", raw_message);
-    println!("Message tostring: {raw_message}");
     
     let message = EngineToGuiMessage::try_from(raw_message).unwrap();
     

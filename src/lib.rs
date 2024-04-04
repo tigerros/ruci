@@ -26,36 +26,22 @@
 )]
 
 mod define_message_enum;
-mod engine_to_gui_message;
-mod gui_to_engine_message;
+pub mod messages;
 mod traits;
 mod raw_uci_message;
 mod uci_move_list;
 
 pub(crate) use define_message_enum::define_message_enum;
-pub use engine_to_gui_message::*;
-pub use gui_to_engine_message::*;
 pub use traits::*;
 pub use raw_uci_message::*;
 pub use uci_move_list::UciMoveList;
+use messages::engine_to_gui::*;
+use messages::gui_to_engine::*;
 
 use shakmaty::uci::Uci as UciMove;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, Command, Stdio};
-use std::ptr::read;
-
-pub(crate) fn join_uci_moves(moves: &[UciMove]) -> String {
-    // AFAIK the maximum length of a UCI move is 5 chars
-    let mut moves_joined = String::with_capacity(moves.len().saturating_mul(5));
-
-    for r#move in moves {
-        moves_joined.push_str(&r#move.to_string());
-        moves_joined.push(' ');
-    }
-
-    moves_joined
-}
 
 pub enum Message {
     GuiToEngine(GuiToEngineMessage),

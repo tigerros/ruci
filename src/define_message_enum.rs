@@ -16,6 +16,7 @@ macro_rules! define_message_enum {
         }
     ) => {
         $(#[$attr])*
+        #[derive(Debug)]
         $vis enum $ident {
             $(
             $(#[$message_attr])*
@@ -25,8 +26,10 @@ macro_rules! define_message_enum {
         }
 
         ::paste::paste! {
-            impl $ident {
-                pub fn pointer(&self) -> [< $ident Pointer >] {
+            impl $crate::traits::Message for $ident {
+                type MessagePointer = [< $ident Pointer >];
+                type MessageParameterPointer = [< $ident ParameterPointer >];
+                fn pointer(&self) -> Self::MessagePointer {
                     match self {
                         $(
                         Self::$message_ident$((define_message_enum!(dotdot=$has_arguments)))? => [< $ident Pointer >]::$message_ident
@@ -75,7 +78,7 @@ macro_rules! define_message_enum {
                 }
             }
 
-            impl $crate::MessageParameterPointer for [< $ident ParameterPointer >] {
+            impl $crate::traits::MessageParameterPointer for [< $ident ParameterPointer >] {
                 type MessagePointer = [< $ident Pointer >];
 
                 fn as_string(self) -> &'static str {
@@ -128,7 +131,7 @@ macro_rules! define_message_enum {
                 }
             }
 
-            impl $crate::MessagePointer for [< $ident Pointer >] {
+            impl $crate::traits::MessagePointer for [< $ident Pointer >] {
                 fn as_string(self) -> &'static str {
                     match self {
                         $(Self::$message_ident => $message_string),+
