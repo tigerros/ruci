@@ -26,7 +26,7 @@ pub enum ParameterValue {
 
 impl ParameterValue {
     /// If `self` is [`ParameterValue::Some`], returns [`Some`], if `self` is [`ParameterValue::Void`], returns `None`.
-    pub fn some(&self) -> Option<&String> {
+    pub const fn some(&self) -> Option<&String> {
         match self {
             Self::Some(s) => Some(s),
             Self::Void => None,

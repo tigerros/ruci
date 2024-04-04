@@ -116,6 +116,10 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
+                
+                println!("infotime: {:?}", 
+                         raw_uci_message.parameters
+                             .get(&EngineToGuiMessageParameterPointer::Info(EngineToGuiMessageInfoParameterPointer::Time)));
 
                 let nodes = raw_uci_message
                     .parameters
@@ -418,6 +422,142 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
 
 impl Display for EngineToGuiMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            EngineToGuiMessage::Id(kind) => {
+                f.write_str("id ")?;
+
+                match kind {
+                    IdMessageKind::Name(name) => write!(f, "name {name}"),
+                    IdMessageKind::Author(author) => write!(f, "author {author}"),
+                    IdMessageKind::NameAndAuthor(name, author) => write!(f, "name {name} author {author}"),
+                }
+            },
+            EngineToGuiMessage::UciOk => f.write_str("uciok"),
+            EngineToGuiMessage::ReadyOk => f.write_str("readyok"),
+            EngineToGuiMessage::BestMove(message) => {
+                write!(f, "bestmove {}", message.r#move)?;
+
+                if let Some(ponder) = &message.ponder {
+                    write!(f, " {ponder}")?;
+                }
+
+                Ok(())
+            },
+            EngineToGuiMessage::CopyProtection(kind) => write!(f, "copyprotection {kind}"),
+            EngineToGuiMessage::Registration(kind) => write!(f, "registration {kind}"),
+            EngineToGuiMessage::Info(info) => {
+                f.write_str("info")?;
+
+                if let Some(depth) = &info.depth {
+                    write!(f, " depth {}", depth.depth)?;
+
+                    if let Some(selective_search_depth) = depth.selective_search_depth {
+                        write!(f, " seldepth {selective_search_depth}")?;
+                    }
+                }
+
+                if let Some(time) = info.time {
+                    write!(f, " time {time}")?;
+                }
+
+                if let Some(nodes) = info.nodes {
+                    write!(f, " nodes {nodes}")?;
+                }
+
+                if let Some(primary_variation) = &info.primary_variation {
+                    write!(f, " pv {primary_variation}")?;
+                }
+
+                if let Some(multi_primary_variation) = info.multi_primary_variation {
+                    write!(f, " multipv {multi_primary_variation}")?;
+                }
+
+                if let Some(score) = &info.score {
+                    if let Some(centipawns) = score.centipawns {
+                        write!(f, " cp {centipawns}")?;
+                    }
+
+                    if let Some(mate_in) = score.mate_in {
+                        write!(f, " matein {mate_in}")?;
+                    }
+
+                    match score.bound {
+                        InfoMessageScoreFieldBound::Upperbound => f.write_str(" upperbound")?,
+                        InfoMessageScoreFieldBound::Lowerbound => f.write_str(" lowerbound")?,
+                        InfoMessageScoreFieldBound::Unspecified => {}
+                    }
+                }
+
+                if let Some(current_move) = &info.current_move {
+                    write!(f, " currmove {current_move}")?;
+                }
+
+                if let Some(current_move_number) = info.current_move_number {
+                    write!(f, " currmovenumber {current_move_number}")?;
+                }
+
+                if let Some(hash_full) = info.hash_full {
+                    write!(f, " hashfull {hash_full}")?;
+                }
+
+                if let Some(nodes_per_second) = info.nodes_per_second {
+                    write!(f, " nps {nodes_per_second}")?;
+                }
+
+                if let Some(table_base_hits) = info.table_base_hits {
+                    write!(f, " tbhits {table_base_hits}")?;
+                }
+
+                if let Some(shredder_base_hits) = info.shredder_base_hits {
+                    write!(f, " sbhits {shredder_base_hits}")?;
+                }
+
+                if let Some(cpu_load) = info.cpu_load {
+                    write!(f, " cpuload {cpu_load}")?;
+                }
+
+                if let Some(string) = &info.string {
+                    write!(f, " string {string}")?;
+                }
+
+                if let Some(refutation) = &info.refutation {
+                    write!(f, " refutation {} ", refutation.refuted_move)?;
+                    f.write_str(&refutation.refutation.to_string())?;
+                }
+
+                if let Some(current_line) = &info.current_line {
+                    f.write_str("currline ")?;
+
+                    if let Some(used_cpu) = current_line.used_cpu {
+                        f.write_str(&used_cpu.to_string())?;
+                    }
+
+                    f.write_str(&current_line.line.to_string())?;
+                }
+
+                Ok(())
+            },
+            EngineToGuiMessage::Option(option) => {
+                write!(f, "option name {} type {}", option.name, option.r#type);
+
+                if let Some(default) = &option.default {
+                    write!(f, " default {default}")?;
+                }
+
+                if let Some(min) = option.min {
+                    write!(f, " min {min}")?;
+                }
+
+                if let Some(max) = option.max {
+                    write!(f, " max {max}")?;
+                }
+
+                if let Some(var) = &option.var {
+                    write!(f, " var {var}")?;
+                }
+                
+                Ok(())
+            },
+        }
     }
 }

@@ -2,7 +2,7 @@ use shakmaty::uci::Uci as UciMove;
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UciMoveList(pub Vec<UciMove>);
 
 impl FromStr for UciMoveList {

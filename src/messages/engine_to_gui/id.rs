@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-id>
 pub enum IdMessageKind {
     /// <https://backscattering.de/chess/uci/#engine-id-name>

@@ -1,7 +1,7 @@
 use crate::UciMoveList;
 use shakmaty::uci::Uci as UciMove;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
 pub struct InfoMessageDepthField {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
@@ -20,7 +20,7 @@ pub enum InfoMessageScoreFieldBound {
     Upperbound,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 pub struct InfoMessageScoreField {
     /// <https://backscattering.de/chess/uci/#engine-info-score-cp>
@@ -32,21 +32,21 @@ pub struct InfoMessageScoreField {
     pub bound: InfoMessageScoreFieldBound,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct InfoMessageRefutationField {
     pub refuted_move: UciMove,
     pub refutation: UciMoveList,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct InfoMessageCurrentLineField {
     pub used_cpu: Option<usize>,
     pub line: UciMoveList,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfoMessage {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: Option<InfoMessageDepthField>,

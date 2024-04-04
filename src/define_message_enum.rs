@@ -16,7 +16,7 @@ macro_rules! define_message_enum {
         }
     ) => {
         $(#[$attr])*
-        #[derive(Debug)]
+        #[derive(Debug, Clone)]
         $vis enum $ident {
             $(
             $(#[$message_attr])*
@@ -121,12 +121,12 @@ macro_rules! define_message_enum {
                             $($(
                             #[allow(unused_doc_comments)]
                             #[doc = define_message_enum!(empty_string=$has_value)]
-                            [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => true,
+                            [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => false,
                             )?)+
-                            _ => false
+                            _ => true
                         },
                         )?)+
-                        _ => false
+                        _ => true
                     }
                 }
             }

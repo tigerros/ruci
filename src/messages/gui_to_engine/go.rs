@@ -1,7 +1,7 @@
 use std::num::NonZeroUsize;
 use crate::UciMoveList;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GoMessage {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
     pub search_moves: Option<UciMoveList>,

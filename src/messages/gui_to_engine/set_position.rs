@@ -1,6 +1,6 @@
 use crate::UciMoveList;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SetPositionMessageKind {
     StartingPosition {
         moves: Option<UciMoveList>,

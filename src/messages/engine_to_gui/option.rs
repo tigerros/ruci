@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 /// <https://backscattering.de/chess/uci/#engine-option-type>
@@ -30,7 +31,19 @@ impl FromStr for OptionMessageTypeField {
     }
 }
 
-#[derive(Debug)]
+impl Display for OptionMessageTypeField {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Check => f.write_str("check"),
+            Self::Spin => f.write_str("spin"),
+            Self::Combo => f.write_str("combo"),
+            Self::Button => f.write_str("button"),
+            Self::String => f.write_str("string"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct OptionMessage {
     /// <https://backscattering.de/chess/uci/#engine-option-name>
     pub name: String,
