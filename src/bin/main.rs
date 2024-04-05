@@ -44,6 +44,10 @@ fn main() {
     .to_string();
     conn.write_all(&go).unwrap();
 
+    while let Ok(line) = conn.read_line() {
+        print!("Engine:{line}");
+    }
+
     // let raw_message_go = RawUciMessage::<
     //     GuiToEngineMessagePointer,
     //     GuiToEngineMessageParameterPointer,

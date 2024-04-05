@@ -48,7 +48,6 @@ pub enum Message {
     EngineToGui(EngineToGuiMessage),
 }
 
-// TODO: Finish. Take inspiration from the "uci" crate. Can't use that crate directly cause of bad, panicking code.
 pub struct UciConnection {
     pub process: Child,
 }
