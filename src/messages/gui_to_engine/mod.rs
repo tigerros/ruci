@@ -302,7 +302,7 @@ impl Display for GuiToEngineMessage {
             Self::SetOption(SetOptionMessage {
                 value: Some(value),
                 name,
-            }) => write!(f, "setoption name {name} _value {value}")?,
+            }) => write!(f, "setoption name {name} value {value}")?,
             Self::SetOption(SetOptionMessage { name, .. }) => write!(f, "setoption name {name}")?,
             Self::Register(RegisterMessageKind::Later) => f.write_str("register later")?,
             Self::Register(RegisterMessageKind::Name(name)) => write!(f, "register name {name}")?,
