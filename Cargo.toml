@@ -2,6 +2,8 @@
 name = "ruci"
 version = "0.1.0"
 edition = "2021"
+description = "A UCI (Universal Chess Interface) crate."
+license = "GPL-3"
 
 [dependencies]
 shakmaty = "0.27.0"
