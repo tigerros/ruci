@@ -1,3 +1,7 @@
+[![docs.rs](https://img.shields.io/docsrs/ruci?logo=docs.rs&label=docs.rs)](https://docs.rs/ruci/)
+[![crates.io](https://img.shields.io/crates/v/ruci?logo=rust)](https://crates.io/crates/ruci)
+[![license](https://img.shields.io/crates/l/ruci)](https://github.com/tigerros/ruci/blob/master/LICENSE)
+
 # RUCI
 
 **Warning: This crate has no tests and I'm not confident in it. I'm publishing it in order to comfortably use it in a another project of mine, I do not guarantee that it works for you.**
