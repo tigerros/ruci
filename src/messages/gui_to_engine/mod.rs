@@ -3,7 +3,7 @@ dry_mods::mods! {
 }
 
 use crate::define_message_enum::define_message_enum;
-use crate::RawUciMessage;
+use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
 use std::fmt::{Debug, Display, Formatter};
 
 define_message_enum! {
@@ -53,27 +53,33 @@ define_message_enum! {
 impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParameterPointer>>
     for GuiToEngineMessage
 {
-    type Error = ();
+    type Error = MessageTryFromRawUciMessageError<GuiToEngineMessageParameterPointer>;
 
+    #[allow(clippy::too_many_lines)]
     fn try_from(
         raw_uci_message: RawUciMessage<
             GuiToEngineMessagePointer,
             GuiToEngineMessageParameterPointer,
         >,
     ) -> Result<Self, Self::Error> {
-        // Parameter-less value-less messages
         match raw_uci_message.message_pointer {
-            GuiToEngineMessagePointer::UseUci => return Ok(Self::UseUci),
-            GuiToEngineMessagePointer::IsReady => return Ok(Self::IsReady),
-            GuiToEngineMessagePointer::UciNewGame => return Ok(Self::UciNewGame),
-            GuiToEngineMessagePointer::Stop => return Ok(Self::Stop),
-            GuiToEngineMessagePointer::PonderHit => return Ok(Self::PonderHit),
-            GuiToEngineMessagePointer::Quit => return Ok(Self::Quit),
-            _ => {}
-        }
-
-        // Value-less messages
-        match raw_uci_message.message_pointer {
+            // Value-less, parameter-less messages
+            GuiToEngineMessagePointer::UseUci => Ok(Self::UseUci),
+            GuiToEngineMessagePointer::IsReady => Ok(Self::IsReady),
+            GuiToEngineMessagePointer::UciNewGame => Ok(Self::UciNewGame),
+            GuiToEngineMessagePointer::Stop => Ok(Self::Stop),
+            GuiToEngineMessagePointer::PonderHit => Ok(Self::PonderHit),
+            GuiToEngineMessagePointer::Quit => Ok(Self::Quit),
+            // Messages with values/parameters
+            GuiToEngineMessagePointer::Debug => match raw_uci_message
+                .value
+                .ok_or(Self::Error::MissingValue)?
+                .as_bytes()
+            {
+                b"on" => Ok(Self::Debug(true)),
+                b"off" => Ok(Self::Debug(false)),
+                _ => Err(Self::Error::ValueParseError),
+            },
             GuiToEngineMessagePointer::SetOption => {
                 let Some(name) = raw_uci_message
                     .parameters
@@ -83,7 +89,11 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .and_then(|p| p.some())
                     .cloned()
                 else {
-                    return Err(());
+                    return Err(Self::Error::MissingParameter(
+                        GuiToEngineMessageParameterPointer::SetOption(
+                            GuiToEngineMessageSetOptionParameterPointer::Name,
+                        ),
+                    ));
                 };
 
                 let value = raw_uci_message
@@ -94,9 +104,15 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .and_then(|p| p.some())
                     .cloned();
 
-                return Ok(Self::SetOption(SetOptionMessage { name, value }));
+                Ok(Self::SetOption(SetOptionMessage { name, value }))
             }
             GuiToEngineMessagePointer::Register => {
+                if let Some(value) = raw_uci_message.value {
+                    if value == "later" {
+                        return Ok(Self::Register(RegisterMessageKind::Later));
+                    }
+                }
+
                 let name = raw_uci_message
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::Register(
@@ -113,17 +129,24 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .and_then(|p| p.some())
                     .cloned();
 
+                #[allow(clippy::option_if_let_else)]
                 if let Some(name) = name {
                     if let Some(code) = code {
-                        return Ok(Self::Register(RegisterMessageKind::NameAndCode {
+                        Ok(Self::Register(RegisterMessageKind::NameAndCode {
                             name,
                             code,
-                        }));
+                        }))
+                    } else {
+                        Ok(Self::Register(RegisterMessageKind::Name(name)))
                     }
-
-                    return Ok(Self::Register(RegisterMessageKind::Name(name)));
                 } else if let Some(code) = code {
-                    return Ok(Self::Register(RegisterMessageKind::Code(code)));
+                    Ok(Self::Register(RegisterMessageKind::Code(code)))
+                } else {
+                    Err(Self::Error::MissingParameter(
+                        GuiToEngineMessageParameterPointer::Register(
+                            GuiToEngineMessageRegisterParameterPointer::Name,
+                        ),
+                    ))
                 }
             }
             GuiToEngineMessagePointer::SetPosition => {
@@ -144,15 +167,15 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .and_then(|s| s.parse().ok());
 
                 if let Some(fen) = fen {
-                    return Ok(Self::SetPosition(SetPositionMessageKind::Fen {
+                    Ok(Self::SetPosition(SetPositionMessageKind::Fen {
                         fen,
                         moves,
-                    }));
+                    }))
+                } else {
+                    Ok(Self::SetPosition(
+                        SetPositionMessageKind::StartingPosition { moves },
+                    ))
                 }
-
-                return Ok(Self::SetPosition(
-                    SetPositionMessageKind::StartingPosition { moves },
-                ));
             }
             GuiToEngineMessagePointer::Go => {
                 let search_moves = raw_uci_message
@@ -249,7 +272,7 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     ))
                     .is_some();
 
-                return Ok(Self::Go(GoMessage {
+                Ok(Self::Go(GoMessage {
                     search_moves,
                     ponder,
                     white_time,
@@ -262,30 +285,9 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     mate,
                     move_time,
                     infinite,
-                }));
+                }))
             }
-            _ => {}
         }
-
-        let Some(value) = raw_uci_message.value else {
-            return Err(());
-        };
-
-        // Messages with parameters/values
-        match raw_uci_message.message_pointer {
-            GuiToEngineMessagePointer::Debug => match value.as_bytes() {
-                b"on" => return Ok(Self::Debug(true)),
-                b"off" => return Ok(Self::Debug(false)),
-                _ => {}
-            },
-            GuiToEngineMessagePointer::Register => match value.as_bytes() {
-                b"later" => return Ok(Self::Register(RegisterMessageKind::Later)),
-                _ => {}
-            },
-            _ => {}
-        }
-
-        todo!()
     }
 }
 

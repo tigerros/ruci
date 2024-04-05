@@ -75,7 +75,7 @@ fn main() {
     if let EngineToGuiMessage::Info(info) = message.clone() {
         println!("{:#?}", info);
     }
-    
+
     println!("info message tostring: {}", message);
 
     //let messages = vampirc_uci::parse("info depth 10 pv d2d4 d7d5 e2e3 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3 seldepth 12 multipv 1 score cp 31 nodes 7103 nps 546384 hashfull 4 tbhits 0 time 13");

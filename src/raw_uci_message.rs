@@ -35,10 +35,14 @@ impl ParameterValue {
 }
 
 #[derive(Debug)]
-pub enum MessageTryFromRawUciMessageError {
-    // TODO: Better errors
-    ParameterError,
-    ValueError,
+pub enum MessageTryFromRawUciMessageError<MessageParameterPtr>
+where
+    MessageParameterPtr: MessageParameterPointer,
+{
+    ParameterParseError(MessageParameterPtr),
+    MissingParameter(MessageParameterPtr),
+    ValueParseError,
+    MissingValue,
 }
 
 #[allow(clippy::module_name_repetitions)]

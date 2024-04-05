@@ -42,7 +42,7 @@ define_message_enum! {
 impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParameterPointer>>
     for EngineToGuiMessage
 {
-    type Error = MessageTryFromRawUciMessageError;
+    type Error = MessageTryFromRawUciMessageError<EngineToGuiMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
     fn try_from(
@@ -51,15 +51,11 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
             EngineToGuiMessageParameterPointer,
         >,
     ) -> Result<Self, Self::Error> {
-        // Parameter-less, value-less messages
         match raw_uci_message.message_pointer {
-            EngineToGuiMessagePointer::UciOk => return Ok(Self::UciOk),
-            EngineToGuiMessagePointer::ReadyOk => return Ok(Self::ReadyOk),
-            _ => (),
-        }
-
-        // Value-less messages
-        match raw_uci_message.message_pointer {
+            // Value-less, parameter-less messages
+            EngineToGuiMessagePointer::UciOk => Ok(Self::UciOk),
+            EngineToGuiMessagePointer::ReadyOk => Ok(Self::ReadyOk),
+            // Messages with values/parameters
             EngineToGuiMessagePointer::Id => {
                 let name = raw_uci_message
                     .parameters
@@ -67,6 +63,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                         EngineToGuiMessageIdParameterPointer::Name,
                     ))
                     .and_then(|p| p.some());
+
                 let author = raw_uci_message
                     .parameters
                     .get(&EngineToGuiMessageParameterPointer::Id(
@@ -74,20 +71,66 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     ))
                     .and_then(|p| p.some());
 
+                #[allow(clippy::option_if_let_else)]
                 if let Some(name) = name {
                     if let Some(author) = author {
-                        return Ok(Self::Id(IdMessageKind::NameAndAuthor(
+                        Ok(Self::Id(IdMessageKind::NameAndAuthor(
                             name.to_string(),
                             author.to_string(),
-                        )));
+                        )))
+                    } else {
+                        Ok(Self::Id(IdMessageKind::Name(name.to_string())))
                     }
-
-                    return Ok(Self::Id(IdMessageKind::Name(name.to_string())));
                 } else if let Some(author) = author {
-                    return Ok(Self::Id(IdMessageKind::Author(author.to_string())));
+                    Ok(Self::Id(IdMessageKind::Author(author.to_string())))
+                } else {
+                    Err(Self::Error::MissingParameter(
+                        EngineToGuiMessageParameterPointer::Id(
+                            EngineToGuiMessageIdParameterPointer::Name,
+                        ),
+                    ))
                 }
+            }
+            EngineToGuiMessagePointer::BestMove => {
+                let Ok(r#move) = raw_uci_message
+                    .value
+                    .ok_or(Self::Error::MissingValue)?
+                    .parse()
+                else {
+                    return Err(Self::Error::ValueParseError);
+                };
 
-                return Err(Self::Error::ParameterError);
+                let ponder = raw_uci_message
+                    .parameters
+                    .get(&EngineToGuiMessageParameterPointer::BestMove(
+                        EngineToGuiMessageBestMoveParameterPointer::Ponder,
+                    ))
+                    .and_then(|p| p.some())
+                    .and_then(|s| s.parse().ok());
+
+                Ok(Self::BestMove(BestMoveMessage { r#move, ponder }))
+            }
+            EngineToGuiMessagePointer::CopyProtection => {
+                let Ok(kind) = raw_uci_message
+                    .value
+                    .ok_or(Self::Error::MissingValue)?
+                    .parse()
+                else {
+                    return Err(Self::Error::ValueParseError);
+                };
+
+                Ok(Self::CopyProtection(kind))
+            }
+            EngineToGuiMessagePointer::Registration => {
+                let Ok(kind) = raw_uci_message
+                    .value
+                    .ok_or(Self::Error::MissingValue)?
+                    .parse()
+                else {
+                    return Err(Self::Error::ValueParseError);
+                };
+
+                Ok(Self::Registration(kind))
             }
             EngineToGuiMessagePointer::Info => {
                 let depth = raw_uci_message
@@ -116,10 +159,6 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     ))
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
-                
-                println!("infotime: {:?}", 
-                         raw_uci_message.parameters
-                             .get(&EngineToGuiMessageParameterPointer::Info(EngineToGuiMessageInfoParameterPointer::Time)));
 
                 let nodes = raw_uci_message
                     .parameters
@@ -320,7 +359,11 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .and_then(|p| p.some())
                     .cloned()
                 else {
-                    return Err(Self::Error::ParameterError);
+                    return Err(Self::Error::MissingParameter(
+                        EngineToGuiMessageParameterPointer::Option(
+                            EngineToGuiMessageOptionParameterPointer::Name,
+                        ),
+                    ));
                 };
 
                 let Some(r#type) = raw_uci_message
@@ -331,7 +374,11 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok())
                 else {
-                    return Err(Self::Error::ParameterError);
+                    return Err(Self::Error::MissingParameter(
+                        EngineToGuiMessageParameterPointer::Option(
+                            EngineToGuiMessageOptionParameterPointer::Type,
+                        ),
+                    ));
                 };
 
                 let default = raw_uci_message
@@ -366,61 +413,21 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
-                return Ok(Self::Option(OptionMessage {
+                Ok(Self::Option(OptionMessage {
                     name,
                     r#type,
                     default,
                     min,
                     max,
                     var,
-                }));
+                }))
             }
-            _ => {}
         }
-
-        // Messages with parameters/values
-        let Some(value) = raw_uci_message.value else {
-            return Err(Self::Error::ValueError);
-        };
-
-        match raw_uci_message.message_pointer {
-            EngineToGuiMessagePointer::BestMove => {
-                let Ok(r#move) = value.parse() else {
-                    return Err(Self::Error::ValueError);
-                };
-
-                let ponder = raw_uci_message
-                    .parameters
-                    .get(&EngineToGuiMessageParameterPointer::BestMove(
-                        EngineToGuiMessageBestMoveParameterPointer::Ponder,
-                    ))
-                    .and_then(|p| p.some())
-                    .and_then(|s| s.parse().ok());
-
-                return Ok(Self::BestMove(BestMoveMessage { r#move, ponder }));
-            }
-            EngineToGuiMessagePointer::CopyProtection => {
-                let Ok(kind) = value.parse() else {
-                    return Err(Self::Error::ValueError);
-                };
-
-                return Ok(Self::CopyProtection(kind));
-            }
-            EngineToGuiMessagePointer::Registration => {
-                let Ok(kind) = value.parse() else {
-                    return Err(Self::Error::ValueError);
-                };
-
-                return Ok(Self::Registration(kind));
-            }
-            _ => {}
-        }
-
-        Err(Self::Error::ValueError)
     }
 }
 
 impl Display for EngineToGuiMessage {
+    #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             EngineToGuiMessage::Id(kind) => {
@@ -429,9 +436,11 @@ impl Display for EngineToGuiMessage {
                 match kind {
                     IdMessageKind::Name(name) => write!(f, "name {name}"),
                     IdMessageKind::Author(author) => write!(f, "author {author}"),
-                    IdMessageKind::NameAndAuthor(name, author) => write!(f, "name {name} author {author}"),
+                    IdMessageKind::NameAndAuthor(name, author) => {
+                        write!(f, "name {name} author {author}")
+                    }
                 }
-            },
+            }
             EngineToGuiMessage::UciOk => f.write_str("uciok"),
             EngineToGuiMessage::ReadyOk => f.write_str("readyok"),
             EngineToGuiMessage::BestMove(message) => {
@@ -442,7 +451,7 @@ impl Display for EngineToGuiMessage {
                 }
 
                 Ok(())
-            },
+            }
             EngineToGuiMessage::CopyProtection(kind) => write!(f, "copyprotection {kind}"),
             EngineToGuiMessage::Registration(kind) => write!(f, "registration {kind}"),
             EngineToGuiMessage::Info(info) => {
@@ -536,7 +545,7 @@ impl Display for EngineToGuiMessage {
                 }
 
                 Ok(())
-            },
+            }
             EngineToGuiMessage::Option(option) => {
                 write!(f, "option name {} type {}", option.name, option.r#type);
 
@@ -555,9 +564,9 @@ impl Display for EngineToGuiMessage {
                 if let Some(var) = &option.var {
                     write!(f, " var {var}")?;
                 }
-                
+
                 Ok(())
-            },
+            }
         }
     }
 }
