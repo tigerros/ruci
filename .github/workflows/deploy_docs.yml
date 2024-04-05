@@ -21,7 +21,7 @@ jobs:
     - name: Doc
       run: cargo doc --no-deps
     - name: Create index.html
-      run: cp target/doc/ruci/index.html target/doc/index.html
+      run: echo "<!DOCTYPE html><head><meta http-equiv='refresh' content='0; url=ruci/index.html'><script type='text/javascript'>window.location.href = 'ruci/index.html'</script></head><body><a href='ruci/index.html'>Doc link</a></body>" > target/doc/index.html
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@v4
       with:
