@@ -2,9 +2,11 @@ dry_mods::mods! {
     mod pub use go, register, set_option, set_position;
 }
 
+// TODO: Tests
+
 use crate::define_message_enum::define_message_enum;
 use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 
 define_message_enum! {
     /// Every message that is sent from the GUI to the engine.
@@ -294,35 +296,33 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
 impl Display for GuiToEngineMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UseUci => f.write_str("uci"),
-            Self::Debug(value) => write!(f, "debug {}", if *value { "on" } else { "off" }),
-            Self::IsReady => f.write_str("isready"),
+            Self::UseUci => f.write_str("uci")?,
+            Self::Debug(value) => write!(f, "debug {}", if *value { "on" } else { "off" })?,
+            Self::IsReady => f.write_str("isready")?,
             Self::SetOption(SetOptionMessage {
                 value: Some(value),
                 name,
-            }) => write!(f, "setoption name {name} _value {value}"),
-            Self::SetOption(SetOptionMessage { name, .. }) => {
-                write!(f, "setoption name {name}")
-            }
-            Self::Register(RegisterMessageKind::Later) => f.write_str("register later"),
-            Self::Register(RegisterMessageKind::Name(name)) => write!(f, "register name {name}"),
-            Self::Register(RegisterMessageKind::Code(code)) => write!(f, "register code {code}"),
+            }) => write!(f, "setoption name {name} _value {value}")?,
+            Self::SetOption(SetOptionMessage { name, .. }) => write!(f, "setoption name {name}")?,
+            Self::Register(RegisterMessageKind::Later) => f.write_str("register later")?,
+            Self::Register(RegisterMessageKind::Name(name)) => write!(f, "register name {name}")?,
+            Self::Register(RegisterMessageKind::Code(code)) => write!(f, "register code {code}")?,
             Self::Register(RegisterMessageKind::NameAndCode { name, code }) => {
-                write!(f, "register name {name} code {code}")
+                write!(f, "register name {name} code {code}")?;
             }
-            Self::UciNewGame => f.write_str("f"),
+            Self::UciNewGame => f.write_str("f")?,
             Self::SetPosition(SetPositionMessageKind::StartingPosition { moves: None }) => {
-                f.write_str("position startpos")
+                f.write_str("position startpos")?;
             }
             Self::SetPosition(SetPositionMessageKind::StartingPosition { moves: Some(moves) }) => {
-                write!(f, "position startpos moves {}", &moves)
+                write!(f, "position startpos moves {}", &moves)?;
             }
             Self::SetPosition(SetPositionMessageKind::Fen {
                 fen,
                 moves: Some(moves),
-            }) => write!(f, "position fen {fen} moves {}", &moves),
+            }) => write!(f, "position fen {fen} moves {}", &moves)?,
             Self::SetPosition(SetPositionMessageKind::Fen { fen, .. }) => {
-                write!(f, "position fen {fen}")
+                write!(f, "position fen {fen}")?;
             }
             Self::Go(message) => {
                 f.write_str("go")?;
@@ -374,12 +374,12 @@ impl Display for GuiToEngineMessage {
                 if message.infinite {
                     f.write_str(" infinite")?;
                 }
-
-                Ok(())
             }
-            Self::Stop => f.write_str("stop"),
-            Self::PonderHit => f.write_str("ponderhit"),
-            Self::Quit => f.write_str("quit"),
+            Self::Stop => f.write_str("stop")?,
+            Self::PonderHit => f.write_str("ponderhit")?,
+            Self::Quit => f.write_str("quit")?,
         }
+
+        f.write_char('\n')
     }
 }

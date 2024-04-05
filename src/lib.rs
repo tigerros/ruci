@@ -38,9 +38,10 @@ pub use raw_uci_message::*;
 pub use traits::*;
 pub use uci_move_list::UciMoveList;
 
-use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
+use std::sync::{Arc, Mutex};
+use std::{io, thread};
 
 pub enum Message {
     GuiToEngine(GuiToEngineMessage),
@@ -48,7 +49,7 @@ pub enum Message {
 }
 
 // TODO: Finish. Take inspiration from the "uci" crate. Can't use that crate directly cause of bad, panicking code.
-pub struct GuiToEngineUci {
+pub struct UciConnection {
     pub process: Child,
 }
 
@@ -64,7 +65,7 @@ pub enum UciReadError {
     Io(io::Error),
 }
 
-impl GuiToEngineUci {
+impl UciConnection {
     pub fn new(engine_path: &str) -> io::Result<Self> {
         let cmd = Command::new(engine_path)
             .stdin(Stdio::piped())

@@ -2,9 +2,11 @@ dry_mods::mods! {
     mod pub use id, best_move, copy_protection, info, option, registration;
 }
 
+// TODO: Tests
+
 use crate::UciMoveList;
 use crate::{define_message_enum, MessageTryFromRawUciMessageError, RawUciMessage};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Write};
 
 define_message_enum! {
     pub enum EngineToGuiMessage {
@@ -434,26 +436,24 @@ impl Display for EngineToGuiMessage {
                 f.write_str("id ")?;
 
                 match kind {
-                    IdMessageKind::Name(name) => write!(f, "name {name}"),
-                    IdMessageKind::Author(author) => write!(f, "author {author}"),
+                    IdMessageKind::Name(name) => write!(f, "name {name}")?,
+                    IdMessageKind::Author(author) => write!(f, "author {author}")?,
                     IdMessageKind::NameAndAuthor(name, author) => {
-                        write!(f, "name {name} author {author}")
+                        write!(f, "name {name} author {author}")?;
                     }
                 }
             }
-            Self::UciOk => f.write_str("uciok"),
-            Self::ReadyOk => f.write_str("readyok"),
+            Self::UciOk => f.write_str("uciok")?,
+            Self::ReadyOk => f.write_str("readyok")?,
             Self::BestMove(message) => {
                 write!(f, "bestmove {}", message.r#move)?;
 
                 if let Some(ponder) = &message.ponder {
                     write!(f, " {ponder}")?;
                 }
-
-                Ok(())
             }
-            Self::CopyProtection(kind) => write!(f, "copyprotection {kind}"),
-            Self::Registration(kind) => write!(f, "registration {kind}"),
+            Self::CopyProtection(kind) => write!(f, "copyprotection {kind}")?,
+            Self::Registration(kind) => write!(f, "registration {kind}")?,
             Self::Info(info) => {
                 f.write_str("info")?;
 
@@ -543,8 +543,6 @@ impl Display for EngineToGuiMessage {
 
                     f.write_str(&current_line.line.to_string())?;
                 }
-
-                Ok(())
             }
             Self::Option(option) => {
                 write!(f, "option name {} type {}", option.name, option.r#type)?;
@@ -564,9 +562,9 @@ impl Display for EngineToGuiMessage {
                 if let Some(var) = &option.var {
                     write!(f, " var {var}")?;
                 }
-
-                Ok(())
             }
         }
+
+        f.write_char('\n')
     }
 }
