@@ -1,6 +1,7 @@
 use crate::UciMoveList;
 use shakmaty::uci::Uci as UciMove;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
 pub struct InfoMessageDepthField {
@@ -10,6 +11,7 @@ pub struct InfoMessageDepthField {
     pub selective_search_depth: Option<usize>,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone)]
 pub enum InfoMessageScoreFieldBound {
     /// If neither `lowerbound` nor `upperbound` is present.
@@ -20,6 +22,7 @@ pub enum InfoMessageScoreFieldBound {
     Upperbound,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 pub struct InfoMessageScoreField {
@@ -32,6 +35,7 @@ pub struct InfoMessageScoreField {
     pub bound: InfoMessageScoreFieldBound,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct InfoMessageRefutationField {
@@ -39,6 +43,7 @@ pub struct InfoMessageRefutationField {
     pub refutation: UciMoveList,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct InfoMessageCurrentLineField {
@@ -46,6 +51,7 @@ pub struct InfoMessageCurrentLineField {
     pub line: UciMoveList,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 pub struct InfoMessage {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>

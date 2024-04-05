@@ -38,9 +38,8 @@ pub use raw_uci_message::*;
 pub use traits::*;
 pub use uci_move_list::UciMoveList;
 
-use shakmaty::uci::Uci as UciMove;
 use std::io;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 
 pub enum Message {

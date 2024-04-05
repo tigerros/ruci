@@ -25,6 +25,7 @@ pub enum ParameterValue {
 }
 
 impl ParameterValue {
+    #[allow(clippy::must_use_candidate)]
     /// If `self` is [`ParameterValue::Some`], returns [`Some`], if `self` is [`ParameterValue::Void`], returns `None`.
     pub const fn some(&self) -> Option<&String> {
         match self {

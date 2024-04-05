@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-/// <https://backscattering.de/chess/uci/#engine-option-type>
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone)]
+/// <https://backscattering.de/chess/uci/#engine-option-type>
 pub enum OptionMessageTypeField {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check,
@@ -43,6 +44,7 @@ impl Display for OptionMessageTypeField {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 pub struct OptionMessage {
     /// <https://backscattering.de/chess/uci/#engine-option-name>

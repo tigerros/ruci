@@ -5,9 +5,6 @@ use ruci::messages::gui_to_engine::{
     GuiToEngineMessage, GuiToEngineMessageParameterPointer, GuiToEngineMessagePointer,
 };
 use ruci::RawUciMessage;
-use std::fmt::{Display, Formatter, Write};
-use std::io::Read;
-use std::process::Command;
 use std::str::FromStr;
 
 fn main() {

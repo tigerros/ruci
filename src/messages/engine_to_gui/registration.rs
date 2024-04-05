@@ -1,6 +1,7 @@
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone)]
 pub enum RegistrationMessageKind {
     Checking,

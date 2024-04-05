@@ -1,3 +1,4 @@
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 /// <https://backscattering.de/chess/uci/#engine-id>
 pub enum IdMessageKind {

@@ -1,5 +1,6 @@
 use crate::UciMoveList;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 pub enum SetPositionMessageKind {
     StartingPosition {

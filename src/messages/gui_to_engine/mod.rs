@@ -297,13 +297,13 @@ impl Display for GuiToEngineMessage {
             Self::UseUci => f.write_str("uci"),
             Self::Debug(value) => write!(f, "debug {}", if *value { "on" } else { "off" }),
             Self::IsReady => f.write_str("isready"),
-            Self::SetOption(SetOptionMessage { value: None, name }) => {
-                write!(f, "setoption name {name}")
-            }
             Self::SetOption(SetOptionMessage {
                 value: Some(value),
                 name,
-            }) => write!(f, "setoption name {name} value {value}"),
+            }) => write!(f, "setoption name {name} _value {value}"),
+            Self::SetOption(SetOptionMessage { name, .. }) => {
+                write!(f, "setoption name {name}")
+            }
             Self::Register(RegisterMessageKind::Later) => f.write_str("register later"),
             Self::Register(RegisterMessageKind::Name(name)) => write!(f, "register name {name}"),
             Self::Register(RegisterMessageKind::Code(code)) => write!(f, "register code {code}"),
@@ -317,13 +317,13 @@ impl Display for GuiToEngineMessage {
             Self::SetPosition(SetPositionMessageKind::StartingPosition { moves: Some(moves) }) => {
                 write!(f, "position startpos moves {}", &moves)
             }
-            Self::SetPosition(SetPositionMessageKind::Fen { fen, moves: None }) => {
-                write!(f, "position fen {fen}")
-            }
             Self::SetPosition(SetPositionMessageKind::Fen {
                 fen,
                 moves: Some(moves),
             }) => write!(f, "position fen {fen} moves {}", &moves),
+            Self::SetPosition(SetPositionMessageKind::Fen { fen, .. }) => {
+                write!(f, "position fen {fen}")
+            }
             Self::Go(message) => {
                 f.write_str("go")?;
 

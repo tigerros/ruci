@@ -331,7 +331,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                         })
                     });
 
-                return Ok(Self::Info(Box::new(InfoMessage {
+                Ok(Self::Info(Box::new(InfoMessage {
                     depth,
                     time,
                     nodes,
@@ -348,7 +348,7 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     string,
                     refutation,
                     current_line,
-                })));
+                })))
             }
             EngineToGuiMessagePointer::Option => {
                 let Some(name) = raw_uci_message
@@ -430,7 +430,7 @@ impl Display for EngineToGuiMessage {
     #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            EngineToGuiMessage::Id(kind) => {
+            Self::Id(kind) => {
                 f.write_str("id ")?;
 
                 match kind {
@@ -441,9 +441,9 @@ impl Display for EngineToGuiMessage {
                     }
                 }
             }
-            EngineToGuiMessage::UciOk => f.write_str("uciok"),
-            EngineToGuiMessage::ReadyOk => f.write_str("readyok"),
-            EngineToGuiMessage::BestMove(message) => {
+            Self::UciOk => f.write_str("uciok"),
+            Self::ReadyOk => f.write_str("readyok"),
+            Self::BestMove(message) => {
                 write!(f, "bestmove {}", message.r#move)?;
 
                 if let Some(ponder) = &message.ponder {
@@ -452,9 +452,9 @@ impl Display for EngineToGuiMessage {
 
                 Ok(())
             }
-            EngineToGuiMessage::CopyProtection(kind) => write!(f, "copyprotection {kind}"),
-            EngineToGuiMessage::Registration(kind) => write!(f, "registration {kind}"),
-            EngineToGuiMessage::Info(info) => {
+            Self::CopyProtection(kind) => write!(f, "copyprotection {kind}"),
+            Self::Registration(kind) => write!(f, "registration {kind}"),
+            Self::Info(info) => {
                 f.write_str("info")?;
 
                 if let Some(depth) = &info.depth {
@@ -546,8 +546,8 @@ impl Display for EngineToGuiMessage {
 
                 Ok(())
             }
-            EngineToGuiMessage::Option(option) => {
-                write!(f, "option name {} type {}", option.name, option.r#type);
+            Self::Option(option) => {
+                write!(f, "option name {} type {}", option.name, option.r#type)?;
 
                 if let Some(default) = &option.default {
                     write!(f, " default {default}")?;
