@@ -2,8 +2,13 @@
 name = "ruci"
 version = "0.1.0"
 edition = "2021"
+authors = ["Leonard D. <tigerros.gh@gmail.com>"]
 description = "A UCI (Universal Chess Interface) crate."
 license = "GPL-3"
+repository = "https://github.com/tigerros/ruci"
+categories = ["parser-implementations", "game-development"]
+keywords = ["chess", "uci", "parser"]
+include = ["src", "README.md"]
 
 [dependencies]
 shakmaty = "0.27.0"
