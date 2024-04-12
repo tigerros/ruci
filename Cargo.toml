@@ -1,6 +1,6 @@
 [package]
 name = "ruci"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Leonard D. <tigerros.gh@gmail.com>"]
 description = "A UCI (Universal Chess Interface) crate."
