@@ -61,7 +61,7 @@ where
 
     /// Should only be used with one line.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts = s.split(' ').collect::<Vec<_>>();
+        let parts = s.trim().split(' ').collect::<Vec<_>>();
 
         let Some(Ok(message_pointer)) = parts.first().map(|p| MessagePtr::from_str(p)) else {
             return Err(Self::Err::NoMessage);
@@ -91,17 +91,13 @@ where
         let mut last_parameter = None::<MessageParameterPtr>;
 
         for part in parts_rest {
-            //println!("Part: {part}");
             if let Ok(parameter_pointer) =
                 MessageParameterPtr::from_message_and_str(message_pointer, part)
             {
-                //println!("This part is a parameter");
-
                 if value.is_none() {
                     value = Some(current_value.trim().to_string());
                     current_value = String::with_capacity(30);
                 } else if let Some(last_parameter_some) = last_parameter {
-                    //println!("Last parameter exists: {last_parameter_some:?}");
                     if parameter_pointer.has_value() {
                         parameters.insert(
                             last_parameter_some,
@@ -118,17 +114,13 @@ where
             } else {
                 current_value.push_str(part);
                 current_value.push(' ');
-                //println!("Adding part to value, value: {current_value}");
             }
         }
 
         if let Some(last_parameter) = last_parameter {
             current_value.pop();
-            //println!("After loop adding last parameter and value: {last_parameter:?}, {current_value}");
-            parameters.insert(last_parameter, ParameterValue::Some(current_value));
+            parameters.insert(last_parameter, ParameterValue::Some(current_value.trim().to_string()));
         }
-
-        //println!("{parameters:#?}");
 
         Ok(Self {
             message_pointer,
