@@ -1,14 +1,31 @@
-use crate::RawUciMessage;
+use crate::{MessageTryFromRawUciMessageError, RawUciMessage, RawUciMessageParseError};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::str::FromStr;
 
+pub enum MessageParseError<MessageParameterPtr> where MessageParameterPtr: MessageParameterPointer {
+    RawUciMessageParseError(RawUciMessageParseError),
+    MessageTryFromRawUciMessageError(MessageTryFromRawUciMessageError<MessageParameterPtr>)
+}
+
 pub trait Message:
-    Debug + TryFrom<RawUciMessage<Self::MessagePointer, Self::MessageParameterPointer>> + Display
+    Debug + TryFrom<RawUciMessage<Self::MessagePointer, Self::MessageParameterPointer>, Error = MessageTryFromRawUciMessageError<Self::MessageParameterPointer>> + Display
 {
     type MessagePointer: MessagePointer;
     type MessageParameterPointer: MessageParameterPointer<MessagePointer = Self::MessagePointer>;
     fn pointer(&self) -> Self::MessagePointer;
+
+    /// Tries to parse a string into this message.
+    ///
+    /// # Errors
+    ///
+    /// - Errors with [`MessageParseError::RawUciMessageParseError`] if the string could not be parsed into a [`RawUciMessage`].
+    /// - Errors with [`MessageParseError::MessageTryFromRawUciMessageError`] if the [`RawUciMessage`] could not be parsed into [`Self`].
+    fn from_str(s: &str) -> Result<Self, MessageParseError<Self::MessageParameterPointer>> {
+        let raw_uci_message = RawUciMessage::<Self::MessagePointer, Self::MessageParameterPointer>::from_str(s).map_err(MessageParseError::RawUciMessageParseError)?;
+
+        Self::try_from(raw_uci_message).map_err(MessageParseError::MessageTryFromRawUciMessageError)
+    }
 }
 
 pub trait MessagePointer: Copy + FromStr + Debug + Hash + Eq + PartialEq {
