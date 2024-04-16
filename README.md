@@ -10,3 +10,7 @@
 
 This crate is for parsing and creating UCI messages.
 It follows the [UCI standard](https://backscattering.de/chess/uci).
+
+## Features
+
+- `uci-connection` (default): Enables two "helper" structs to manage the actual IO (`GuiToEngineUciConnection` and `EngineToGuiUciConnection`) when it comes to working with UCI.
