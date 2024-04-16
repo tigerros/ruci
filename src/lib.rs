@@ -30,11 +30,11 @@ mod define_message_enum;
 pub mod messages;
 mod raw_uci_message;
 mod traits;
-mod uci_move_list;
 mod uci_connection;
+mod uci_move_list;
 
 pub(crate) use define_message_enum::define_message_enum;
 pub use raw_uci_message::*;
 pub use traits::*;
-pub use uci_move_list::UciMoveList;
 pub use uci_connection::*;
+pub use uci_move_list::UciMoveList;

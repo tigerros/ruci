@@ -119,7 +119,10 @@ where
 
         if let Some(last_parameter) = last_parameter {
             current_value.pop();
-            parameters.insert(last_parameter, ParameterValue::Some(current_value.trim().to_string()));
+            parameters.insert(
+                last_parameter,
+                ParameterValue::Some(current_value.trim().to_string()),
+            );
         }
 
         Ok(Self {
