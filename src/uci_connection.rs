@@ -5,6 +5,7 @@ use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 use std::io;
 use std::io::{Read, Write};
+use std::os::windows::process::CommandExt;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub struct GuiToEngineUciConnection {
@@ -55,10 +56,18 @@ where
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
     fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
-        let mut process = Command::new(path)
+        let mut cmd = Command::new(path);
+        let mut cmd = cmd
             .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
+            .stdout(Stdio::piped());
+        
+        if cfg!(windows) {
+            // CREATE_NO_WINDOW
+            // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+            cmd = cmd.creation_flags(0x08000000);
+        }
+        
+        let mut process = cmd.spawn()
             .map_err(UciCreationError::Spawn)?;
 
         let Some(stdout) = process.stdout.take() else {
