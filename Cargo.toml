@@ -17,3 +17,7 @@ dry-mods = "0.1.5"
 
 [dev-dependencies]
 assert_cmd = "2.0.14"
+
+[features]
+default = ["uci-connection"]
+uci-connection = []
