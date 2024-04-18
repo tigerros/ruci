@@ -482,12 +482,14 @@ impl Display for EngineToGuiMessage {
                 }
 
                 if let Some(score) = &info.score {
+                    f.write_str(" score")?;
+
                     if let Some(centipawns) = score.centipawns {
                         write!(f, " cp {centipawns}")?;
                     }
 
                     if let Some(mate_in) = score.mate_in {
-                        write!(f, " matein {mate_in}")?;
+                        write!(f, " mate {mate_in}")?;
                     }
 
                     match score.bound {
