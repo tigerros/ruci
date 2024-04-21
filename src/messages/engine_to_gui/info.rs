@@ -29,7 +29,7 @@ pub struct InfoMessageScoreField {
     /// <https://backscattering.de/chess/uci/#engine-info-score-cp>
     pub centipawns: Option<isize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score-mate>
-    pub mate_in: Option<usize>,
+    pub mate_in: Option<isize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
     pub bound: InfoMessageScoreFieldBound,
