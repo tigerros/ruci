@@ -56,10 +56,8 @@ where
     /// - Stdin is [`None`].
     fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
         let mut cmd = Command::new(path);
-        let mut cmd = cmd
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped());
-        
+        let mut cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
+
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -67,9 +65,8 @@ where
             // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
             cmd = cmd.creation_flags(0x08000000);
         }
-        
-        let mut process = cmd.spawn()
-            .map_err(UciCreationError::Spawn)?;
+
+        let mut process = cmd.spawn().map_err(UciCreationError::Spawn)?;
 
         let Some(stdout) = process.stdout.take() else {
             return Err(UciCreationError::StdoutIsNone);

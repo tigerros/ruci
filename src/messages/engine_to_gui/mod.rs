@@ -194,11 +194,10 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     .and_then(|p| p.some())
                     .map(|s| {
                         let split = s.split(' ').collect::<Vec<_>>();
-                        let mut split_iter = split.iter();
-                        let centipawns_position = split_iter.position(|&part| part == "cp");
-                        let mate_in_position = split_iter.position(|&part| part == "mate");
-                        let is_lowerbound = split_iter.any(|&part| part == "lowerbound");
-                        let is_upperbound = split_iter.any(|&part| part == "upperbound");
+                        let centipawns_position = split.iter().position(|&part| part == "cp");
+                        let mate_in_position = split.iter().position(|&part| part == "mate");
+                        let is_lowerbound = split.iter().any(|&part| part == "lowerbound");
+                        let is_upperbound = split.iter().any(|&part| part == "upperbound");
 
                         let centipawns = centipawns_position.and_then(|centipawns_position| {
                             split
