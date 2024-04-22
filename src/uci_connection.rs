@@ -60,7 +60,8 @@ where
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
         
-        if cfg!(windows) {
+        #[cfg(windows)]
+        {
             use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW
             // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
