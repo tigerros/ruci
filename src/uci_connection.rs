@@ -5,7 +5,6 @@ use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 use std::io;
 use std::io::{Read, Write};
-use std::os::windows::process::CommandExt;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub struct GuiToEngineUciConnection {
@@ -62,6 +61,7 @@ where
             .stdout(Stdio::piped());
         
         if cfg!(windows) {
+            use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW
             // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
             cmd = cmd.creation_flags(0x08000000);
