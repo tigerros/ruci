@@ -5,19 +5,11 @@ use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 use std::io;
 use std::io::{Read, Write};
+use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
-pub struct GuiToEngineUciConnection {
-    pub process: Child,
-    pub stdout: ChildStdout,
-    pub stdin: ChildStdin,
-}
-
-pub struct EngineToGuiUciConnection {
-    pub process: Child,
-    pub stdout: ChildStdout,
-    pub stdin: ChildStdin,
-}
+pub type GuiToEngineUciConnection = UciConnection<GuiToEngineMessage, EngineToGuiMessage>;
+pub type EngineToGuiUciConnection = UciConnection<EngineToGuiMessage, GuiToEngineMessage>;
 
 #[derive(Debug)]
 pub enum UciCreationError {
@@ -34,19 +26,18 @@ where
     MessageParse(MessageParseError<MessageParameterPtr>),
 }
 
-pub trait UciConnection<MSend, MReceive>
+pub struct UciConnection<MSend, MReceive> where MSend: Message, MReceive: Message {
+    pub process: Child,
+    pub stdout: ChildStdout,
+    pub stdin: ChildStdin,
+    _phantom: PhantomData<(MSend, MReceive)>
+}
+
+impl<MSend, MReceive> UciConnection<MSend, MReceive>
 where
-    Self: Sized,
     MSend: Message,
     MReceive: Message,
 {
-    fn new(process: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self;
-    fn process(&self) -> &Child;
-    fn process_mut(&mut self) -> &mut Child;
-    fn stdout(&self) -> &ChildStdout;
-    fn stdout_mut(&mut self) -> &mut ChildStdout;
-    fn stdin(&self) -> &ChildStdin;
-    fn stdin_mut(&mut self) -> &mut ChildStdin;
     /// Creates a new UCI connection from the given executable path.
     ///
     /// # Errors
@@ -54,7 +45,7 @@ where
     /// - Spawning the process errored.
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
-    fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
+    pub fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
         let mut cmd = Command::new(path);
         let mut cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -76,7 +67,7 @@ where
             return Err(UciCreationError::StdinIsNone);
         };
 
-        Ok(Self::new(process, stdout, stdin))
+        Ok(Self { process, stdout, stdin, _phantom: PhantomData })
     }
 
     /// Sends a message.
@@ -84,8 +75,8 @@ where
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    fn send_message(&mut self, message: GuiToEngineMessage) -> io::Result<()> {
-        self.stdin_mut().write_all(message.to_string().as_bytes())
+    pub fn send_message(&mut self, message: &MSend) -> io::Result<()> {
+        self.stdin.write_all(message.to_string().as_bytes())
     }
 
     /// Skips a number of lines.
@@ -93,12 +84,12 @@ where
     /// # Errors
     ///
     /// See [`Read::read_exact`].
-    fn skip_lines(&mut self, count: usize) -> io::Result<()> {
+    pub fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = [0; 1];
         let mut skipped_count = 0;
 
         loop {
-            self.stdout_mut().read_exact(&mut buf)?;
+            self.stdout.read_exact(&mut buf)?;
 
             if buf[0] == b'\n' {
                 skipped_count += 1;
@@ -120,7 +111,7 @@ where
     ///
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    fn read_message(
+    pub fn read_message(
         &mut self,
     ) -> Result<MReceive, UciReadMessageError<MReceive::MessageParameterPointer>> {
         MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Read)?)
@@ -133,12 +124,12 @@ where
     ///
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    fn read_line(&mut self) -> io::Result<String> {
+    pub fn read_line(&mut self) -> io::Result<String> {
         let mut s = String::with_capacity(100);
         let mut buf = [0; 1];
 
         loop {
-            self.stdout_mut().read_exact(&mut buf)?;
+            self.stdout.read_exact(&mut buf)?;
 
             if buf[0] == b'\n' {
                 break;
@@ -151,62 +142,6 @@ where
     }
 }
 
-impl UciConnection<GuiToEngineMessage, EngineToGuiMessage> for GuiToEngineUciConnection {
-    fn new(process: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self {
-        Self {
-            process,
-            stdout,
-            stdin,
-        }
-    }
-    fn process(&self) -> &Child {
-        &self.process
-    }
-    fn process_mut(&mut self) -> &mut Child {
-        &mut self.process
-    }
-    fn stdout(&self) -> &ChildStdout {
-        &self.stdout
-    }
-    fn stdout_mut(&mut self) -> &mut ChildStdout {
-        &mut self.stdout
-    }
-    fn stdin(&self) -> &ChildStdin {
-        &self.stdin
-    }
-    fn stdin_mut(&mut self) -> &mut ChildStdin {
-        &mut self.stdin
-    }
-}
-
-impl UciConnection<EngineToGuiMessage, GuiToEngineMessage> for EngineToGuiUciConnection {
-    fn new(process: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self {
-        Self {
-            process,
-            stdout,
-            stdin,
-        }
-    }
-    fn process(&self) -> &Child {
-        &self.process
-    }
-    fn process_mut(&mut self) -> &mut Child {
-        &mut self.process
-    }
-    fn stdout(&self) -> &ChildStdout {
-        &self.stdout
-    }
-    fn stdout_mut(&mut self) -> &mut ChildStdout {
-        &mut self.stdout
-    }
-    fn stdin(&self) -> &ChildStdin {
-        &self.stdin
-    }
-    fn stdin_mut(&mut self) -> &mut ChildStdin {
-        &mut self.stdin
-    }
-}
-
 impl GuiToEngineUciConnection {
     /// Sends the [`GuiToEngineMessage::UseUci`] message and returns the engine's ID and a vector of options
     /// once the `uciok` message is received.
@@ -215,7 +150,7 @@ impl GuiToEngineUciConnection {
     ///
     /// See [`Write::write_all`].
     pub fn use_uci(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
-        self.send_message(GuiToEngineMessage::UseUci)?;
+        self.send_message(&GuiToEngineMessage::UseUci)?;
 
         let mut options = Vec::with_capacity(40);
         let mut id = None::<IdMessageKind>;
@@ -271,7 +206,7 @@ impl GuiToEngineUciConnection {
             message.depth.map_or(100, |depth| depth.saturating_add(3)),
         );
 
-        self.send_message(GuiToEngineMessage::Go(message))?;
+        self.send_message(&GuiToEngineMessage::Go(message))?;
 
         loop {
             let engine_to_gui_message = match self.read_message() {
@@ -295,7 +230,7 @@ impl GuiToEngineUciConnection {
     /// - Writing (sending the message) errored.
     /// - Reading (reading until `readyok`) errored.
     pub fn isready(&mut self) -> io::Result<()> {
-        self.send_message(GuiToEngineMessage::IsReady)?;
+        self.send_message(&GuiToEngineMessage::IsReady)?;
 
         loop {
             match self.read_message() {
