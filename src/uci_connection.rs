@@ -7,6 +7,8 @@ use std::io;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
@@ -209,18 +211,18 @@ impl GuiToEngineUciConnection {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
-    pub fn go(&mut self, message: GoMessage, info_sender: &Sender<Box<InfoMessage>>, get_is_running_sender: &Sender<()>, is_running_receiver: Receiver<bool>) -> io::Result<BestMoveMessage> {
-        if get_is_running_sender.send(()).is_err() {
+    pub fn go(&mut self, message: GoMessage, info_sender: &Sender<Box<InfoMessage>>, is_running: &Arc<AtomicBool>) -> io::Result<BestMoveMessage> {
+        if !is_running.load(Ordering::SeqCst) {
             return Err(io::ErrorKind::Other.into());
         }
-
-        let Ok(recv) = is_running_receiver.recv() else {
-            return Err(io::ErrorKind::Other.into());
-        };
 
         self.send_message(&GuiToEngineMessage::Go(message))?;
 
         loop {
+            if !is_running.load(Ordering::SeqCst) {
+                return Err(io::ErrorKind::Other.into());
+            }
+            
             let engine_to_gui_message = match self.read_message() {
                 Ok(msg) => msg,
                 Err(UciReadMessageError::Read(e)) => return Err(e),

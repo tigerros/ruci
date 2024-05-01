@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex, mpsc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use ruci::GuiToEngineUciConnection;
 use std::thread;
 use std::time::Duration;
@@ -9,6 +10,8 @@ fn main() {
     let uci = Arc::new(Mutex::new(GuiToEngineUciConnection::new_from_path("stockfish").unwrap()));
     let uci2 = uci.clone();
     let (info_sender, info_receiver) = mpsc::channel();
+    let is_running = Arc::new(AtomicBool::new(true));
+    let is_running2 = is_running.clone();
 
     thread::spawn(move || {
         let mut guard = uci2.lock().unwrap();
@@ -26,7 +29,7 @@ fn main() {
             mate: None,
             move_time: None,
             infinite: false,
-        }, &info_sender).unwrap();
+        }, &info_sender, &is_running2).unwrap();
     });
     
     thread::spawn(move || {
@@ -35,5 +38,9 @@ fn main() {
         }
     });
     
-    thread::sleep(Duration::from_secs(2));
+    println!("Waiting");
+    thread::sleep(Duration::from_secs(3));
+    println!("Aborting");
+    is_running.store(true, Ordering::SeqCst);
+    println!("Aborted");
 }
