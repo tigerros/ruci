@@ -1,8 +1,8 @@
 use ruci::messages::engine_to_gui::EngineToGuiMessage;
 use ruci::messages::gui_to_engine::GoMessage;
 use ruci::{GuiToEngineUciConnection, GuiToEngineUciConnectionSync};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 

@@ -3,16 +3,16 @@ use crate::messages::engine_to_gui::{
 };
 use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
-use shakmaty::uci::Uci;
+
 use std::io;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, LockResult, Mutex, MutexGuard, PoisonError};
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
-use std::thread::{JoinHandle, Thread};
+use std::thread::JoinHandle;
 
 pub type GuiToEngineUciConnection = UciConnection<GuiToEngineMessage, EngineToGuiMessage>;
 pub type EngineToGuiUciConnection = UciConnection<EngineToGuiMessage, GuiToEngineMessage>;
@@ -66,7 +66,7 @@ where
             use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW
             // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
-            cmd = cmd.creation_flags(0x08000000);
+            cmd = cmd.creation_flags(0x0800_0000);
         }
 
         let mut process = cmd.spawn().map_err(UciCreationError::Spawn)?;
