@@ -9,15 +9,13 @@ use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 
 pub type GuiToEngineUciConnection = UciConnection<GuiToEngineMessage, EngineToGuiMessage>;
 pub type EngineToGuiUciConnection = UciConnection<EngineToGuiMessage, GuiToEngineMessage>;
-pub type GuiToEngineUciConnectionSync = UciConnectionSync<GuiToEngineMessage, EngineToGuiMessage>;
-pub type EngineToGuiUciConnectionSync = UciConnectionSync<EngineToGuiMessage, GuiToEngineMessage>;
 
 #[derive(Debug)]
 pub enum UciCreationError {
@@ -109,7 +107,11 @@ where
             self.stdout.read_exact(&mut buf)?;
 
             if buf[0] == b'\n' {
-                skipped_count += 1;
+                // CLIPPY: `skipped_count` will never overflow because it starts at 0, increments by 1, and stops once `count` is reached.
+                #[allow(clippy::arithmetic_side_effects)]
+                {
+                    skipped_count += 1;
+                }
 
                 if skipped_count == count {
                     break;
@@ -159,105 +161,117 @@ where
     }
 }
 
-pub struct UciConnectionSync<MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
-    pub inner: Arc<Mutex<UciConnection<MSend, MReceive>>>,
-    is_thread_running: Arc<AtomicBool>,
-}
-
-#[derive(Debug)]
-pub enum AbortThreadError<'a, MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
-    PoisonError(PoisonError<MutexGuard<'a, UciConnection<MSend, MReceive>>>),
-    Io(io::Error),
-}
-
-impl<MSend, MReceive> UciConnectionSync<MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
-    pub fn new(inner: UciConnection<MSend, MReceive>) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(inner)),
-            is_thread_running: Arc::new(AtomicBool::new(true)),
-        }
-    }
-
-    pub fn is_thread_running(&self) -> bool {
-        self.is_thread_running.load(Ordering::SeqCst)
-    }
-}
-
-impl EngineToGuiUciConnectionSync {
-    pub fn abort_thread(&self) {
-        self.is_thread_running.store(false, Ordering::SeqCst);
-    }
-}
-
-impl GuiToEngineUciConnectionSync {
-    pub fn abort_thread(
-        &self,
-    ) -> Result<(), AbortThreadError<'_, GuiToEngineMessage, EngineToGuiMessage>> {
-        self.is_thread_running.store(false, Ordering::SeqCst);
-        self.inner
-            .lock()
-            .map_err(AbortThreadError::PoisonError)?
-            .send_message(&GuiToEngineMessage::Stop)
-            .map_err(AbortThreadError::Io)?;
-
-        Ok(())
-    }
-
+impl GuiToEngineUciConnection {
     /// Sends the [`GuiToEngineMessage::UseUci`] message and returns the engine's ID and a vector of options
     /// once the `uciok` message is received.
     ///
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    pub fn use_uci(
-        &mut self,
-        option_sender: Sender<OptionMessage>,
-    ) -> JoinHandle<io::Result<Option<IdMessageKind>>> {
-        let inner = self.inner.clone();
-        let is_thread_running = self.is_thread_running.clone();
+    pub fn use_uci(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
+        self.send_message(&GuiToEngineMessage::UseUci)?;
 
-        thread::spawn(move || {
-            if !is_thread_running.load(Ordering::SeqCst) {
-                return Err(io::ErrorKind::ConnectionAborted.into());
+        let mut options = Vec::with_capacity(40);
+        let mut id = None::<IdMessageKind>;
+
+        loop {
+            let Ok(engine_to_gui_message) = self.read_message() else {
+                continue;
+            };
+
+            match engine_to_gui_message {
+                EngineToGuiMessage::Option(option) => options.push(option),
+                EngineToGuiMessage::Id(new_id) => update_id(&mut id, new_id),
+                EngineToGuiMessage::UciOk => return Ok((id, options)),
+                _ => (),
             }
+        }
+    }
 
-            #[allow(clippy::unwrap_used)]
-            let mut inner = inner.lock().unwrap();
+    /// Sends the `go` message to the engine and waits for the `bestmove` message response,
+    /// returning it, along with a list of `info` messages.
+    ///
+    /// # Errors
+    ///
+    /// - Writing (sending the message) errored.
+    /// - Reading (reading back the responses) errored.
+    pub fn go(&mut self, message: GoMessage) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
+        let mut info_messages = Vec::<InfoMessage>::with_capacity(
+            message.depth.map_or(100, |depth| depth.saturating_add(3)),
+        );
 
-            inner.send_message(&GuiToEngineMessage::UseUci)?;
+        self.send_message(&GuiToEngineMessage::Go(message))?;
 
-            let mut id = None::<IdMessageKind>;
+        loop {
+            let engine_to_gui_message = match self.read_message() {
+                Ok(msg) => msg,
+                Err(UciReadMessageError::Read(e)) => return Err(e),
+                Err(_) => continue,
+            };
 
-            loop {
-                let Ok(engine_to_gui_message) = inner.read_message() else {
-                    continue;
-                };
-
-                match engine_to_gui_message {
-                    EngineToGuiMessage::Option(option) => {
-                        if option_sender.send(option).is_err() {
-                            // Return value doesn't matter because the receiver doesn't exist.
-                            return Err(io::ErrorKind::Other.into());
-                        }
-                    }
-                    EngineToGuiMessage::Id(new_id) => update_id(&mut id, new_id),
-                    EngineToGuiMessage::UciOk => return Ok(id),
-                    _ => (),
-                }
+            match engine_to_gui_message {
+                EngineToGuiMessage::Info(info) => info_messages.push(*info),
+                EngineToGuiMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
+                _ => (),
             }
-        })
+        }
+    }
+
+    /// Sends the `isready` message and waits for the `readyok` response.
+    ///
+    /// # Errors
+    ///
+    /// - Writing (sending the message) errored.
+    /// - Reading (reading until `readyok`) errored.
+    pub fn is_ready(&mut self) -> io::Result<()> {
+        self.send_message(&GuiToEngineMessage::IsReady)?;
+
+        loop {
+            match self.read_message() {
+                Ok(EngineToGuiMessage::ReadyOk) => return Ok(()),
+                Ok(_) | Err(_) => continue,
+            }
+        }
+    }
+}
+
+/// This struct is dedicated to sending the [`go`](https://backscattering.de/chess/uci/#gui-go) message,
+/// because you need to be able to interrupt the calculation.
+pub struct GuiToEngineUciConnectionGo {
+    inner: Arc<Mutex<GuiToEngineUciConnection>>,
+    is_running: Arc<AtomicBool>,
+}
+
+impl GuiToEngineUciConnectionGo {
+    pub fn new(inner: GuiToEngineUciConnection) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(inner)),
+            is_running: Arc::new(AtomicBool::new(true)),
+        }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.is_running.load(Ordering::SeqCst)
+    }
+
+    /// Sends a signal to the `go` thread to abort and sends the `stop` message to the engine.
+    ///
+    /// # Errors
+    ///
+    /// - Sending the `stop` message errored.
+    // CLIPPY: This function actually doesn't panic. See the Clippy note below.
+    #[allow(clippy::missing_panics_doc)]
+    pub fn abort(&self) -> io::Result<()> {
+        self.is_running.store(false, Ordering::SeqCst);
+
+        // CLIPPY: Other users of this mutex (the `go` function) will never panic.
+        #[allow(clippy::unwrap_used)]
+        self.inner
+            .lock()
+            .unwrap()
+            .send_message(&GuiToEngineMessage::Stop)?;
+
+        Ok(())
     }
 
     /// Sends the `go` message to the engine and waits for the `bestmove` message response.
@@ -267,68 +281,61 @@ impl GuiToEngineUciConnectionSync {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
+    // CLIPPY: This function actually doesn't panic. See the clippy note for using unwrap.
+    #[allow(clippy::missing_panics_doc)]
     pub fn go(
         &mut self,
         message: GoMessage,
-        info_sender: Sender<Box<InfoMessage>>,
-    ) -> JoinHandle<io::Result<BestMoveMessage>> {
+    ) -> (
+        Receiver<Box<InfoMessage>>,
+        JoinHandle<io::Result<BestMoveMessage>>,
+    ) {
+        let (info_sender, info_receiver) = mpsc::channel();
         let inner = self.inner.clone();
-        let is_thread_running = self.is_thread_running.clone();
+        let is_thread_running = self.is_running.clone();
 
-        thread::spawn(move || {
-            if !is_thread_running.load(Ordering::SeqCst) {
-                return Err(io::ErrorKind::ConnectionAborted.into());
-            }
-
-            #[allow(clippy::unwrap_used)]
-            let mut inner = inner.lock().unwrap();
-            inner.send_message(&GuiToEngineMessage::Go(message))?;
-
-            loop {
+        (
+            info_receiver,
+            thread::spawn(move || {
                 if !is_thread_running.load(Ordering::SeqCst) {
                     return Err(io::ErrorKind::ConnectionAborted.into());
                 }
 
-                let message = inner.read_message();
-                if !is_thread_running.load(Ordering::SeqCst) {
-                    return Err(io::ErrorKind::ConnectionAborted.into());
-                }
-                let engine_to_gui_message = match message {
-                    Ok(msg) => msg,
-                    Err(UciReadMessageError::Read(e)) => return Err(e),
-                    Err(_) => continue,
-                };
+                // CLIPPY: This function is the only user of the mutex, and it never panics, so unwrapping here is safe.
+                #[allow(clippy::unwrap_used)]
+                let mut inner = inner.lock().unwrap();
+                inner.send_message(&GuiToEngineMessage::Go(message))?;
 
-                match engine_to_gui_message {
-                    EngineToGuiMessage::Info(info) => {
-                        if info_sender.send(info).is_err() {
-                            // Return value doesn't matter because the receiver doesn't exist.
-                            return Err(io::ErrorKind::Other.into());
-                        }
+                loop {
+                    if !is_thread_running.load(Ordering::SeqCst) {
+                        return Err(io::ErrorKind::ConnectionAborted.into());
                     }
-                    EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
-                    _ => (),
+
+                    let message = inner.read_message();
+                    let engine_to_gui_message = match message {
+                        Ok(msg) => msg,
+                        Err(UciReadMessageError::Read(e)) => return Err(e),
+                        Err(_) => continue,
+                    };
+
+                    if !is_thread_running.load(Ordering::SeqCst) {
+                        return Err(io::ErrorKind::ConnectionAborted.into());
+                    }
+
+                    match engine_to_gui_message {
+                        EngineToGuiMessage::Info(info) => {
+                            if info_sender.send(info).is_err() {
+                                // Return value doesn't matter because the receiver doesn't exist.
+                                return Err(io::ErrorKind::Other.into());
+                            }
+                        }
+                        EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
+                        _ => (),
+                    }
                 }
-            }
-        })
+            }),
+        )
     }
-    //
-    // /// Sends the `isready` message and waits for the `readyok` response.
-    // ///
-    // /// # Errors
-    // ///
-    // /// - Writing (sending the message) errored.
-    // /// - Reading (reading until `readyok`) errored.
-    // pub fn is_ready(&mut self) -> io::Result<()> {
-    //     self.send_message(&GuiToEngineMessage::IsReady)?;
-    //
-    //     loop {
-    //         match self.read_message() {
-    //             Ok(EngineToGuiMessage::ReadyOk) => return Ok(()),
-    //             Ok(_) | Err(_) => continue,
-    //         }
-    //     }
-    // }
 }
 
 fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
