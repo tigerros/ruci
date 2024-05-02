@@ -3,17 +3,21 @@ use crate::messages::engine_to_gui::{
 };
 use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
+use shakmaty::uci::Uci;
 use std::io;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, LockResult, Mutex, MutexGuard, PoisonError};
 use std::thread;
+use std::thread::{JoinHandle, Thread};
 
 pub type GuiToEngineUciConnection = UciConnection<GuiToEngineMessage, EngineToGuiMessage>;
 pub type EngineToGuiUciConnection = UciConnection<EngineToGuiMessage, GuiToEngineMessage>;
+pub type GuiToEngineUciConnectionSync = UciConnectionSync<GuiToEngineMessage, EngineToGuiMessage>;
+pub type EngineToGuiUciConnectionSync = UciConnectionSync<EngineToGuiMessage, GuiToEngineMessage>;
 
 #[derive(Debug)]
 pub enum UciCreationError {
@@ -155,27 +159,60 @@ where
     }
 }
 
-impl GuiToEngineUciConnection {
-    pub fn use_uci(&mut self, option_sender: Sender<OptionMessage>) -> io::Result<Option<IdMessageKind>> {
-        self.send_message(&GuiToEngineMessage::UseUci)?;
+pub struct UciConnectionSync<MSend, MReceive>
+where
+    MSend: Message,
+    MReceive: Message,
+{
+    pub inner: Arc<Mutex<UciConnection<MSend, MReceive>>>,
+    is_thread_running: Arc<AtomicBool>,
+}
 
-        let mut id = None::<IdMessageKind>;
+#[derive(Debug)]
+pub enum AbortThreadError<'a, MSend, MReceive>
+where
+    MSend: Message,
+    MReceive: Message,
+{
+    PoisonError(PoisonError<MutexGuard<'a, UciConnection<MSend, MReceive>>>),
+    Io(io::Error),
+}
 
-        loop {
-            let Ok(engine_to_gui_message) = self.read_message() else {
-                continue;
-            };
-
-            match engine_to_gui_message {
-                EngineToGuiMessage::Option(option) => if option_sender.send(option).is_err() {
-                    // Return value doesn't matter because the receiver doesn't exist.
-                    return Err(io::Error::from(io::ErrorKind::Other));
-                },
-                EngineToGuiMessage::Id(new_id) => update_id(&mut id, new_id),
-                EngineToGuiMessage::UciOk => return Ok(id),
-                _ => (),
-            }
+impl<MSend, MReceive> UciConnectionSync<MSend, MReceive>
+where
+    MSend: Message,
+    MReceive: Message,
+{
+    pub fn new(inner: UciConnection<MSend, MReceive>) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(inner)),
+            is_thread_running: Arc::new(AtomicBool::new(true)),
         }
+    }
+
+    pub fn is_thread_running(&self) -> bool {
+        self.is_thread_running.load(Ordering::SeqCst)
+    }
+}
+
+impl EngineToGuiUciConnectionSync {
+    pub fn abort_thread(&self) {
+        self.is_thread_running.store(false, Ordering::SeqCst);
+    }
+}
+
+impl GuiToEngineUciConnectionSync {
+    pub fn abort_thread(
+        &self,
+    ) -> Result<(), AbortThreadError<'_, GuiToEngineMessage, EngineToGuiMessage>> {
+        self.is_thread_running.store(false, Ordering::SeqCst);
+        self.inner
+            .lock()
+            .map_err(AbortThreadError::PoisonError)?
+            .send_message(&GuiToEngineMessage::Stop)
+            .map_err(AbortThreadError::Io)?;
+
+        Ok(())
     }
 
     /// Sends the [`GuiToEngineMessage::UseUci`] message and returns the engine's ID and a vector of options
@@ -184,24 +221,43 @@ impl GuiToEngineUciConnection {
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    pub fn use_uci_sync(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
-        self.send_message(&GuiToEngineMessage::UseUci)?;
+    pub fn use_uci(
+        &mut self,
+        option_sender: Sender<OptionMessage>,
+    ) -> JoinHandle<io::Result<Option<IdMessageKind>>> {
+        let inner = self.inner.clone();
+        let is_thread_running = self.is_thread_running.clone();
 
-        let mut options = Vec::with_capacity(40);
-        let mut id = None::<IdMessageKind>;
-
-        loop {
-            let Ok(engine_to_gui_message) = self.read_message() else {
-                continue;
-            };
-
-            match engine_to_gui_message {
-                EngineToGuiMessage::Option(option) => options.push(option),
-                EngineToGuiMessage::Id(new_id) => update_id(&mut id, new_id),
-                EngineToGuiMessage::UciOk => return Ok((id, options)),
-                _ => (),
+        thread::spawn(move || {
+            if !is_thread_running.load(Ordering::SeqCst) {
+                return Err(io::ErrorKind::ConnectionAborted.into());
             }
-        }
+
+            #[allow(clippy::unwrap_used)]
+            let mut inner = inner.lock().unwrap();
+
+            inner.send_message(&GuiToEngineMessage::UseUci)?;
+
+            let mut id = None::<IdMessageKind>;
+
+            loop {
+                let Ok(engine_to_gui_message) = inner.read_message() else {
+                    continue;
+                };
+
+                match engine_to_gui_message {
+                    EngineToGuiMessage::Option(option) => {
+                        if option_sender.send(option).is_err() {
+                            // Return value doesn't matter because the receiver doesn't exist.
+                            return Err(io::ErrorKind::Other.into());
+                        }
+                    }
+                    EngineToGuiMessage::Id(new_id) => update_id(&mut id, new_id),
+                    EngineToGuiMessage::UciOk => return Ok(id),
+                    _ => (),
+                }
+            }
+        })
     }
 
     /// Sends the `go` message to the engine and waits for the `bestmove` message response.
@@ -211,74 +267,68 @@ impl GuiToEngineUciConnection {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
-    pub fn go(&mut self, message: GoMessage, info_sender: &Sender<Box<InfoMessage>>, is_running: &Arc<AtomicBool>) -> io::Result<BestMoveMessage> {
-        if !is_running.load(Ordering::SeqCst) {
-            return Err(io::ErrorKind::Other.into());
-        }
+    pub fn go(
+        &mut self,
+        message: GoMessage,
+        info_sender: Sender<Box<InfoMessage>>,
+    ) -> JoinHandle<io::Result<BestMoveMessage>> {
+        let inner = self.inner.clone();
+        let is_thread_running = self.is_thread_running.clone();
 
-        self.send_message(&GuiToEngineMessage::Go(message))?;
-
-        loop {
-            if !is_running.load(Ordering::SeqCst) {
-                return Err(io::ErrorKind::Other.into());
+        thread::spawn(move || {
+            if !is_thread_running.load(Ordering::SeqCst) {
+                return Err(io::ErrorKind::ConnectionAborted.into());
             }
-            
-            let engine_to_gui_message = match self.read_message() {
-                Ok(msg) => msg,
-                Err(UciReadMessageError::Read(e)) => return Err(e),
-                Err(_) => continue,
-            };
 
-            match engine_to_gui_message {
-                EngineToGuiMessage::Info(info) => if info_sender.send(info).is_err() {
-                    // Return value doesn't matter because the receiver doesn't exist.
-                    return Err(io::Error::from(io::ErrorKind::Other));
-                },
-                EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
-                _ => (),
+            #[allow(clippy::unwrap_used)]
+            let mut inner = inner.lock().unwrap();
+            inner.send_message(&GuiToEngineMessage::Go(message))?;
+
+            loop {
+                if !is_thread_running.load(Ordering::SeqCst) {
+                    return Err(io::ErrorKind::ConnectionAborted.into());
+                }
+
+                let message = inner.read_message();
+                if !is_thread_running.load(Ordering::SeqCst) {
+                    return Err(io::ErrorKind::ConnectionAborted.into());
+                }
+                let engine_to_gui_message = match message {
+                    Ok(msg) => msg,
+                    Err(UciReadMessageError::Read(e)) => return Err(e),
+                    Err(_) => continue,
+                };
+
+                match engine_to_gui_message {
+                    EngineToGuiMessage::Info(info) => {
+                        if info_sender.send(info).is_err() {
+                            // Return value doesn't matter because the receiver doesn't exist.
+                            return Err(io::ErrorKind::Other.into());
+                        }
+                    }
+                    EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
+                    _ => (),
+                }
             }
-        }
+        })
     }
-
-    /// Simple, synchronous version of [`Self::go`].
-    pub fn go_sync(&mut self, message: GoMessage) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
-        let mut info_messages = Vec::<InfoMessage>::with_capacity(
-            message.depth.map_or(100, |depth| depth.saturating_add(3)),
-        );
-
-        self.send_message(&GuiToEngineMessage::Go(message))?;
-
-        loop {
-            let engine_to_gui_message = match self.read_message() {
-                Ok(msg) => msg,
-                Err(UciReadMessageError::Read(e)) => return Err(e),
-                Err(_) => continue,
-            };
-
-            match engine_to_gui_message {
-                EngineToGuiMessage::Info(info) => info_messages.push(*info),
-                EngineToGuiMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
-                _ => (),
-            }
-        }
-    }
-
-    /// Sends the `isready` message and waits for the `readyok` response.
-    ///
-    /// # Errors
-    ///
-    /// - Writing (sending the message) errored.
-    /// - Reading (reading until `readyok`) errored.
-    pub fn is_ready(&mut self) -> io::Result<()> {
-        self.send_message(&GuiToEngineMessage::IsReady)?;
-
-        loop {
-            match self.read_message() {
-                Ok(EngineToGuiMessage::ReadyOk) => return Ok(()),
-                Ok(_) | Err(_) => continue,
-            }
-        }
-    }
+    //
+    // /// Sends the `isready` message and waits for the `readyok` response.
+    // ///
+    // /// # Errors
+    // ///
+    // /// - Writing (sending the message) errored.
+    // /// - Reading (reading until `readyok`) errored.
+    // pub fn is_ready(&mut self) -> io::Result<()> {
+    //     self.send_message(&GuiToEngineMessage::IsReady)?;
+    //
+    //     loop {
+    //         match self.read_message() {
+    //             Ok(EngineToGuiMessage::ReadyOk) => return Ok(()),
+    //             Ok(_) | Err(_) => continue,
+    //         }
+    //     }
+    // }
 }
 
 fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
@@ -288,20 +338,15 @@ fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
     };
 
     *old_id = Some(match (old_id_some, new_id) {
-        (IdMessageKind::Author(author), IdMessageKind::Author(_)) => {
-            IdMessageKind::Author(author)
-        },
-        (IdMessageKind::Name(name), IdMessageKind::Name(_)) => {
-            IdMessageKind::Name(name)
-        },
+        (IdMessageKind::Author(author), IdMessageKind::Author(_)) => IdMessageKind::Author(author),
+        (IdMessageKind::Name(name), IdMessageKind::Name(_)) => IdMessageKind::Name(name),
         (
             IdMessageKind::Author(author),
             IdMessageKind::Name(name) | IdMessageKind::NameAndAuthor(name, _),
         )
         | (
             IdMessageKind::Name(name),
-            IdMessageKind::Author(author)
-            | IdMessageKind::NameAndAuthor(_, author),
+            IdMessageKind::Author(author) | IdMessageKind::NameAndAuthor(_, author),
         )
         | (IdMessageKind::NameAndAuthor(name, author), _) => {
             IdMessageKind::NameAndAuthor(name, author)
