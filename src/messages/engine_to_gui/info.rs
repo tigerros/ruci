@@ -14,7 +14,7 @@ pub struct InfoMessageDepthField {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone)]
 pub enum InfoMessageScoreFieldBound {
-    /// If neither `lowerbound` nor `upperbound` is present.
+    /// If neither [`lowerbound`](https://backscattering.de/chess/uci/#engine-info-score-lowerbound) nor [`upperbound`](https://backscattering.de/chess/uci/#engine-info-score-upperbound) is present.
     Unspecified,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     Lowerbound,

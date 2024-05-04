@@ -278,13 +278,8 @@ impl TryFrom<RawUciMessage<EngineToGuiMessagePointer, EngineToGuiMessageParamete
                     ))
                     .and_then(|s| s.parse::<UciMoveList>().ok())
                     .and_then(|move_list| {
-                        let Some(refuted_move) = move_list.0.first() else {
-                            return None;
-                        };
-
-                        let Some(refutation) = move_list.0.get(1..) else {
-                            return None;
-                        };
+                        let refuted_move = move_list.0.first()?;
+                        let refutation = move_list.0.get(1..)?;
 
                         Some(InfoMessageRefutationField {
                             refuted_move: refuted_move.clone(),
