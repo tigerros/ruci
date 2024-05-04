@@ -3,6 +3,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::str::FromStr;
 
+#[derive(Debug)]
 pub enum MessageParseError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,
@@ -39,6 +40,8 @@ pub trait Message:
 
 pub trait MessagePointer: Copy + FromStr + Debug + Hash + Eq + PartialEq {
     fn as_string(self) -> &'static str;
+    /// Whether or not this message has parameters.
+    /// For example, [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) does not.
     fn has_parameters(self) -> bool;
 }
 
@@ -55,15 +58,20 @@ pub trait MessageParameterPointer: Copy + Debug + Hash + Eq + PartialEq {
     ///
     /// # Errors
     ///
-    /// - `MessageHasNoParameters`: errors if the `message_pointer` argument
-    /// points to a message without parameters, such as `UciOk`.
-    /// - `StringDoesNotMapToParameterPointer`: errors if the `message_pointer` argument
+    /// - [`MessageParameterPointerParseError::MessageHasNoParameters`]: If the `message_pointer` argument
+    /// points to a message without parameters, such as [`uciok`](https://backscattering.de/chess/uci/#engine-uciok).
+    /// - [`MessageParameterPointerParseError::StringDoesNotMapToParameterPointer`]: If the `message_pointer` argument
     /// points to a message which *does* have parameters, but the `s` argument doesn't match any of them.
-    /// For example, if you pass in a message pointer for the `Id` command, but the `s` argument
-    /// is `"developer"`, this will error because `Id` only has `name` and `author` parameters.
+    /// For example, if you pass in a message pointer for the [`id`](https://backscattering.de/chess/uci/#engine-id) command, but the `s` argument
+    /// is `"developer"`, this will error because `id` only has `name` and `author` parameters.
     fn from_message_and_str(
         message_pointer: Self::MessagePointer,
         s: &str,
     ) -> Result<Self, MessageParameterPointerParseError>;
+    /// Whether or not this parameter has a value.
+    /// Almost all do, but [`ponder`](https://backscattering.de/chess/uci/#gui-go-ponder)
+    /// and [`infinite`](https://backscattering.de/chess/uci/#gui-go-infinite) of the
+    /// [`go`](https://backscattering.de/chess/uci/#gui-go) message don't.
+    /// They are referred to as "void parameters".
     fn has_value(self) -> bool;
 }

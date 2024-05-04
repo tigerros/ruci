@@ -88,7 +88,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::SetOption(
                         GuiToEngineMessageSetOptionParameterPointer::Name,
                     ))
-                    .and_then(|p| p.some())
                     .cloned()
                 else {
                     return Err(Self::Error::MissingParameter(
@@ -103,7 +102,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::SetOption(
                         GuiToEngineMessageSetOptionParameterPointer::Name,
                     ))
-                    .and_then(|p| p.some())
                     .cloned();
 
                 Ok(Self::SetOption(SetOptionMessage { name, value }))
@@ -120,7 +118,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Register(
                         GuiToEngineMessageRegisterParameterPointer::Name,
                     ))
-                    .and_then(|p| p.some())
                     .cloned();
 
                 let code = raw_uci_message
@@ -128,7 +125,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Register(
                         GuiToEngineMessageRegisterParameterPointer::Code,
                     ))
-                    .and_then(|p| p.some())
                     .cloned();
 
                 #[allow(clippy::option_if_let_else)]
@@ -157,7 +153,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::SetPosition(
                         GuiToEngineMessageSetPositionParameterPointer::Fen,
                     ))
-                    .and_then(|p| p.some())
                     .cloned();
 
                 let moves = raw_uci_message
@@ -165,7 +160,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::SetPosition(
                         GuiToEngineMessageSetPositionParameterPointer::Moves,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 if let Some(fen) = fen {
@@ -185,22 +179,19 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::SearchMoves,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
-                let ponder = raw_uci_message
-                    .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(
+                let ponder = raw_uci_message.void_parameters.contains(
+                    &GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::Ponder,
-                    ))
-                    .is_some();
+                    ),
+                );
 
                 let white_time = raw_uci_message
                     .parameters
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::WhiteTime,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let black_time = raw_uci_message
@@ -208,7 +199,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::BlackTime,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let white_increment = raw_uci_message
@@ -216,7 +206,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::WhiteIncrement,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let black_increment = raw_uci_message
@@ -224,7 +213,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::BlackIncrement,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let moves_to_go = raw_uci_message
@@ -232,7 +220,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::MovesToGo,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let depth = raw_uci_message
@@ -240,7 +227,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::Depth,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let nodes = raw_uci_message
@@ -248,7 +234,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::Nodes,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let mate = raw_uci_message
@@ -256,7 +241,6 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::Mate,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
                 let move_time = raw_uci_message
@@ -264,15 +248,13 @@ impl TryFrom<RawUciMessage<GuiToEngineMessagePointer, GuiToEngineMessageParamete
                     .get(&GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::MoveTime,
                     ))
-                    .and_then(|p| p.some())
                     .and_then(|s| s.parse().ok());
 
-                let infinite = raw_uci_message
-                    .parameters
-                    .get(&GuiToEngineMessageParameterPointer::Go(
+                let infinite = raw_uci_message.void_parameters.contains(
+                    &GuiToEngineMessageParameterPointer::Go(
                         GuiToEngineMessageGoParameterPointer::Infinite,
-                    ))
-                    .is_some();
+                    ),
+                );
 
                 Ok(Self::Go(GoMessage {
                     search_moves,

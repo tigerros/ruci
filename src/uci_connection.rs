@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
@@ -24,11 +24,12 @@ pub enum UciCreationError {
     StdinIsNone,
 }
 
+#[derive(Debug)]
 pub enum UciReadMessageError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,
 {
-    Read(io::Error),
+    Io(io::Error),
     MessageParse(MessageParseError<MessageParameterPtr>),
 }
 
@@ -133,7 +134,7 @@ where
     pub fn read_message(
         &mut self,
     ) -> Result<MReceive, UciReadMessageError<MReceive::MessageParameterPointer>> {
-        MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Read)?)
+        MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Io)?)
             .map_err(UciReadMessageError::MessageParse)
     }
 
@@ -161,9 +162,43 @@ where
     }
 }
 
+#[derive(Debug)]
+pub enum GuiToEngineUciConnectionGoError {
+    Io(io::Error),
+    Poison,
+}
+
+/// Returned by the [`GuiToEngineUciConnection::go_async`] function.
+#[derive(Debug)]
+pub struct GuiToEngineUciConnectionGo<Stop>
+where
+    Stop: FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>,
+{
+    /// Calling this function will send a "stop" signal to the thread
+    /// and also send the [`stop`](https://backscattering.de/chess/uci/#gui-stop) message to the engine.
+    ///
+    /// This function does not wait for the `self.thread` to finish.
+    ///
+    /// # Errors
+    ///
+    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`GuiToEngineUciConnection`] mutex was poisoned.
+    /// - [`GuiToEngineUciConnectionGoError::Io`]: See [`UciConnection::send_message`].
+    pub stop: Stop,
+    /// All [`info`](https://backscattering.de/chess/uci/#engine-info) messages will be sent through this receiver.
+    pub info_receiver: Receiver<Box<InfoMessage>>,
+    /// This is the handle to the thread, use it to wait to wait for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message.
+    ///
+    /// # Errors
+    ///
+    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`GuiToEngineUciConnection`] mutex was poisoned.
+    /// - [`GuiToEngineUciConnectionGoError::Io(io::ErrorKind::ConnectionAborted)`](GuiToEngineUciConnectionGoError::Io): The `self.stop` function was called and the thread aborted.
+    /// - [`GuiToEngineUciConnectionGoError::Io`]: Write/read IO errors.
+    pub thread: JoinHandle<Result<BestMoveMessage, GuiToEngineUciConnectionGoError>>,
+}
+
 impl GuiToEngineUciConnection {
     /// Sends the [`GuiToEngineMessage::UseUci`] message and returns the engine's ID and a vector of options
-    /// once the `uciok` message is received.
+    /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
     ///
     /// # Errors
     ///
@@ -188,8 +223,10 @@ impl GuiToEngineUciConnection {
         }
     }
 
-    /// Sends the `go` message to the engine and waits for the `bestmove` message response,
-    /// returning it, along with a list of `info` messages.
+    /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
+    /// returning it, along with a list of [`info`](https://backscattering.de/chess/uci/#engine-info) messages.
+    ///
+    /// See also the [`Self::go_async`] function which can be interrupted.
     ///
     /// # Errors
     ///
@@ -205,7 +242,7 @@ impl GuiToEngineUciConnection {
         loop {
             let engine_to_gui_message = match self.read_message() {
                 Ok(msg) => msg,
-                Err(UciReadMessageError::Read(e)) => return Err(e),
+                Err(UciReadMessageError::Io(e)) => return Err(e),
                 Err(_) => continue,
             };
 
@@ -217,12 +254,101 @@ impl GuiToEngineUciConnection {
         }
     }
 
-    /// Sends the `isready` message and waits for the `readyok` response.
+    /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
+    /// returning it. The [`info`](https://backscattering.de/chess/uci/#engine-info) messages are sent through the returned receiver.
+    ///
+    /// See also the [`Self::go`] function for a simpler alternative, but one that cannot be interrupted.
     ///
     /// # Errors
     ///
     /// - Writing (sending the message) errored.
-    /// - Reading (reading until `readyok`) errored.
+    /// - Reading (reading back the responses) errored.
+    pub fn go_async(
+        arc_self: Arc<Mutex<Self>>,
+        message: GoMessage,
+    ) -> GuiToEngineUciConnectionGo<impl FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>>
+    {
+        let (info_sender, info_receiver) = mpsc::channel();
+        let is_running = Arc::new(AtomicBool::new(true));
+        let is_running2 = is_running.clone();
+        let arc_self2 = arc_self.clone();
+
+        let stop = move || {
+            is_running2.store(false, Ordering::SeqCst);
+            arc_self2
+                .lock()
+                .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?
+                .send_message(&GuiToEngineMessage::Stop)
+                .map_err(GuiToEngineUciConnectionGoError::Io)?;
+
+            Ok(())
+        };
+
+        let thread = thread::spawn(move || {
+            if !is_running.load(Ordering::SeqCst) {
+                return Err(GuiToEngineUciConnectionGoError::Io(
+                    io::ErrorKind::ConnectionAborted.into(),
+                ));
+            }
+
+            let mut guard = arc_self
+                .lock()
+                .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?;
+
+            guard
+                .send_message(&GuiToEngineMessage::Go(message))
+                .map_err(GuiToEngineUciConnectionGoError::Io)?;
+
+            loop {
+                if !is_running.load(Ordering::SeqCst) {
+                    return Err(GuiToEngineUciConnectionGoError::Io(
+                        io::ErrorKind::ConnectionAborted.into(),
+                    ));
+                };
+
+                let message = guard.read_message();
+                let engine_to_gui_message = match message {
+                    Ok(msg) => msg,
+                    Err(UciReadMessageError::Io(e)) => {
+                        return Err(GuiToEngineUciConnectionGoError::Io(e))
+                    }
+                    Err(_) => continue,
+                };
+
+                if !is_running.load(Ordering::SeqCst) {
+                    return Err(GuiToEngineUciConnectionGoError::Io(
+                        io::ErrorKind::ConnectionAborted.into(),
+                    ));
+                }
+
+                match engine_to_gui_message {
+                    EngineToGuiMessage::Info(info) => {
+                        if info_sender.send(info).is_err() {
+                            // Return value doesn't matter because the receiver doesn't exist.
+                            return Err(GuiToEngineUciConnectionGoError::Io(
+                                io::ErrorKind::Other.into(),
+                            ));
+                        }
+                    }
+                    EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
+                    _ => (),
+                }
+            }
+        });
+
+        GuiToEngineUciConnectionGo {
+            stop,
+            info_receiver,
+            thread,
+        }
+    }
+
+    /// Sends the [`isready`](https://backscattering.de/chess/uci/#gui-isready) message and waits for the [`readyok`](https://backscattering.de/chess/uci/#engine-readyok) response.
+    ///
+    /// # Errors
+    ///
+    /// - Writing (sending the message) errored.
+    /// - Reading (reading until [`readyok`](https://backscattering.de/chess/uci/#engine-readyok)) errored.
     pub fn is_ready(&mut self) -> io::Result<()> {
         self.send_message(&GuiToEngineMessage::IsReady)?;
 
@@ -232,109 +358,6 @@ impl GuiToEngineUciConnection {
                 Ok(_) | Err(_) => continue,
             }
         }
-    }
-}
-
-/// This struct is dedicated to sending the [`go`](https://backscattering.de/chess/uci/#gui-go) message,
-/// because you need to be able to interrupt the calculation.
-pub struct GuiToEngineUciConnectionGo {
-    inner: Arc<Mutex<GuiToEngineUciConnection>>,
-    is_running: Arc<AtomicBool>,
-}
-
-impl GuiToEngineUciConnectionGo {
-    pub fn new(inner: GuiToEngineUciConnection) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(inner)),
-            is_running: Arc::new(AtomicBool::new(true)),
-        }
-    }
-
-    pub fn is_running(&self) -> bool {
-        self.is_running.load(Ordering::SeqCst)
-    }
-
-    /// Sends a signal to the `go` thread to abort and sends the `stop` message to the engine.
-    ///
-    /// # Errors
-    ///
-    /// - Sending the `stop` message errored.
-    // CLIPPY: This function actually doesn't panic. See the Clippy note below.
-    #[allow(clippy::missing_panics_doc)]
-    pub fn abort(&self) -> io::Result<()> {
-        self.is_running.store(false, Ordering::SeqCst);
-
-        // CLIPPY: Other users of this mutex (the `go` function) will never panic.
-        #[allow(clippy::unwrap_used)]
-        self.inner
-            .lock()
-            .unwrap()
-            .send_message(&GuiToEngineMessage::Stop)?;
-
-        Ok(())
-    }
-
-    /// Sends the `go` message to the engine and waits for the `bestmove` message response.
-    /// Sends back `info` messages through the given sender.
-    ///
-    /// # Errors
-    ///
-    /// - Writing (sending the message) errored.
-    /// - Reading (reading back the responses) errored.
-    // CLIPPY: This function actually doesn't panic. See the clippy note for using unwrap.
-    #[allow(clippy::missing_panics_doc)]
-    pub fn go(
-        &mut self,
-        message: GoMessage,
-    ) -> (
-        Receiver<Box<InfoMessage>>,
-        JoinHandle<io::Result<BestMoveMessage>>,
-    ) {
-        let (info_sender, info_receiver) = mpsc::channel();
-        let inner = self.inner.clone();
-        let is_thread_running = self.is_running.clone();
-
-        (
-            info_receiver,
-            thread::spawn(move || {
-                if !is_thread_running.load(Ordering::SeqCst) {
-                    return Err(io::ErrorKind::ConnectionAborted.into());
-                }
-
-                // CLIPPY: This function is the only user of the mutex, and it never panics, so unwrapping here is safe.
-                #[allow(clippy::unwrap_used)]
-                let mut inner = inner.lock().unwrap();
-                inner.send_message(&GuiToEngineMessage::Go(message))?;
-
-                loop {
-                    if !is_thread_running.load(Ordering::SeqCst) {
-                        return Err(io::ErrorKind::ConnectionAborted.into());
-                    }
-
-                    let message = inner.read_message();
-                    let engine_to_gui_message = match message {
-                        Ok(msg) => msg,
-                        Err(UciReadMessageError::Read(e)) => return Err(e),
-                        Err(_) => continue,
-                    };
-
-                    if !is_thread_running.load(Ordering::SeqCst) {
-                        return Err(io::ErrorKind::ConnectionAborted.into());
-                    }
-
-                    match engine_to_gui_message {
-                        EngineToGuiMessage::Info(info) => {
-                            if info_sender.send(info).is_err() {
-                                // Return value doesn't matter because the receiver doesn't exist.
-                                return Err(io::ErrorKind::Other.into());
-                            }
-                        }
-                        EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
-                        _ => (),
-                    }
-                }
-            }),
-        )
     }
 }
 
