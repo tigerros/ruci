@@ -33,6 +33,7 @@ where
     MessageParse(MessageParseError<MessageParameterPtr>),
 }
 
+#[derive(Debug)]
 pub struct UciConnection<MSend, MReceive>
 where
     MSend: Message,

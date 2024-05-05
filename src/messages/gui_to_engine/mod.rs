@@ -33,7 +33,7 @@ define_message_enum! {
         %["ucinewgame"]
         UciNewGame,
         /// <https://backscattering.de/chess/uci/#gui-position>
-        %["setposition"]
+        %["position"]
         %%[parameters = [(Fen, "fen"), (Moves, "moves")]]
         SetPosition(%SetPositionMessageKind),
         /// <https://backscattering.de/chess/uci/#gui-go>
@@ -363,5 +363,43 @@ impl Display for GuiToEngineMessage {
         }
 
         f.write_char('\n')
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
+    use crate::{Message, UciMoveList};
+    use pretty_assertions::assert_eq;
+    use shakmaty::uci::Uci as UciMove;
+    use std::num::NonZeroUsize;
+
+    #[test]
+    fn go() {
+        let structured_repr = GuiToEngineMessage::Go(GoMessage {
+            search_moves: Some(UciMoveList(vec![
+                UciMove::from_ascii(b"e2e4").unwrap(),
+                UciMove::from_ascii(b"d2d4").unwrap(),
+            ])),
+            ponder: true,
+            white_time: Some(5),
+            black_time: None,
+            white_increment: None,
+            black_increment: Some(NonZeroUsize::new(45).unwrap()),
+            moves_to_go: None,
+            depth: Some(20),
+            nodes: None,
+            mate: None,
+            move_time: None,
+            infinite: true,
+        });
+        let string_repr = "go searchmoves e2e4 d2d4 ponder wtime 5 binc 45 depth 20 infinite\n";
+
+        assert_eq!(structured_repr.to_string(), string_repr);
+        assert_eq!(
+            GuiToEngineMessage::from_str(string_repr),
+            Ok(structured_repr)
+        );
     }
 }

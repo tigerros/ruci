@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MessageParseError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,
