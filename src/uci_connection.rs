@@ -259,6 +259,8 @@ impl GuiToEngineUciConnection {
     /// returning it. The [`info`](https://backscattering.de/chess/uci/#engine-info) messages are sent through the returned receiver.
     ///
     /// See also the [`Self::go`] function for a simpler alternative, but one that cannot be interrupted.
+    /// 
+    /// See also the [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example.
     ///
     /// # Errors
     ///

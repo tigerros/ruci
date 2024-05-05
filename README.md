@@ -4,7 +4,7 @@
 
 # RUCI
 
-**Warning: This crate has no tests and I'm not confident in it. I'm publishing it in order to comfortably use it in another project of mine, I do not guarantee that it works for you.**
+**Warning: This crate has basically no tests and I'm not confident in it. I'm publishing it in order to comfortably use it in another project of mine, I do not guarantee that it works for you.**
 
 <ins>R</ins>ust <ins>U</ins>niversal <ins>C</ins>hess <ins>I</ins>nterface.
 
@@ -13,4 +13,4 @@ It follows the [UCI standard](https://backscattering.de/chess/uci).
 
 ## Features
 
-- `uci-connection` (default): Enables two "helper" structs to manage the actual IO (`GuiToEngineUciConnection` and `EngineToGuiUciConnection`) when it comes to working with UCI.
+- `uci-connection` (default): Enables two "helper" structs to manage the actual IO (`GuiToEngineUciConnection` and `EngineToGuiUciConnection`) when it comes to working with UCI. See 
