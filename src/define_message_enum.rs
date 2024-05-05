@@ -16,7 +16,7 @@ macro_rules! define_message_enum {
         }
     ) => {
         $(#[$attr])*
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         $vis enum $ident {
             $(
             $(#[$message_attr])*

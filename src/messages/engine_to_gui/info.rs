@@ -2,7 +2,7 @@ use crate::UciMoveList;
 use shakmaty::uci::Uci as UciMove;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
 pub struct InfoMessageDepthField {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
@@ -12,9 +12,9 @@ pub struct InfoMessageDepthField {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InfoMessageScoreFieldBound {
-    /// If neither `lowerbound` nor `upperbound` is present.
+    /// If neither [`lowerbound`](https://backscattering.de/chess/uci/#engine-info-score-lowerbound) nor [`upperbound`](https://backscattering.de/chess/uci/#engine-info-score-upperbound) is present.
     Unspecified,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     Lowerbound,
@@ -23,7 +23,7 @@ pub enum InfoMessageScoreFieldBound {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 pub struct InfoMessageScoreField {
     /// <https://backscattering.de/chess/uci/#engine-info-score-cp>
@@ -36,7 +36,7 @@ pub struct InfoMessageScoreField {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct InfoMessageRefutationField {
     pub refuted_move: UciMove,
@@ -44,7 +44,7 @@ pub struct InfoMessageRefutationField {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct InfoMessageCurrentLineField {
     pub used_cpu: Option<usize>,
@@ -52,7 +52,7 @@ pub struct InfoMessageCurrentLineField {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InfoMessage {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: Option<InfoMessageDepthField>,

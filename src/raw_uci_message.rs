@@ -3,39 +3,21 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
 /// Represents a semi-parsed UCI message.
+#[derive(Debug, Clone)]
 pub struct RawUciMessage<MessagePtr, MessageParameterPtr>
 where
     MessagePtr: MessagePointer,
     MessageParameterPtr: MessageParameterPointer<MessagePointer = MessagePtr>,
 {
     pub message_pointer: MessagePtr,
-    pub parameters: HashMap<MessageParameterPtr, ParameterValue>,
+    pub parameters: HashMap<MessageParameterPtr, String>,
+    /// Parameters like [`ponder`](https://backscattering.de/chess/uci/#gui-go-ponder) or [`infinite`](https://backscattering.de/chess/uci/#gui-go-infinite), that don't have a value.
+    pub void_parameters: Vec<MessageParameterPtr>,
     pub value: Option<String>,
 }
 
-/// This may seem like a [`Option<String>`], but it is different.
-/// The [`ParameterValue::Void`] variant means that the parameter **is present**, but *it doesn't have a value*.
-/// For example, this is the `ponder` parameter.
-#[derive(Debug, Clone)]
-pub enum ParameterValue {
-    Some(String),
-    Void,
-}
-
-impl ParameterValue {
-    #[allow(clippy::must_use_candidate)]
-    /// If `self` is [`ParameterValue::Some`], returns [`Some`], if `self` is [`ParameterValue::Void`], returns `None`.
-    pub const fn some(&self) -> Option<&String> {
-        match self {
-            Self::Some(s) => Some(s),
-            Self::Void => None,
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MessageTryFromRawUciMessageError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,
@@ -47,7 +29,7 @@ where
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RawUciMessageParseError {
     NoMessage,
 }
@@ -71,6 +53,7 @@ where
             return Ok(Self {
                 message_pointer,
                 parameters: HashMap::with_capacity(0),
+                void_parameters: Vec::with_capacity(0),
                 value: None,
             });
         };
@@ -79,56 +62,56 @@ where
             return Ok(Self {
                 message_pointer,
                 parameters: HashMap::with_capacity(0),
+                void_parameters: Vec::with_capacity(0),
                 value: Some(parts_rest.join(" ")),
             });
         }
 
-        let mut parameters = HashMap::<MessageParameterPtr, ParameterValue>::with_capacity(
+        let mut parameters = HashMap::<MessageParameterPtr, String>::with_capacity(
             parts.len().saturating_div(2).saturating_sub(1),
         );
-        let mut value = None::<String>;
-        let mut current_value = String::with_capacity(30);
+        let mut void_parameters = Vec::with_capacity(2);
+        let mut value = String::with_capacity(30);
         let mut last_parameter = None::<MessageParameterPtr>;
 
         for part in parts_rest {
-            if let Ok(parameter_pointer) =
+            //println!("Part: {part}");
+            let Ok(parameter_pointer) =
                 MessageParameterPtr::from_message_and_str(message_pointer, part)
-            {
-                if value.is_none() {
-                    value = Some(current_value.trim().to_string());
-                    current_value = String::with_capacity(30);
-                } else if let Some(last_parameter_some) = last_parameter {
-                    if parameter_pointer.has_value() {
-                        parameters.insert(
-                            last_parameter_some,
-                            ParameterValue::Some(current_value.trim().to_string()),
-                        );
-                    } else {
-                        parameters.insert(last_parameter_some, ParameterValue::Void);
-                    }
+            else {
+                value.push_str(part);
+                value.push(' ');
+                continue;
+            };
 
-                    current_value = String::with_capacity(30);
-                }
+            //println!("\tParameter pointer: {}", parameter_pointer.as_string());
+            //println!("\tValue: [{value}]");
+            //println!("\tLast parameter: {last_parameter:#?}");
 
+            if let Some(last_parameter_some) = last_parameter {
+                parameters.insert(last_parameter_some, value.trim().to_string());
+                value = String::with_capacity(30);
+            }
+
+            if parameter_pointer.has_value() {
                 last_parameter = Some(parameter_pointer);
             } else {
-                current_value.push_str(part);
-                current_value.push(' ');
+                void_parameters.push(parameter_pointer);
+                value = String::with_capacity(30);
+                last_parameter = None;
             }
         }
 
         if let Some(last_parameter) = last_parameter {
-            current_value.pop();
-            parameters.insert(
-                last_parameter,
-                ParameterValue::Some(current_value.trim().to_string()),
-            );
+            value.pop();
+            parameters.insert(last_parameter, value.trim().to_string());
         }
 
         Ok(Self {
             message_pointer,
             parameters,
-            value,
+            void_parameters,
+            value: if value.is_empty() { None } else { Some(value) },
         })
     }
 }
@@ -145,10 +128,12 @@ where
             f.write_char(' ')?;
             f.write_str(parameter.as_string())?;
             f.write_char(' ')?;
+            f.write_str(parameter_value)?;
+        }
 
-            if let ParameterValue::Some(parameter_value) = parameter_value {
-                f.write_str(parameter_value)?;
-            }
+        for void_parameter in &self.void_parameters {
+            f.write_char(' ')?;
+            f.write_str(void_parameter.as_string())?;
         }
 
         f.write_char('\n')

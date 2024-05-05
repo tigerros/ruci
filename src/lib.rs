@@ -4,6 +4,9 @@
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 #![deny(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::must_use_candidate)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_copy_implementations)]
 #![warn(
     clippy::arithmetic_side_effects,
     clippy::unreachable,

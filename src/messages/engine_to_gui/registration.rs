@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RegistrationMessageKind {
     Checking,
     Ok,
