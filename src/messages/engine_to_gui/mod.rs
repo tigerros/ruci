@@ -506,12 +506,14 @@ impl Display for EngineToGuiMessage {
                 }
 
                 if let Some(current_line) = &info.current_line {
-                    f.write_str("currline ")?;
+                    f.write_str(" currline")?;
 
                     if let Some(used_cpu) = current_line.used_cpu {
+                        f.write_char(' ')?;
                         f.write_str(&used_cpu.to_string())?;
                     }
 
+                    f.write_char(' ')?;
                     f.write_str(&current_line.line.to_string())?;
                 }
             }
