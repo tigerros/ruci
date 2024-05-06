@@ -13,4 +13,4 @@ It follows the [UCI standard](https://backscattering.de/chess/uci).
 
 ## Features
 
-- `uci-connection` (default): Enables two "helper" structs to manage the actual IO (`GuiToEngineUciConnection` and `EngineToGuiUciConnection`) when it comes to working with UCI. See 
+- `uci-connection` (default): Enables two "helper" structs to manage the actual IO (`EngineConnection` and `GuiConnection`) when it comes to working with UCI. See 

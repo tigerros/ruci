@@ -1,7 +1,5 @@
-use crate::messages::engine_to_gui::{
-    BestMoveMessage, EngineToGuiMessage, IdMessageKind, InfoMessage, OptionMessage,
-};
-use crate::messages::gui_to_engine::{GoMessage, GuiToEngineMessage};
+use crate::messages::{BestMoveMessage, EngineMessage, IdMessageKind, InfoMessage, OptionMessage};
+use crate::messages::{GoMessage, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 
 use std::io;
@@ -14,8 +12,8 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 
-pub type GuiToEngineUciConnection = UciConnection<GuiToEngineMessage, EngineToGuiMessage>;
-pub type EngineToGuiUciConnection = UciConnection<EngineToGuiMessage, GuiToEngineMessage>;
+pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
+pub type GuiConnection = UciConnection<EngineMessage, GuiMessage>;
 
 #[derive(Debug)]
 pub enum UciCreationError {
@@ -169,7 +167,7 @@ pub enum GuiToEngineUciConnectionGoError {
     Poison,
 }
 
-/// Returned by the [`GuiToEngineUciConnection::go_async`] function.
+/// Returned by the [`EngineConnection::go_async`] function.
 #[derive(Debug)]
 pub struct GuiToEngineUciConnectionGo<Stop>
 where
@@ -182,7 +180,7 @@ where
     ///
     /// # Errors
     ///
-    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`GuiToEngineUciConnection`] mutex was poisoned.
+    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`EngineConnection`] mutex was poisoned.
     /// - [`GuiToEngineUciConnectionGoError::Io`]: See [`UciConnection::send_message`].
     pub stop: Stop,
     /// All [`info`](https://backscattering.de/chess/uci/#engine-info) messages will be sent through this receiver.
@@ -191,21 +189,21 @@ where
     ///
     /// # Errors
     ///
-    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`GuiToEngineUciConnection`] mutex was poisoned.
+    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`EngineConnection`] mutex was poisoned.
     /// - [`GuiToEngineUciConnectionGoError::Io(io::ErrorKind::ConnectionAborted)`](GuiToEngineUciConnectionGoError::Io): The `self.stop` function was called and the thread aborted.
     /// - [`GuiToEngineUciConnectionGoError::Io`]: Write/read IO errors.
     pub thread: JoinHandle<Result<BestMoveMessage, GuiToEngineUciConnectionGoError>>,
 }
 
-impl GuiToEngineUciConnection {
-    /// Sends the [`GuiToEngineMessage::UseUci`] message and returns the engine's ID and a vector of options
+impl EngineConnection {
+    /// Sends the [`GuiMessage::UseUci`] message and returns the engine's ID and a vector of options
     /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
     ///
     /// # Errors
     ///
     /// See [`Write::write_all`].
     pub fn use_uci(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
-        self.send_message(&GuiToEngineMessage::UseUci)?;
+        self.send_message(&GuiMessage::UseUci)?;
 
         let mut options = Vec::with_capacity(40);
         let mut id = None::<IdMessageKind>;
@@ -216,9 +214,9 @@ impl GuiToEngineUciConnection {
             };
 
             match engine_to_gui_message {
-                EngineToGuiMessage::Option(option) => options.push(option),
-                EngineToGuiMessage::Id(new_id) => update_id(&mut id, new_id),
-                EngineToGuiMessage::UciOk => return Ok((id, options)),
+                EngineMessage::Option(option) => options.push(option),
+                EngineMessage::Id(new_id) => update_id(&mut id, new_id),
+                EngineMessage::UciOk => return Ok((id, options)),
                 _ => (),
             }
         }
@@ -238,7 +236,7 @@ impl GuiToEngineUciConnection {
             message.depth.map_or(100, |depth| depth.saturating_add(3)),
         );
 
-        self.send_message(&GuiToEngineMessage::Go(message))?;
+        self.send_message(&GuiMessage::Go(message))?;
 
         loop {
             let engine_to_gui_message = match self.read_message() {
@@ -248,8 +246,8 @@ impl GuiToEngineUciConnection {
             };
 
             match engine_to_gui_message {
-                EngineToGuiMessage::Info(info) => info_messages.push(*info),
-                EngineToGuiMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
+                EngineMessage::Info(info) => info_messages.push(*info),
+                EngineMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
                 _ => (),
             }
         }
@@ -281,7 +279,7 @@ impl GuiToEngineUciConnection {
             arc_self2
                 .lock()
                 .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?
-                .send_message(&GuiToEngineMessage::Stop)
+                .send_message(&GuiMessage::Stop)
                 .map_err(GuiToEngineUciConnectionGoError::Io)?;
 
             Ok(())
@@ -299,7 +297,7 @@ impl GuiToEngineUciConnection {
                 .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?;
 
             guard
-                .send_message(&GuiToEngineMessage::Go(message))
+                .send_message(&GuiMessage::Go(message))
                 .map_err(GuiToEngineUciConnectionGoError::Io)?;
 
             loop {
@@ -325,7 +323,7 @@ impl GuiToEngineUciConnection {
                 }
 
                 match engine_to_gui_message {
-                    EngineToGuiMessage::Info(info) => {
+                    EngineMessage::Info(info) => {
                         if info_sender.send(info).is_err() {
                             // Return value doesn't matter because the receiver doesn't exist.
                             return Err(GuiToEngineUciConnectionGoError::Io(
@@ -333,7 +331,7 @@ impl GuiToEngineUciConnection {
                             ));
                         }
                     }
-                    EngineToGuiMessage::BestMove(best_move) => return Ok(best_move),
+                    EngineMessage::BestMove(best_move) => return Ok(best_move),
                     _ => (),
                 }
             }
@@ -353,11 +351,11 @@ impl GuiToEngineUciConnection {
     /// - Writing (sending the message) errored.
     /// - Reading (reading until [`readyok`](https://backscattering.de/chess/uci/#engine-readyok)) errored.
     pub fn is_ready(&mut self) -> io::Result<()> {
-        self.send_message(&GuiToEngineMessage::IsReady)?;
+        self.send_message(&GuiMessage::IsReady)?;
 
         loop {
             match self.read_message() {
-                Ok(EngineToGuiMessage::ReadyOk) => return Ok(()),
+                Ok(EngineMessage::ReadyOk) => return Ok(()),
                 Ok(_) | Err(_) => continue,
             }
         }

@@ -1,2 +1,4 @@
-pub mod engine_to_gui;
-pub mod gui_to_engine;
+mod engine;
+mod gui;
+pub use engine::*;
+pub use gui::*;

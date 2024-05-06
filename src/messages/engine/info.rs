@@ -91,13 +91,13 @@ pub struct InfoMessage {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::messages::engine_to_gui::{EngineToGuiMessage, InfoMessageCurrentLineField, InfoMessageDepthField, InfoMessageRefutationField, InfoMessageScoreField, InfoMessageScoreFieldBound};
+    use crate::messages::engine::{EngineMessage, InfoMessageCurrentLineField, InfoMessageDepthField, InfoMessageRefutationField, InfoMessageScoreField, InfoMessageScoreFieldBound};
     use crate::{Message, UciMoveList};
     use super::InfoMessage;
     use shakmaty::uci::Uci as UciMove;
     use pretty_assertions::assert_eq;
-    fn repr() -> (EngineToGuiMessage, String) {
-        (EngineToGuiMessage::Info(Box::new(InfoMessage {
+    fn repr() -> (EngineMessage, String) {
+        (EngineMessage::Info(Box::new(InfoMessage {
             depth: Some(InfoMessageDepthField {
                 depth: 20,
                 selective_search_depth: Some(31)
@@ -141,6 +141,6 @@ mod tests {
     fn from_string() {
         let repr = repr();
         
-        assert_eq!(EngineToGuiMessage::from_str(&repr.1), Ok(repr.0));
+        assert_eq!(EngineMessage::from_str(&repr.1), Ok(repr.0));
     }
 }

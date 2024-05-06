@@ -5,16 +5,16 @@
 //!
 //! Output on my machine can be found on [pastebin](https://pastebin.com/vJE9PR2U).
 
-use ruci::messages::engine_to_gui::EngineToGuiMessage;
-use ruci::messages::gui_to_engine::GoMessage;
-use ruci::{GuiToEngineUciConnection, GuiToEngineUciConnectionGo};
+use ruci::messages::EngineMessage;
+use ruci::messages::GoMessage;
+use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 fn main() {
     let uci = Arc::new(Mutex::new(
-        GuiToEngineUciConnection::new_from_path("stockfish").unwrap(),
+        EngineConnection::new_from_path("stockfish").unwrap(),
     ));
 
     println!("Sending use UCI message, waiting for uciok");
@@ -30,7 +30,7 @@ fn main() {
         stop,
         info_receiver,
         thread,
-    } = GuiToEngineUciConnection::go_async(
+    } = EngineConnection::go_async(
         uci,
         GoMessage {
             search_moves: None,
