@@ -94,7 +94,7 @@ mod tests {
     use crate::messages::engine_to_gui::{EngineToGuiMessage, InfoMessageCurrentLineField, InfoMessageDepthField, InfoMessageRefutationField, InfoMessageScoreField, InfoMessageScoreFieldBound};
     use crate::{Message, UciMoveList};
     use super::InfoMessage;
-    use shakmaty::uci::{Uci as UciMove, Uci};
+    use shakmaty::uci::Uci as UciMove;
     use pretty_assertions::assert_eq;
     fn repr() -> (EngineToGuiMessage, String) {
         (EngineToGuiMessage::Info(Box::new(InfoMessage {
