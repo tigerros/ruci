@@ -3,7 +3,7 @@
 //!
 //! This example requires that you have installed stockfish (I have used stockfish 16.1).
 //!
-//! Output on my machine can be found on [pastebin](https://pastebin.com/vJE9PR2U).
+//! Output on my machine can be found on [pastebin](https://pastebin.com/uF91FKGL).
 
 use ruci::messages::{GoMessage, GuiMessage};
 use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
@@ -55,7 +55,6 @@ fn main() {
 
     println!("Waiting");
     thread::sleep(Duration::from_secs(3));
-    println!("Is finished: {}", thread.is_finished());
     println!("Aborting");
     stop().unwrap();
     println!("Aborted");
