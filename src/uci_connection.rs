@@ -18,6 +18,7 @@ pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
 pub type GuiConnection = UciConnection<EngineMessage, GuiMessage>;
 
 #[derive(Debug)]
+/// Something went wrong with spawning the engine process.
 pub enum UciCreationError {
     Spawn(io::Error),
     StdoutIsNone,
@@ -25,6 +26,7 @@ pub enum UciCreationError {
 }
 
 #[derive(Debug)]
+/// Reading the message either resulted in an IO error, or it could not be parsed.
 pub enum UciReadMessageError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,

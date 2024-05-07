@@ -12,6 +12,7 @@ where
     MessageTryFromRawUciMessageError(MessageTryFromRawUciMessageError<MessageParameterPtr>),
 }
 
+/// There are two implementors of this trait, [`GuiMessage`](crate::messages::GuiMessage) and [`EngineMessage`](crate::messages::EngineMessage).
 pub trait Message:
     Debug
     + TryFrom<RawUciMessage<Self>, Error = MessageTryFromRawUciMessageError<Self::ParameterPointer>>
@@ -35,6 +36,7 @@ pub trait Message:
     }
 }
 
+/// This is a simple [`Copy`] "pointer" enum necessary for parsing.
 pub trait MessagePointer: Copy + FromStr + Debug + Hash + Eq + PartialEq {
     fn as_string(self) -> &'static str;
     /// Whether or not this message has parameters.
@@ -48,6 +50,7 @@ pub enum MessageParameterPointerParseError {
     StringDoesNotMapToParameterPointer,
 }
 
+/// This is a simple [`Copy`] "pointer" enum necessary for parsing.
 pub trait MessageParameterPointer: Copy + Debug + Hash + Eq + PartialEq {
     type MessagePointer: MessagePointer;
     fn as_string(self) -> &'static str;

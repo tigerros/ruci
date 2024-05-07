@@ -6,7 +6,7 @@
 //! Output on my machine can be found on [pastebin](https://pastebin.com/vJE9PR2U).
 
 use ruci::messages::GoMessage;
-use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
+use ruci::{EngineConnection, GuiToEngineUciConnectionGo, MessageParseError, MessageTryFromRawUciMessageError, UciReadMessageError};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -46,7 +46,7 @@ fn main() {
             infinite: false,
         },
     );
-
+    
     thread::spawn(move || {
         while let Ok(info) = info_receiver.recv() {
             // Newlines are always added to messages

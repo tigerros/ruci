@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// A simple [`Vec<UciMove>`] wrapper that provides [`FromStr`] and [`Display`] implementations.
 pub struct UciMoveList(pub Vec<UciMove>);
 
 impl FromStr for UciMoveList {
