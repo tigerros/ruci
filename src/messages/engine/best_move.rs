@@ -57,7 +57,7 @@ impl Display for BestMoveMessage {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use crate::messages::{EngineMessage, BestMoveMessage};
-    use crate::{Message, UciMoveList};
+    use crate::{Message};
     use shakmaty::uci::Uci as UciMove;
     use pretty_assertions::assert_eq;
 

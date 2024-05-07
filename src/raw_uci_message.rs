@@ -125,7 +125,13 @@ where
             message_pointer,
             parameters,
             void_parameters,
-            value: if value_override.is_some() { value_override } else if value.is_empty() { None } else { Some(value.trim().to_string()) },
+            value: if value_override.is_some() {
+                value_override
+            } else if value.is_empty() {
+                None
+            } else {
+                Some(value.trim().to_string())
+            },
         })
     }
 }
