@@ -34,6 +34,7 @@ where
 }
 
 #[derive(Debug)]
+/// This is the basis of a UCI connection; use [`EngineConnection`] or [`GuiConnection`] instead.
 pub struct UciConnection<MSend, MReceive>
 where
     MSend: Message,
