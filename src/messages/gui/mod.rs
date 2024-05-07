@@ -6,7 +6,7 @@ dry_mods::mods! {
 
 use crate::define_message_enum::define_message_enum;
 use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{Debug, Display, Formatter};
 
 define_message_enum! {
     /// A message sent from the GUI to the engine.
@@ -51,13 +51,11 @@ define_message_enum! {
     }
 }
 
-impl TryFrom<RawUciMessage<GuiMessagePointer, GuiMessageParameterPointer>> for GuiMessage {
+impl TryFrom<RawUciMessage<GuiMessage>> for GuiMessage {
     type Error = MessageTryFromRawUciMessageError<GuiMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
-    fn try_from(
-        raw_uci_message: RawUciMessage<GuiMessagePointer, GuiMessageParameterPointer>,
-    ) -> Result<Self, Self::Error> {
+    fn try_from(raw_uci_message: RawUciMessage<GuiMessage>) -> Result<Self, Self::Error> {
         match raw_uci_message.message_pointer {
             // Value-less, parameter-less messages
             GuiMessagePointer::UseUci => Ok(Self::UseUci),
@@ -76,197 +74,16 @@ impl TryFrom<RawUciMessage<GuiMessagePointer, GuiMessageParameterPointer>> for G
                 b"off" => Ok(Self::Debug(false)),
                 _ => Err(Self::Error::ValueParseError),
             },
-            GuiMessagePointer::SetOption => {
-                let Some(name) = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::SetOption(
-                        GuiMessageSetOptionParameterPointer::Name,
-                    ))
-                    .cloned()
-                else {
-                    return Err(Self::Error::MissingParameter(
-                        GuiMessageParameterPointer::SetOption(
-                            GuiMessageSetOptionParameterPointer::Name,
-                        ),
-                    ));
-                };
-
-                let value = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::SetOption(
-                        GuiMessageSetOptionParameterPointer::Name,
-                    ))
-                    .cloned();
-
-                Ok(Self::SetOption(SetOptionMessage { name, value }))
-            }
-            GuiMessagePointer::Register => {
-                if let Some(value) = raw_uci_message.value {
-                    if value == "later" {
-                        return Ok(Self::Register(RegisterMessageKind::Later));
-                    }
-                }
-
-                let name = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Register(
-                        GuiMessageRegisterParameterPointer::Name,
-                    ))
-                    .cloned();
-
-                let code = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Register(
-                        GuiMessageRegisterParameterPointer::Code,
-                    ))
-                    .cloned();
-
-                #[allow(clippy::option_if_let_else)]
-                if let Some(name) = name {
-                    if let Some(code) = code {
-                        Ok(Self::Register(RegisterMessageKind::NameAndCode {
-                            name,
-                            code,
-                        }))
-                    } else {
-                        Ok(Self::Register(RegisterMessageKind::Name(name)))
-                    }
-                } else if let Some(code) = code {
-                    Ok(Self::Register(RegisterMessageKind::Code(code)))
-                } else {
-                    Err(Self::Error::MissingParameter(
-                        GuiMessageParameterPointer::Register(
-                            GuiMessageRegisterParameterPointer::Name,
-                        ),
-                    ))
-                }
-            }
-            GuiMessagePointer::SetPosition => {
-                let fen = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::SetPosition(
-                        GuiMessageSetPositionParameterPointer::Fen,
-                    ))
-                    .cloned();
-
-                let moves = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::SetPosition(
-                        GuiMessageSetPositionParameterPointer::Moves,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                if let Some(fen) = fen {
-                    Ok(Self::SetPosition(SetPositionMessageKind::Fen {
-                        fen,
-                        moves,
-                    }))
-                } else {
-                    Ok(Self::SetPosition(
-                        SetPositionMessageKind::StartingPosition { moves },
-                    ))
-                }
-            }
-            GuiMessagePointer::Go => {
-                let search_moves = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::SearchMoves,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let ponder =
-                    raw_uci_message
-                        .void_parameters
-                        .contains(&GuiMessageParameterPointer::Go(
-                            GuiMessageGoParameterPointer::Ponder,
-                        ));
-
-                let white_time = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::WhiteTime,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let black_time = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::BlackTime,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let white_increment = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::WhiteIncrement,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let black_increment = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::BlackIncrement,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let moves_to_go = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::MovesToGo,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let depth = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::Depth,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let nodes = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::Nodes,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let mate = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::Mate,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let move_time = raw_uci_message
-                    .parameters
-                    .get(&GuiMessageParameterPointer::Go(
-                        GuiMessageGoParameterPointer::MoveTime,
-                    ))
-                    .and_then(|s| s.parse().ok());
-
-                let infinite =
-                    raw_uci_message
-                        .void_parameters
-                        .contains(&GuiMessageParameterPointer::Go(
-                            GuiMessageGoParameterPointer::Infinite,
-                        ));
-
-                Ok(Self::Go(GoMessage {
-                    search_moves,
-                    ponder,
-                    white_time,
-                    black_time,
-                    white_increment,
-                    black_increment,
-                    moves_to_go,
-                    depth,
-                    nodes,
-                    mate,
-                    move_time,
-                    infinite,
-                }))
-            }
+            GuiMessagePointer::SetOption => Ok(Self::SetOption(SetOptionMessage::try_from(
+                raw_uci_message,
+            )?)),
+            GuiMessagePointer::Register => Ok(Self::Register(RegisterMessageKind::try_from(
+                raw_uci_message,
+            )?)),
+            GuiMessagePointer::SetPosition => Ok(Self::SetPosition(
+                SetPositionMessageKind::try_from(raw_uci_message)?,
+            )),
+            GuiMessagePointer::Go => Ok(Self::Go(GoMessage::try_from(raw_uci_message)?)),
         }
     }
 }
@@ -274,91 +91,18 @@ impl TryFrom<RawUciMessage<GuiMessagePointer, GuiMessageParameterPointer>> for G
 impl Display for GuiMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UseUci => f.write_str("uci")?,
-            Self::Debug(value) => write!(f, "debug {}", if *value { "on" } else { "off" })?,
-            Self::IsReady => f.write_str("isready")?,
-            Self::SetOption(SetOptionMessage {
-                value: Some(value),
-                name,
-            }) => write!(f, "setoption name {name} value {value}")?,
-            Self::SetOption(SetOptionMessage { name, .. }) => write!(f, "setoption name {name}")?,
-            Self::Register(RegisterMessageKind::Later) => f.write_str("register later")?,
-            Self::Register(RegisterMessageKind::Name(name)) => write!(f, "register name {name}")?,
-            Self::Register(RegisterMessageKind::Code(code)) => write!(f, "register code {code}")?,
-            Self::Register(RegisterMessageKind::NameAndCode { name, code }) => {
-                write!(f, "register name {name} code {code}")?;
-            }
-            Self::UciNewGame => f.write_str("f")?,
-            Self::SetPosition(SetPositionMessageKind::StartingPosition { moves: None }) => {
-                f.write_str("position startpos")?;
-            }
-            Self::SetPosition(SetPositionMessageKind::StartingPosition { moves: Some(moves) }) => {
-                write!(f, "position startpos moves {}", &moves)?;
-            }
-            Self::SetPosition(SetPositionMessageKind::Fen {
-                fen,
-                moves: Some(moves),
-            }) => write!(f, "position fen {fen} moves {}", &moves)?,
-            Self::SetPosition(SetPositionMessageKind::Fen { fen, .. }) => {
-                write!(f, "position fen {fen}")?;
-            }
-            Self::Go(message) => {
-                f.write_str("go")?;
-
-                if let Some(search_moves) = &message.search_moves {
-                    write!(f, " searchmoves {}", &search_moves)?;
-                }
-
-                if message.ponder {
-                    f.write_str(" ponder")?;
-                }
-
-                if let Some(white_time) = message.white_time {
-                    write!(f, " wtime {white_time}")?;
-                }
-
-                if let Some(black_time) = message.black_time {
-                    write!(f, " btime {black_time}")?;
-                }
-
-                if let Some(white_increment) = message.white_increment {
-                    write!(f, " winc {white_increment}")?;
-                }
-
-                if let Some(black_increment) = message.black_increment {
-                    write!(f, " binc {black_increment}")?;
-                }
-
-                if let Some(moves_to_go) = message.moves_to_go {
-                    write!(f, " moves_to_go {moves_to_go}")?;
-                }
-
-                if let Some(depth) = message.depth {
-                    write!(f, " depth {depth}")?;
-                }
-
-                if let Some(nodes) = message.nodes {
-                    write!(f, " nodes {nodes}")?;
-                }
-
-                if let Some(mate) = message.mate {
-                    write!(f, " mate {mate}")?;
-                }
-
-                if let Some(move_time) = message.move_time {
-                    write!(f, " movetime {move_time}")?;
-                }
-
-                if message.infinite {
-                    f.write_str(" infinite")?;
-                }
-            }
-            Self::Stop => f.write_str("stop")?,
-            Self::PonderHit => f.write_str("ponderhit")?,
-            Self::Quit => f.write_str("quit")?,
+            Self::UseUci => f.write_str("uci\n"),
+            Self::Debug(value) => write!(f, "debug {}\n", if *value { "on" } else { "off" }),
+            Self::IsReady => f.write_str("isready\n"),
+            Self::SetOption(message) => f.write_str(&message.to_string()),
+            Self::Register(kind) => f.write_str(&kind.to_string()),
+            Self::UciNewGame => f.write_str("ucinewgame\n"),
+            Self::SetPosition(kind) => f.write_str(&kind.to_string()),
+            Self::Go(message) => f.write_str(&message.to_string()),
+            Self::Stop => f.write_str("stop\n"),
+            Self::PonderHit => f.write_str("ponderhit\n"),
+            Self::Quit => f.write_str("quit\n"),
         }
-
-        f.write_char('\n')
     }
 }
 

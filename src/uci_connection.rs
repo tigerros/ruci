@@ -135,7 +135,7 @@ where
     /// - Parsing the message errors.
     pub fn read_message(
         &mut self,
-    ) -> Result<MReceive, UciReadMessageError<MReceive::MessageParameterPointer>> {
+    ) -> Result<MReceive, UciReadMessageError<MReceive::ParameterPointer>> {
         MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Io)?)
             .map_err(UciReadMessageError::MessageParse)
     }

@@ -27,9 +27,9 @@ macro_rules! define_message_enum {
 
         ::paste::paste! {
             impl $crate::traits::Message for $ident {
-                type MessagePointer = [< $ident Pointer >];
-                type MessageParameterPointer = [< $ident ParameterPointer >];
-                fn pointer(&self) -> Self::MessagePointer {
+                type Pointer = [< $ident Pointer >];
+                type ParameterPointer = [< $ident ParameterPointer >];
+                fn pointer(&self) -> Self::Pointer {
                     match self {
                         $(
                         Self::$message_ident$((define_message_enum!(dotdot=$has_arguments)))? => [< $ident Pointer >]::$message_ident
@@ -50,6 +50,7 @@ macro_rules! define_message_enum {
             pub enum [< $ident ParameterPointer >] {
 				$($(
                 #[allow(unused_doc_comments)]
+                #[allow(clippy::empty_docs)]
                 #[doc = define_message_enum!(empty_string=$has_parameters)]
 				[< $message_ident:camel >]( [< $ident $message_ident:camel ParameterPointer >]),
 				)?)+

@@ -1,19 +1,18 @@
-use crate::{MessageParameterPointer, MessagePointer};
+use crate::{Message, MessageParameterPointer, MessagePointer};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
 /// Represents a semi-parsed UCI message.
 #[derive(Debug, Clone)]
-pub struct RawUciMessage<MessagePtr, MessageParameterPtr>
+pub struct RawUciMessage<M>
 where
-    MessagePtr: MessagePointer,
-    MessageParameterPtr: MessageParameterPointer<MessagePointer = MessagePtr>,
+    M: Message,
 {
-    pub message_pointer: MessagePtr,
-    pub parameters: HashMap<MessageParameterPtr, String>,
+    pub message_pointer: M::Pointer,
+    pub parameters: HashMap<M::ParameterPointer, String>,
     /// Parameters like [`ponder`](https://backscattering.de/chess/uci/#gui-go-ponder) or [`infinite`](https://backscattering.de/chess/uci/#gui-go-infinite), that don't have a value.
-    pub void_parameters: Vec<MessageParameterPtr>,
+    pub void_parameters: Vec<M::ParameterPointer>,
     pub value: Option<String>,
 }
 
@@ -22,6 +21,9 @@ pub enum MessageTryFromRawUciMessageError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,
 {
+    /// This error only occurs when you are trying to parse a message directly, i.e.
+    /// trying to get [`InfoMessage`](crate::messages::InfoMessage) directly instead of [`EngineMessage`](crate::messages::EngineMessage).
+    InvalidMessage,
     ParameterParseError(MessageParameterPtr),
     MissingParameter(MessageParameterPtr),
     ValueParseError,
@@ -34,10 +36,9 @@ pub enum RawUciMessageParseError {
     NoMessage,
 }
 
-impl<MessagePtr, MessageParameterPtr> FromStr for RawUciMessage<MessagePtr, MessageParameterPtr>
+impl<M> FromStr for RawUciMessage<M>
 where
-    MessagePtr: MessagePointer,
-    MessageParameterPtr: MessageParameterPointer<MessagePointer = MessagePtr>,
+    M: Message,
 {
     type Err = RawUciMessageParseError;
 
@@ -45,7 +46,7 @@ where
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts = s.trim().split(' ').collect::<Vec<_>>();
 
-        let Some(Ok(message_pointer)) = parts.first().map(|p| MessagePtr::from_str(p)) else {
+        let Some(Ok(message_pointer)) = parts.first().map(|p| M::Pointer::from_str(p)) else {
             return Err(Self::Err::NoMessage);
         };
 
@@ -67,17 +68,17 @@ where
             });
         }
 
-        let mut parameters = HashMap::<MessageParameterPtr, String>::with_capacity(
+        let mut parameters = HashMap::<M::ParameterPointer, String>::with_capacity(
             parts.len().saturating_div(2).saturating_sub(1),
         );
         let mut void_parameters = Vec::with_capacity(2);
         let mut value = String::with_capacity(30);
-        let mut last_parameter = None::<MessageParameterPtr>;
+        let mut last_parameter = None::<M::ParameterPointer>;
 
         for part in parts_rest {
             //println!("Part: {part}");
             let Ok(parameter_pointer) =
-                MessageParameterPtr::from_message_and_str(message_pointer, part)
+                M::ParameterPointer::from_message_and_str(message_pointer, part)
             else {
                 value.push_str(part);
                 value.push(' ');
@@ -116,10 +117,9 @@ where
     }
 }
 
-impl<MessagePtr, MessageParameterPtr> Display for RawUciMessage<MessagePtr, MessageParameterPtr>
+impl<M> Display for RawUciMessage<M>
 where
-    MessagePtr: MessagePointer,
-    MessageParameterPtr: MessageParameterPointer<MessagePointer = MessagePtr>,
+    M: Message,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.message_pointer.as_string())?;

@@ -14,14 +14,12 @@ where
 
 pub trait Message:
     Debug
-    + TryFrom<
-        RawUciMessage<Self::MessagePointer, Self::MessageParameterPointer>,
-        Error = MessageTryFromRawUciMessageError<Self::MessageParameterPointer>,
-    > + Display
+    + TryFrom<RawUciMessage<Self>, Error = MessageTryFromRawUciMessageError<Self::ParameterPointer>>
+    + Display
 {
-    type MessagePointer: MessagePointer;
-    type MessageParameterPointer: MessageParameterPointer<MessagePointer = Self::MessagePointer>;
-    fn pointer(&self) -> Self::MessagePointer;
+    type Pointer: MessagePointer;
+    type ParameterPointer: MessageParameterPointer<MessagePointer = Self::Pointer>;
+    fn pointer(&self) -> Self::Pointer;
 
     /// Tries to parse a string into this message.
     ///
@@ -29,10 +27,9 @@ pub trait Message:
     ///
     /// - Errors with [`MessageParseError::RawUciMessageParseError`] if the string could not be parsed into a [`RawUciMessage`].
     /// - Errors with [`MessageParseError::MessageTryFromRawUciMessageError`] if the [`RawUciMessage`] could not be parsed into [`Self`].
-    fn from_str(s: &str) -> Result<Self, MessageParseError<Self::MessageParameterPointer>> {
-        let raw_uci_message =
-            RawUciMessage::<Self::MessagePointer, Self::MessageParameterPointer>::from_str(s)
-                .map_err(MessageParseError::RawUciMessageParseError)?;
+    fn from_str(s: &str) -> Result<Self, MessageParseError<Self::ParameterPointer>> {
+        let raw_uci_message = RawUciMessage::<Self>::from_str(s)
+            .map_err(MessageParseError::RawUciMessageParseError)?;
 
         Self::try_from(raw_uci_message).map_err(MessageParseError::MessageTryFromRawUciMessageError)
     }
