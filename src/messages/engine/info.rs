@@ -14,8 +14,6 @@ pub struct InfoMessageDepthField {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InfoMessageScoreFieldBound {
-    /// If neither [`lowerbound`](https://backscattering.de/chess/uci/#engine-info-score-lowerbound) nor [`upperbound`](https://backscattering.de/chess/uci/#engine-info-score-upperbound) is present.
-    Unspecified,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     Lowerbound,
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
@@ -32,7 +30,7 @@ pub struct InfoMessageScoreField {
     pub mate_in: Option<isize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
-    pub bound: InfoMessageScoreFieldBound,
+    pub bound: Option<InfoMessageScoreFieldBound>,
 }
 
 #[allow(clippy::module_name_repetitions)]
@@ -110,7 +108,7 @@ mod tests {
             score: Some(InfoMessageScoreField {
                 centipawns: Some(22),
                 mate_in: None,
-                bound: InfoMessageScoreFieldBound::Lowerbound,
+                bound: Some(InfoMessageScoreFieldBound::Lowerbound),
             }),
             current_move: Some(UciMove::from_ascii(b"e2e4").unwrap()),
             current_move_number: None,

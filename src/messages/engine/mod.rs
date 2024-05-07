@@ -197,13 +197,13 @@ impl TryFrom<RawUciMessage<EngineMessagePointer, EngineMessageParameterPointer>>
                             centipawns,
                             mate_in,
                             bound: if is_lowerbound && is_upperbound {
-                                InfoMessageScoreFieldBound::Unspecified
+                                None
                             } else if is_lowerbound {
-                                InfoMessageScoreFieldBound::Lowerbound
+                                Some(InfoMessageScoreFieldBound::Lowerbound)
                             } else if is_upperbound {
-                                InfoMessageScoreFieldBound::Upperbound
+                                Some(InfoMessageScoreFieldBound::Upperbound)
                             } else {
-                                InfoMessageScoreFieldBound::Unspecified
+                                None
                             },
                         }
                     });
@@ -455,9 +455,9 @@ impl Display for EngineMessage {
                     }
 
                     match score.bound {
-                        InfoMessageScoreFieldBound::Upperbound => f.write_str(" upperbound")?,
-                        InfoMessageScoreFieldBound::Lowerbound => f.write_str(" lowerbound")?,
-                        InfoMessageScoreFieldBound::Unspecified => {}
+                        Some(InfoMessageScoreFieldBound::Upperbound) => f.write_str(" upperbound")?,
+                        Some(InfoMessageScoreFieldBound::Lowerbound) => f.write_str(" lowerbound")?,
+                        None => {}
                     }
                 }
 
