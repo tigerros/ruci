@@ -50,7 +50,7 @@ fn main() {
     thread::spawn(move || {
         while let Ok(info) = info_receiver.recv() {
             // Newlines are always added to messages
-            println!("Info: {:#?}", info);
+            println!("Info: {info:#?}");
         }
     });
 

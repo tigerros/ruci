@@ -320,6 +320,8 @@ impl EngineConnection {
                 };
 
                 if !is_running.load(Ordering::SeqCst) {
+                    // Clippy wants this for some reason
+                    drop(guard);
                     return Err(GuiToEngineUciConnectionGoError::Io(
                         io::ErrorKind::ConnectionAborted.into(),
                     ));

@@ -159,13 +159,25 @@ impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
                 let is_upperbound = split.iter().any(|&part| part == "upperbound");
 
                 let centipawns = centipawns_position.and_then(|centipawns_position| {
-                    split
-                        .get(centipawns_position + 1)
-                        .and_then(|s| s.parse().ok())
+                    if centipawns_position == usize::MAX {
+                        None
+                    } else {
+                        // CLIPPY: Potential overflow handled in this if statement
+                        #[allow(clippy::arithmetic_side_effects)]
+                        split
+                            .get(centipawns_position + 1)
+                            .and_then(|s| s.parse().ok())
+                    }
                 });
 
                 let mate_in = mate_in_position.and_then(|mate_in_position| {
-                    split.get(mate_in_position + 1).and_then(|s| s.parse().ok())
+                    if mate_in_position == usize::MAX {
+                        None
+                    } else {
+                        // CLIPPY: Potential overflow handled in this if statement
+                        #[allow(clippy::arithmetic_side_effects)]
+                        split.get(mate_in_position + 1).and_then(|s| s.parse().ok())
+                    }
                 });
 
                 InfoMessageScoreField {
@@ -395,7 +407,7 @@ impl Display for InfoMessage {
             f.write_char(' ')?;
             f.write_str(&current_line.line.to_string())?;
         }
-        
+
         f.write_char('\n')
     }
 }
