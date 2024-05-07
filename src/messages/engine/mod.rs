@@ -455,8 +455,12 @@ impl Display for EngineMessage {
                     }
 
                     match score.bound {
-                        Some(InfoMessageScoreFieldBound::Upperbound) => f.write_str(" upperbound")?,
-                        Some(InfoMessageScoreFieldBound::Lowerbound) => f.write_str(" lowerbound")?,
+                        Some(InfoMessageScoreFieldBound::Upperbound) => {
+                            f.write_str(" upperbound")?;
+                        }
+                        Some(InfoMessageScoreFieldBound::Lowerbound) => {
+                            f.write_str(" lowerbound")?;
+                        }
                         None => {}
                     }
                 }

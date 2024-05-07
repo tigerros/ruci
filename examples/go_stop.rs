@@ -5,7 +5,6 @@
 //!
 //! Output on my machine can be found on [pastebin](https://pastebin.com/vJE9PR2U).
 
-use ruci::messages::EngineMessage;
 use ruci::messages::GoMessage;
 use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
 use std::sync::{Arc, Mutex};
