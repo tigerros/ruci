@@ -73,7 +73,9 @@ where
         );
         let mut void_parameters = Vec::with_capacity(2);
         let mut value = String::with_capacity(30);
+        let mut value_override = None::<String>;
         let mut last_parameter = None::<M::ParameterPointer>;
+        let mut first_parameter_encountered = false;
 
         for part in parts_rest {
             //println!("Part: {part}");
@@ -85,34 +87,45 @@ where
                 continue;
             };
 
-            //println!("\tParameter pointer: {}", parameter_pointer.as_string());
+            if !first_parameter_encountered {
+                value_override = Some(value.trim().to_string());
+                value = String::with_capacity(30);
+            }
+
+            first_parameter_encountered = true;
+
+            //println!("\tParameter pointer: {:?}", parameter_pointer);
             //println!("\tValue: [{value}]");
             //println!("\tLast parameter: {last_parameter:#?}");
 
             if let Some(last_parameter_some) = last_parameter {
+                //println!("\tInserting last_param_some [{:?};{:?}]", last_parameter_some, value.trim());
                 parameters.insert(last_parameter_some, value.trim().to_string());
                 value = String::with_capacity(30);
             }
 
             if parameter_pointer.has_value() {
                 last_parameter = Some(parameter_pointer);
+                //println!("\tLast param: {:?}", last_parameter);
             } else {
+                //println!("Void param: {parameter_pointer:?}");
                 void_parameters.push(parameter_pointer);
                 value = String::with_capacity(30);
                 last_parameter = None;
             }
         }
 
-        if let Some(last_parameter) = last_parameter {
+        if let Some(last_parameter_some) = last_parameter {
             value.pop();
-            parameters.insert(last_parameter, value.trim().to_string());
+            //println!("\tInserting last_param_some [{:?};{:?}]", last_parameter_some, value.trim());
+            parameters.insert(last_parameter_some, value.trim().to_string());
         }
 
         Ok(Self {
             message_pointer,
             parameters,
             void_parameters,
-            value: if value.is_empty() { None } else { Some(value) },
+            value: if value_override.is_some() { value_override } else if value.is_empty() { None } else { Some(value.trim().to_string()) },
         })
     }
 }

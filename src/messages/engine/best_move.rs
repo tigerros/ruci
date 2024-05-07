@@ -19,6 +19,8 @@ impl TryFrom<RawUciMessage<EngineMessage>> for BestMoveMessage {
         if raw_uci_message.message_pointer != EngineMessagePointer::BestMove {
             return Err(Self::Error::InvalidMessage);
         };
+        
+        println!("value: {:?}", raw_uci_message.value);
 
         let Ok(r#move) = raw_uci_message
             .value
@@ -44,9 +46,39 @@ impl Display for BestMoveMessage {
         write!(f, "bestmove {}", self.r#move)?;
 
         if let Some(ponder) = &self.ponder {
-            write!(f, " {ponder}")?;
+            write!(f, " ponder {ponder}")?;
         }
         
         f.write_char('\n')
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use crate::messages::{EngineMessage, BestMoveMessage};
+    use crate::{Message, UciMoveList};
+    use shakmaty::uci::Uci as UciMove;
+    use pretty_assertions::assert_eq;
+
+    fn repr() -> (EngineMessage, String) {
+        (EngineMessage::BestMove(BestMoveMessage {
+            r#move: UciMove::from_ascii(b"e2e4").unwrap(),
+            ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
+        }), "bestmove e2e4 ponder c7c5\n".to_string())
+    }
+
+    #[test]
+    fn to_string() {
+        let repr = repr();
+
+        assert_eq!(repr.0.to_string(), repr.1);
+    }
+
+    #[test]
+    fn from_string() {
+        let repr = repr();
+
+        assert_eq!(EngineMessage::from_str(&repr.1), Ok(repr.0));
     }
 }
