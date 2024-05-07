@@ -5,7 +5,7 @@ macro_rules! define_message_enum {
 
     (
         $(#[$attr:meta])*
-        $vis:vis enum $ident:ident {
+        enum $ident:ident {
             $(
             $(#[$message_attr:meta])*
             %[$message_string:literal]
@@ -17,7 +17,7 @@ macro_rules! define_message_enum {
     ) => {
         $(#[$attr])*
         #[derive(Debug, Clone, PartialEq, Eq)]
-        $vis enum $ident {
+        pub enum $ident {
             $(
             $(#[$message_attr])*
             $message_ident
@@ -39,7 +39,7 @@ macro_rules! define_message_enum {
             }
 
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-            $vis enum [< $ident Pointer >] {
+            pub enum [< $ident Pointer >] {
                 $(
                 $(#[$message_attr])*
                 $message_ident
@@ -47,7 +47,7 @@ macro_rules! define_message_enum {
             }
 
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-            $vis enum [< $ident ParameterPointer >] {
+            pub enum [< $ident ParameterPointer >] {
 				$($(
                 #[allow(unused_doc_comments)]
                 #[doc = define_message_enum!(empty_string=$has_parameters)]
@@ -57,7 +57,7 @@ macro_rules! define_message_enum {
 
 			$($(
 			#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-            $vis enum [< $ident $message_ident ParameterPointer >] {
+            pub enum [< $ident $message_ident ParameterPointer >] {
 				$(
 				$message_parameter_ident
 				),+

@@ -1,5 +1,5 @@
 dry_mods::mods! {
-    mod pub use go, register, set_option, set_position;
+    pub mod use go, register, set_option, set_position;
 }
 
 // TODO: Tests
@@ -9,9 +9,8 @@ use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
 use std::fmt::{Debug, Display, Formatter, Write};
 
 define_message_enum! {
-    /// Every message that is sent from the GUI to the engine.
-    /// Each variant links to a section of the UCI standard where that variant's message is documented.
-    pub enum GuiMessage {
+    /// A message sent from the GUI to the engine.
+    enum GuiMessage {
         /// <https://backscattering.de/chess/uci/#gui-uci>
         %["uci"]
         UseUci,

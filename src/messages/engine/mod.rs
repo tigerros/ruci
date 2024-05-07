@@ -1,5 +1,5 @@
 dry_mods::mods! {
-    mod pub use id, best_move, copy_protection, info, option, registration;
+    pub mod use id, best_move, copy_protection, info, option, registration;
 }
 
 // TODO: Tests
@@ -9,7 +9,8 @@ use crate::{define_message_enum, MessageTryFromRawUciMessageError, RawUciMessage
 use std::fmt::{Display, Formatter, Write};
 
 define_message_enum! {
-    pub enum EngineMessage {
+    /// A message sent from the engine to the GUI.
+    enum EngineMessage {
         /// <https://backscattering.de/chess/uci/#engine-id>
         %["id"]
         %%[parameters = [(Name, "name"), (Author, "author")]]

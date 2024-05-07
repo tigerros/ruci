@@ -12,7 +12,9 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 
+/// A connection to an engine, used by a GUI.
 pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
+/// A connection to a GUI, used by an engine.
 pub type GuiConnection = UciConnection<EngineMessage, GuiMessage>;
 
 #[derive(Debug)]
