@@ -152,33 +152,26 @@ impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
                 EngineMessageInfoParameterPointer::Score,
             ))
             .map(|s| {
+                fn isize_at_plus1_position(split: &[&str], position: Option<usize>) -> Option<isize> {
+                    position.and_then(|position| {
+                        if position == usize::MAX {
+                            None
+                        } else {
+                            // CLIPPY: Potential overflow handled in this if statement
+                            #[allow(clippy::arithmetic_side_effects)]
+                            split
+                                .get(position + 1)
+                                .and_then(|s| s.parse().ok())
+                        }
+                    })
+                }
                 let split = s.split(' ').collect::<Vec<_>>();
                 let centipawns_position = split.iter().position(|&part| part == "cp");
                 let mate_in_position = split.iter().position(|&part| part == "mate");
                 let is_lowerbound = split.iter().any(|&part| part == "lowerbound");
                 let is_upperbound = split.iter().any(|&part| part == "upperbound");
-
-                let centipawns = centipawns_position.and_then(|centipawns_position| {
-                    if centipawns_position == usize::MAX {
-                        None
-                    } else {
-                        // CLIPPY: Potential overflow handled in this if statement
-                        #[allow(clippy::arithmetic_side_effects)]
-                        split
-                            .get(centipawns_position + 1)
-                            .and_then(|s| s.parse().ok())
-                    }
-                });
-
-                let mate_in = mate_in_position.and_then(|mate_in_position| {
-                    if mate_in_position == usize::MAX {
-                        None
-                    } else {
-                        // CLIPPY: Potential overflow handled in this if statement
-                        #[allow(clippy::arithmetic_side_effects)]
-                        split.get(mate_in_position + 1).and_then(|s| s.parse().ok())
-                    }
-                });
+                let centipawns = isize_at_plus1_position(&split, centipawns_position);
+                let mate_in = isize_at_plus1_position(&split, mate_in_position);
 
                 InfoMessageScoreField {
                     centipawns,

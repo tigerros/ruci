@@ -55,17 +55,17 @@ pub trait MessageParameterPointer: Copy + Debug + Hash + Eq + PartialEq {
     ///
     /// # Errors
     ///
-    /// - [`MessageParameterPointerParseError::MessageHasNoParameters`]: If the `message_pointer` argument
+    /// - [`MessageParameterPointerParseError::MessageHasNoParameters`]: if the `message_pointer` argument
     /// points to a message without parameters, such as [`uciok`](https://backscattering.de/chess/uci/#engine-uciok).
-    /// - [`MessageParameterPointerParseError::StringDoesNotMapToParameterPointer`]: If the `message_pointer` argument
-    /// points to a message which *does* have parameters, but the `s` argument doesn't match any of them.
+    /// - [`MessageParameterPointerParseError::StringDoesNotMapToParameterPointer`]: if the `message_pointer` argument
+    /// points to a message, which *does* have parameters, but the `s` argument doesn't match any of them.
     /// For example, if you pass in a message pointer for the [`id`](https://backscattering.de/chess/uci/#engine-id) command, but the `s` argument
     /// is `"developer"`, this will error because `id` only has `name` and `author` parameters.
     fn from_message_and_str(
         message_pointer: Self::MessagePointer,
         s: &str,
     ) -> Result<Self, MessageParameterPointerParseError>;
-    /// Whether or not this parameter has a value.
+    /// Whether this parameter has a value.
     /// Almost all do, but [`ponder`](https://backscattering.de/chess/uci/#gui-go-ponder)
     /// and [`infinite`](https://backscattering.de/chess/uci/#gui-go-infinite) of the
     /// [`go`](https://backscattering.de/chess/uci/#gui-go) message don't.

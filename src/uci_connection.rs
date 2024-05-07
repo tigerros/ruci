@@ -97,7 +97,7 @@ where
         self.stdin.write_all(message.to_string().as_bytes())
     }
 
-    /// Skips a number of lines.
+    /// Skips some lines.
     ///
     /// # Errors
     ///
@@ -110,7 +110,7 @@ where
             self.stdout.read_exact(&mut buf)?;
 
             if buf[0] == b'\n' {
-                // CLIPPY: `skipped_count` will never overflow because it starts at 0, increments by 1, and stops once `count` is reached.
+                // CLIPPY: `skipped_count` never overflows because it starts at 0, increments by 1, and stops once `count` is reached.
                 #[allow(clippy::arithmetic_side_effects)]
                 {
                     skipped_count += 1;
@@ -176,25 +176,25 @@ pub struct GuiToEngineUciConnectionGo<Stop>
 where
     Stop: FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>,
 {
-    /// Calling this function will send a "stop" signal to the thread
-    /// and also send the [`stop`](https://backscattering.de/chess/uci/#gui-stop) message to the engine.
+    /// Calling this function sends a "stop" signal to the thread
+    /// and also sends the [`stop`](https://backscattering.de/chess/uci/#gui-stop) message to the engine.
     ///
     /// This function does not wait for the `self.thread` to finish.
     ///
     /// # Errors
     ///
-    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`EngineConnection`] mutex was poisoned.
-    /// - [`GuiToEngineUciConnectionGoError::Io`]: See [`UciConnection::send_message`].
+    /// - [`GuiToEngineUciConnectionGoError::Poison`]: the [`EngineConnection`] mutex was poisoned.
+    /// - [`GuiToEngineUciConnectionGoError::Io`]: see [`UciConnection::send_message`].
     pub stop: Stop,
     /// All [`info`](https://backscattering.de/chess/uci/#engine-info) messages will be sent through this receiver.
     pub info_receiver: Receiver<Box<InfoMessage>>,
-    /// This is the handle to the thread, use it to wait to wait for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message.
+    /// This is the handle to the thread, use it to wait for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message.
     ///
     /// # Errors
     ///
-    /// - [`GuiToEngineUciConnectionGoError::Poison`]: The [`EngineConnection`] mutex was poisoned.
-    /// - [`GuiToEngineUciConnectionGoError::Io(io::ErrorKind::ConnectionAborted)`](GuiToEngineUciConnectionGoError::Io): The `self.stop` function was called and the thread aborted.
-    /// - [`GuiToEngineUciConnectionGoError::Io`]: Write/read IO errors.
+    /// - [`GuiToEngineUciConnectionGoError::Poison`]: the [`EngineConnection`] mutex was poisoned.
+    /// - [`GuiToEngineUciConnectionGoError::Io(io::ErrorKind::ConnectionAborted)`](GuiToEngineUciConnectionGoError::Io): the `self.stop` function was called, and the thread aborted.
+    /// - [`GuiToEngineUciConnectionGoError::Io`]: write/read IO errors.
     pub thread: JoinHandle<Result<BestMoveMessage, GuiToEngineUciConnectionGoError>>,
 }
 
@@ -228,7 +228,7 @@ impl EngineConnection {
     /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it, along with a list of [`info`](https://backscattering.de/chess/uci/#engine-info) messages.
     ///
-    /// See also the [`Self::go_async`] function which can be interrupted.
+    /// See also the [`Self::go_async`] function, which can be interrupted.
     ///
     /// # Errors
     ///
@@ -259,9 +259,9 @@ impl EngineConnection {
     /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it. The [`info`](https://backscattering.de/chess/uci/#engine-info) messages are sent through the returned receiver.
     ///
-    /// See also the [`Self::go`] function for a simpler alternative, but one that cannot be interrupted.
-    ///
-    /// See also the [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example.
+    /// See also:
+    /// - The [`Self::go`] function for a simpler alternative, but one that cannot be interrupted.
+    /// - The [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example.
     ///
     /// # Errors
     ///

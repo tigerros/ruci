@@ -19,7 +19,7 @@ impl Display for UciMoveList {
         let mut first_iter = true;
 
         for r#move in &self.0 {
-            // Don't write the space on the first iteration
+            // Do not write the space on the first iteration
             if first_iter {
                 first_iter = false;
             } else {
