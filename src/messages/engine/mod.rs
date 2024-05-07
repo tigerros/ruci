@@ -39,11 +39,11 @@ define_message_enum! {
     }
 }
 
-impl TryFrom<RawUciMessage<EngineMessage>> for EngineMessage {
+impl TryFrom<RawUciMessage<Self>> for EngineMessage {
     type Error = MessageTryFromRawUciMessageError<EngineMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
-    fn try_from(raw_uci_message: RawUciMessage<EngineMessage>) -> Result<Self, Self::Error> {
+    fn try_from(raw_uci_message: RawUciMessage<Self>) -> Result<Self, Self::Error> {
         match raw_uci_message.message_pointer {
             // Value-less, parameter-less messages
             EngineMessagePointer::UciOk => Ok(Self::UciOk),

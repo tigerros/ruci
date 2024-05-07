@@ -59,9 +59,9 @@ impl Display for IdMessageKind {
         f.write_str("id ")?;
 
         match self {
-            IdMessageKind::Name(name) => write!(f, "name {name}")?,
-            IdMessageKind::Author(author) => write!(f, "author {author}")?,
-            IdMessageKind::NameAndAuthor(name, author) => {
+            Self::Name(name) => write!(f, "name {name}")?,
+            Self::Author(author) => write!(f, "author {author}")?,
+            Self::NameAndAuthor(name, author) => {
                 write!(f, "name {name} author {author}")?;
             }
         }

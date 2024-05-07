@@ -51,11 +51,11 @@ define_message_enum! {
     }
 }
 
-impl TryFrom<RawUciMessage<GuiMessage>> for GuiMessage {
+impl TryFrom<RawUciMessage<Self>> for GuiMessage {
     type Error = MessageTryFromRawUciMessageError<GuiMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
-    fn try_from(raw_uci_message: RawUciMessage<GuiMessage>) -> Result<Self, Self::Error> {
+    fn try_from(raw_uci_message: RawUciMessage<Self>) -> Result<Self, Self::Error> {
         match raw_uci_message.message_pointer {
             // Value-less, parameter-less messages
             GuiMessagePointer::UseUci => Ok(Self::UseUci),
@@ -92,7 +92,7 @@ impl Display for GuiMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UseUci => f.write_str("uci\n"),
-            Self::Debug(value) => write!(f, "debug {}\n", if *value { "on" } else { "off" }),
+            Self::Debug(value) => writeln!(f, "debug {}", if *value { "on" } else { "off" }),
             Self::IsReady => f.write_str("isready\n"),
             Self::SetOption(message) => f.write_str(&message.to_string()),
             Self::Register(kind) => f.write_str(&kind.to_string()),
