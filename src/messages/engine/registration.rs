@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
+/// <https://backscattering.de/chess/uci/#engine-registration>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RegistrationMessageKind {

@@ -44,6 +44,7 @@ impl Display for OptionMessageTypeField {
     }
 }
 
+/// <https://backscattering.de/chess/uci/#engine-option>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptionMessage {

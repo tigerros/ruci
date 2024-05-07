@@ -3,6 +3,7 @@ use crate::UciMoveList;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// <https://backscattering.de/chess/uci/#gui-go>
 pub struct GoMessage {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
     pub search_moves: Option<UciMoveList>,

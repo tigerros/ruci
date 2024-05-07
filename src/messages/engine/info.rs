@@ -51,6 +51,7 @@ pub struct InfoMessageCurrentLineField {
     pub line: UciMoveList,
 }
 
+/// <https://backscattering.de/chess/uci/#engine-info>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InfoMessage {

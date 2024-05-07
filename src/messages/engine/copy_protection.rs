@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// <https://backscattering.de/chess/uci/#engine-copyprotection>
 pub enum CopyProtectionMessageKind {
     Ok,
     Error,
