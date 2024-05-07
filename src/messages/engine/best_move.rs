@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Write};
 use shakmaty::uci::Uci as UciMove;
-use crate::messages::{EngineMessage, OptionMessage};
+use crate::messages::{EngineMessage};
 use crate::messages::engine::{EngineMessageBestMoveParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
 

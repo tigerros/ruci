@@ -1,5 +1,4 @@
 use std::fmt::{Display, Formatter, Write};
-use std::str::FromStr;
 use crate::messages::EngineMessage;
 use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
 use crate::messages::engine::{EngineMessageParameterPointer, EngineMessagePointer};
