@@ -5,8 +5,8 @@
 //!
 //! Output on my machine can be found on [pastebin](https://pastebin.com/vJE9PR2U).
 
-use ruci::messages::GoMessage;
-use ruci::{EngineConnection, GuiToEngineUciConnectionGo, MessageParseError, MessageTryFromRawUciMessageError, UciReadMessageError};
+use ruci::messages::{GoMessage, GuiMessage};
+use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -30,7 +30,7 @@ fn main() {
         info_receiver,
         thread,
     } = EngineConnection::go_async(
-        uci,
+        uci.clone(),
         GoMessage {
             search_moves: None,
             ponder: false,
@@ -46,10 +46,9 @@ fn main() {
             infinite: false,
         },
     );
-    
+
     thread::spawn(move || {
         while let Ok(info) = info_receiver.recv() {
-            // Newlines are always added to messages
             println!("Info: {info:#?}");
         }
     });
@@ -59,7 +58,10 @@ fn main() {
     println!("Is finished: {}", thread.is_finished());
     println!("Aborting");
     stop().unwrap();
-    println!("Thread result: {:#?}", thread.join());
     println!("Aborted");
+    println!("Thread result: {:#?}", thread.join());
+    println!("Sending quit message");
+    uci.lock().unwrap().send_message(&GuiMessage::Quit).unwrap();
+    println!("Sent");
     thread::sleep(Duration::from_secs(100));
 }

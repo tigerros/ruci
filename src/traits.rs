@@ -20,7 +20,6 @@ pub trait Message:
 {
     type Pointer: MessagePointer;
     type ParameterPointer: MessageParameterPointer<MessagePointer = Self::Pointer>;
-    fn pointer(&self) -> Self::Pointer;
 
     /// Tries to parse a string into this message.
     ///

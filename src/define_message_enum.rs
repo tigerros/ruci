@@ -29,13 +29,6 @@ macro_rules! define_message_enum {
             impl $crate::traits::Message for $ident {
                 type Pointer = [< $ident Pointer >];
                 type ParameterPointer = [< $ident ParameterPointer >];
-                fn pointer(&self) -> Self::Pointer {
-                    match self {
-                        $(
-                        Self::$message_ident$((define_message_enum!(dotdot=$has_arguments)))? => [< $ident Pointer >]::$message_ident
-                        ),+
-                    }
-                }
             }
 
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
