@@ -61,16 +61,16 @@ where
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
     pub fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
+        #[cfg(windows)]
+        use std::os::windows::process::CommandExt;
+
         let mut cmd = Command::new(path);
-        let mut cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
+        let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
         #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            // CREATE_NO_WINDOW
-            // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
-            cmd = cmd.creation_flags(0x0800_0000);
-        }
+        // CREATE_NO_WINDOW
+        // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+        let cmd = cmd.creation_flags(0x0800_0000);
 
         let mut process = cmd.spawn().map_err(UciCreationError::Spawn)?;
 
