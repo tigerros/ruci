@@ -31,7 +31,7 @@
 
 mod define_message_enum;
 pub mod messages;
-mod raw_uci_message;
+mod raw_message;
 mod traits;
 
 #[cfg(feature = "uci-connection")]
@@ -39,7 +39,7 @@ mod uci_connection;
 mod uci_move_list;
 
 pub(crate) use define_message_enum::define_message_enum;
-pub use raw_uci_message::*;
+pub use raw_message::*;
 pub use traits::*;
 #[cfg(feature = "uci-connection")]
 pub use uci_connection::*;

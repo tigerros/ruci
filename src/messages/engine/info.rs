@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::{MessageTryFromRawUciMessageError, RawUciMessage, UciMoveList};
+use crate::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::Uci as UciMove;
 use crate::messages::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
-use crate::messages::EngineMessage;
+use crate::messages::engine::raw_engine_message::RawEngineMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -90,18 +90,18 @@ pub struct InfoMessage {
     pub current_line: Option<InfoMessageCurrentLineField>,
 }
 
-impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
-    type Error = MessageTryFromRawUciMessageError<EngineMessageParameterPointer>;
+impl TryFrom<RawEngineMessage> for InfoMessage {
+    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
     fn try_from(
-        raw_uci_message: RawUciMessage<EngineMessage>,
+        raw_message: RawEngineMessage,
     ) -> Result<Self, Self::Error> {
-        if raw_uci_message.message_pointer != EngineMessagePointer::Info {
+        if raw_message.message_pointer != EngineMessagePointer::Info {
             return Err(Self::Error::InvalidMessage);
         };
 
-        let depth = raw_uci_message
+        let depth = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::Depth,
@@ -109,7 +109,7 @@ impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
             .and_then(|s| {
                 s.parse().ok().map(|depth| InfoMessageDepthField {
                     depth,
-                    selective_search_depth: raw_uci_message
+                    selective_search_depth: raw_message
                         .parameters
                         .get(&EngineMessageParameterPointer::Info(
                             EngineMessageInfoParameterPointer::SelectiveSearchDepth,
@@ -118,35 +118,35 @@ impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
                 })
             });
 
-        let time = raw_uci_message
+        let time = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::Time,
             ))
             .and_then(|s| s.parse().ok());
 
-        let nodes = raw_uci_message
+        let nodes = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::Nodes,
             ))
             .and_then(|s| s.parse().ok());
 
-        let primary_variation = raw_uci_message
+        let primary_variation = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::PrimaryVariation,
             ))
             .and_then(|s| s.parse().ok());
 
-        let multi_primary_variation = raw_uci_message
+        let multi_primary_variation = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::MultiPrimaryVariation,
             ))
             .and_then(|s| s.parse().ok());
 
-        let score = raw_uci_message
+        let score = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::Score,
@@ -188,63 +188,63 @@ impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
                 }
             });
 
-        let current_move = raw_uci_message
+        let current_move = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::CurrentMove,
             ))
             .and_then(|s| s.parse().ok());
 
-        let current_move_number = raw_uci_message
+        let current_move_number = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::CurrentMoveNumber,
             ))
             .and_then(|s| s.parse().ok());
 
-        let hash_full = raw_uci_message
+        let hash_full = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::HashFull,
             ))
             .and_then(|s| s.parse().ok());
 
-        let nodes_per_second = raw_uci_message
+        let nodes_per_second = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::NodesPerSecond,
             ))
             .and_then(|s| s.parse().ok());
 
-        let table_base_hits = raw_uci_message
+        let table_base_hits = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::TableBaseHits,
             ))
             .and_then(|s| s.parse().ok());
 
-        let shredder_base_hits = raw_uci_message
+        let shredder_base_hits = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::ShredderBaseHits,
             ))
             .and_then(|s| s.parse().ok());
 
-        let cpu_load = raw_uci_message
+        let cpu_load = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::CpuLoad,
             ))
             .and_then(|s| s.parse().ok());
 
-        let string = raw_uci_message
+        let string = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::String,
             ))
             .cloned();
 
-        let refutation = raw_uci_message
+        let refutation = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::Refutation,
@@ -260,7 +260,7 @@ impl TryFrom<RawUciMessage<EngineMessage>> for InfoMessage {
                 })
             });
 
-        let current_line = raw_uci_message
+        let current_line = raw_message
             .parameters
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::CurrentLine,
@@ -408,13 +408,16 @@ impl Display for InfoMessage {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use std::str::FromStr;
     use crate::messages::engine::{EngineMessage, InfoMessageCurrentLineField, InfoMessageDepthField, InfoMessageRefutationField, InfoMessageScoreField, InfoMessageScoreFieldBound};
-    use crate::{Message, UciMoveList};
+    use crate::{UciMoveList};
     use super::InfoMessage;
     use shakmaty::uci::Uci as UciMove;
     use pretty_assertions::assert_eq;
-    fn repr() -> (EngineMessage, String) {
-        (EngineMessage::Info(Box::new(InfoMessage {
+
+    #[test]
+    fn to_from_str() {
+        let repr = EngineMessage::Info(Box::new(InfoMessage {
             depth: Some(InfoMessageDepthField {
                 depth: 20,
                 selective_search_depth: Some(31)
@@ -444,20 +447,10 @@ mod tests {
                 used_cpu: Some(1),
                 line: UciMoveList(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
             }),
-        })), "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5\n".to_string())
-    }
+        }));
+        let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5\n";
 
-    #[test]
-    fn to_string() {
-        let repr = repr();
-        
-        assert_eq!(repr.0.to_string(), repr.1);
-    }
-    
-    #[test]
-    fn from_string() {
-        let repr = repr();
-        
-        assert_eq!(EngineMessage::from_str(&repr.1), Ok(repr.0));
+        assert_eq!(repr.to_string(), str_repr);
+        assert_eq!(EngineMessage::from_str(str_repr), Ok(repr));
     }
 }

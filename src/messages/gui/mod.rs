@@ -1,3 +1,6 @@
+mod raw_gui_message;
+use raw_gui_message::RawGuiMessage;
+
 dry_mods::mods! {
     pub mod use go, register, set_option, set_position;
 }
@@ -5,8 +8,9 @@ dry_mods::mods! {
 // TODO: Tests
 
 use crate::define_message_enum::define_message_enum;
-use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
+use crate::{MessageParseError, MessageTryFromRawMessageError};
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
 
 define_message_enum! {
     /// A message sent from the GUI to the engine.
@@ -51,12 +55,29 @@ define_message_enum! {
     }
 }
 
-impl TryFrom<RawUciMessage<Self>> for GuiMessage {
-    type Error = MessageTryFromRawUciMessageError<GuiMessageParameterPointer>;
+impl FromStr for GuiMessage {
+    type Err = MessageParseError<GuiMessageParameterPointer>;
+
+    /// Tries to parse a string into this message.
+    ///
+    /// # Errors
+    ///
+    /// - Errors with [`MessageParseError::RawMessageParseError`] if the string could not be parsed into a [`RawGuiMessage`].
+    /// - Errors with [`MessageParseError::MessageTryFromRawMessageError`] if the [`RawUciMessage`] could not be parsed into [`Self`].
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw_message =
+            RawGuiMessage::from_str(s).map_err(MessageParseError::RawMessageParseError)?;
+
+        Self::try_from(raw_message).map_err(MessageParseError::MessageTryFromRawMessageError)
+    }
+}
+
+impl TryFrom<RawGuiMessage> for GuiMessage {
+    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
-    fn try_from(raw_uci_message: RawUciMessage<Self>) -> Result<Self, Self::Error> {
-        match raw_uci_message.message_pointer {
+    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
+        match raw_message.message_pointer {
             // Value-less, parameter-less messages
             GuiMessagePointer::UseUci => Ok(Self::UseUci),
             GuiMessagePointer::IsReady => Ok(Self::IsReady),
@@ -65,7 +86,7 @@ impl TryFrom<RawUciMessage<Self>> for GuiMessage {
             GuiMessagePointer::PonderHit => Ok(Self::PonderHit),
             GuiMessagePointer::Quit => Ok(Self::Quit),
             // Messages with values/parameters
-            GuiMessagePointer::Debug => match raw_uci_message
+            GuiMessagePointer::Debug => match raw_message
                 .value
                 .ok_or(Self::Error::MissingValue)?
                 .as_bytes()
@@ -74,16 +95,16 @@ impl TryFrom<RawUciMessage<Self>> for GuiMessage {
                 b"off" => Ok(Self::Debug(false)),
                 _ => Err(Self::Error::ValueParseError),
             },
-            GuiMessagePointer::SetOption => Ok(Self::SetOption(SetOptionMessage::try_from(
-                raw_uci_message,
-            )?)),
-            GuiMessagePointer::Register => Ok(Self::Register(RegisterMessageKind::try_from(
-                raw_uci_message,
-            )?)),
+            GuiMessagePointer::SetOption => {
+                Ok(Self::SetOption(SetOptionMessage::try_from(raw_message)?))
+            }
+            GuiMessagePointer::Register => {
+                Ok(Self::Register(RegisterMessageKind::try_from(raw_message)?))
+            }
             GuiMessagePointer::SetPosition => Ok(Self::SetPosition(
-                SetPositionMessageKind::try_from(raw_uci_message)?,
+                SetPositionMessageKind::try_from(raw_message)?,
             )),
-            GuiMessagePointer::Go => Ok(Self::Go(GoMessage::try_from(raw_uci_message)?)),
+            GuiMessagePointer::Go => Ok(Self::Go(GoMessage::try_from(raw_message)?)),
         }
     }
 }
@@ -103,40 +124,5 @@ impl Display for GuiMessage {
             Self::PonderHit => f.write_str("ponderhit\n"),
             Self::Quit => f.write_str("quit\n"),
         }
-    }
-}
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use crate::messages::gui::{GoMessage, GuiMessage};
-    use crate::{Message, UciMoveList};
-    use pretty_assertions::assert_eq;
-    use shakmaty::uci::Uci as UciMove;
-    use std::num::NonZeroUsize;
-
-    #[test]
-    fn go() {
-        let structured_repr = GuiMessage::Go(GoMessage {
-            search_moves: Some(UciMoveList(vec![
-                UciMove::from_ascii(b"e2e4").unwrap(),
-                UciMove::from_ascii(b"d2d4").unwrap(),
-            ])),
-            ponder: true,
-            white_time: Some(5),
-            black_time: None,
-            white_increment: None,
-            black_increment: Some(NonZeroUsize::new(45).unwrap()),
-            moves_to_go: None,
-            depth: Some(20),
-            nodes: None,
-            mate: None,
-            move_time: None,
-            infinite: true,
-        });
-        let string_repr = "go searchmoves e2e4 d2d4 ponder wtime 5 binc 45 depth 20 infinite\n";
-
-        assert_eq!(structured_repr.to_string(), string_repr);
-        assert_eq!(GuiMessage::from_str(string_repr), Ok(structured_repr));
     }
 }

@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter, Write};
 use std::num::NonZeroUsize;
-use crate::messages::GuiMessage;
-use crate::{MessageTryFromRawUciMessageError, RawUciMessage, UciMoveList};
+use crate::{MessageTryFromRawMessageError, UciMoveList};
 use crate::messages::gui::{GuiMessageGoParameterPointer, GuiMessageParameterPointer, GuiMessagePointer};
+use crate::messages::gui::raw_gui_message::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,15 +34,15 @@ pub struct GoMessage {
     pub infinite: bool,
 }
 
-impl TryFrom<RawUciMessage<GuiMessage>> for GoMessage {
-    type Error = MessageTryFromRawUciMessageError<GuiMessageParameterPointer>;
+impl TryFrom<RawGuiMessage> for GoMessage {
+    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
-    fn try_from(raw_uci_message: RawUciMessage<GuiMessage>) -> Result<Self, Self::Error> {
-        if raw_uci_message.message_pointer != GuiMessagePointer::Go {
+    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != GuiMessagePointer::Go {
             return Err(Self::Error::InvalidMessage);
         };
 
-        let search_moves = raw_uci_message
+        let search_moves = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::SearchMoves,
@@ -50,69 +50,69 @@ impl TryFrom<RawUciMessage<GuiMessage>> for GoMessage {
             .and_then(|s| s.parse().ok());
 
         let ponder =
-            raw_uci_message
+            raw_message
                 .void_parameters
                 .contains(&GuiMessageParameterPointer::Go(
                     GuiMessageGoParameterPointer::Ponder,
                 ));
 
-        let white_time = raw_uci_message
+        let white_time = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::WhiteTime,
             ))
             .and_then(|s| s.parse().ok());
 
-        let black_time = raw_uci_message
+        let black_time = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::BlackTime,
             ))
             .and_then(|s| s.parse().ok());
 
-        let white_increment = raw_uci_message
+        let white_increment = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::WhiteIncrement,
             ))
             .and_then(|s| s.parse().ok());
 
-        let black_increment = raw_uci_message
+        let black_increment = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::BlackIncrement,
             ))
             .and_then(|s| s.parse().ok());
 
-        let moves_to_go = raw_uci_message
+        let moves_to_go = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::MovesToGo,
             ))
             .and_then(|s| s.parse().ok());
 
-        let depth = raw_uci_message
+        let depth = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::Depth,
             ))
             .and_then(|s| s.parse().ok());
 
-        let nodes = raw_uci_message
+        let nodes = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::Nodes,
             ))
             .and_then(|s| s.parse().ok());
 
-        let mate = raw_uci_message
+        let mate = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::Mate,
             ))
             .and_then(|s| s.parse().ok());
 
-        let move_time = raw_uci_message
+        let move_time = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Go(
                 GuiMessageGoParameterPointer::MoveTime,
@@ -120,7 +120,7 @@ impl TryFrom<RawUciMessage<GuiMessage>> for GoMessage {
             .and_then(|s| s.parse().ok());
 
         let infinite =
-            raw_uci_message
+            raw_message
                 .void_parameters
                 .contains(&GuiMessageParameterPointer::Go(
                     GuiMessageGoParameterPointer::Infinite,
@@ -196,5 +196,41 @@ impl Display for GoMessage {
         }
         
         f.write_char('\n')
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use crate::messages::{GoMessage, GuiMessage};
+    use crate::{UciMoveList};
+    use pretty_assertions::assert_eq;
+    use shakmaty::uci::Uci as UciMove;
+    use std::num::NonZeroUsize;
+    use std::str::FromStr;
+
+    #[test]
+    fn to_from_str() {
+        let repr = GuiMessage::Go(GoMessage {
+            search_moves: Some(UciMoveList(vec![
+                UciMove::from_ascii(b"e2e4").unwrap(),
+                UciMove::from_ascii(b"d2d4").unwrap(),
+            ])),
+            ponder: true,
+            white_time: Some(5),
+            black_time: None,
+            white_increment: None,
+            black_increment: Some(NonZeroUsize::new(45).unwrap()),
+            moves_to_go: None,
+            depth: Some(20),
+            nodes: None,
+            mate: None,
+            move_time: None,
+            infinite: true,
+        });
+        let str_repr = "go searchmoves e2e4 d2d4 ponder wtime 5 binc 45 depth 20 infinite\n";
+
+        assert_eq!(repr.to_string(), str_repr);
+        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
     }
 }

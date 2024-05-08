@@ -139,7 +139,7 @@ where
         &mut self,
     ) -> Result<MReceive, UciReadMessageError<MReceive::ParameterPointer>> {
         MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Io)?)
-            .map_err(UciReadMessageError::MessageParse)
+            .map_err(|e| UciReadMessageError::MessageParse(e))
     }
 
     /// Reads one line without the trailing `'\n'` character.
@@ -380,14 +380,14 @@ fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
         (IdMessageKind::Name(name), IdMessageKind::Name(_)) => IdMessageKind::Name(name),
         (
             IdMessageKind::Author(author),
-            IdMessageKind::Name(name) | IdMessageKind::NameAndAuthor(name, _),
+            IdMessageKind::Name(name) | IdMessageKind::NameAndAuthor { name, .. },
         )
         | (
             IdMessageKind::Name(name),
-            IdMessageKind::Author(author) | IdMessageKind::NameAndAuthor(_, author),
+            IdMessageKind::Author(author) | IdMessageKind::NameAndAuthor { author, .. },
         )
-        | (IdMessageKind::NameAndAuthor(name, author), _) => {
-            IdMessageKind::NameAndAuthor(name, author)
+        | (IdMessageKind::NameAndAuthor { name, author }, _) => {
+            IdMessageKind::NameAndAuthor { name, author }
         }
     });
 }

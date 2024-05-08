@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::EngineMessage;
-use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
+use crate::{MessageTryFromRawMessageError};
 use crate::messages::engine::{EngineMessageParameterPointer, EngineMessagePointer};
+use crate::messages::engine::raw_engine_message::RawEngineMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -11,22 +11,22 @@ pub enum CopyProtectionMessageKind {
     Error,
 }
 
-impl TryFrom<RawUciMessage<EngineMessage>> for CopyProtectionMessageKind {
-    type Error = MessageTryFromRawUciMessageError<EngineMessageParameterPointer>;
+impl TryFrom<RawEngineMessage> for CopyProtectionMessageKind {
+    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
-    fn try_from(raw_uci_message: RawUciMessage<EngineMessage>) -> Result<Self, MessageTryFromRawUciMessageError<EngineMessageParameterPointer>> {
-        if raw_uci_message.message_pointer != EngineMessagePointer::CopyProtection {
-            return Err(MessageTryFromRawUciMessageError::InvalidMessage);
+    fn try_from(raw_message: RawEngineMessage) -> Result<Self, MessageTryFromRawMessageError<EngineMessageParameterPointer>> {
+        if raw_message.message_pointer != EngineMessagePointer::CopyProtection {
+            return Err(MessageTryFromRawMessageError::InvalidMessage);
         }
 
-        let Some(value) = raw_uci_message.value else {
-            return Err(MessageTryFromRawUciMessageError::MissingValue);
+        let Some(value) = raw_message.value else {
+            return Err(MessageTryFromRawMessageError::MissingValue);
         };
 
         match value.as_bytes() {
             b"ok" => Ok(Self::Ok),
             b"error" => Ok(Self::Error),
-            _ => Err(MessageTryFromRawUciMessageError::ValueParseError),
+            _ => Err(MessageTryFromRawMessageError::ValueParseError),
         }
     }
 }

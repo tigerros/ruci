@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::{GuiMessage};
-use crate::{MessageTryFromRawUciMessageError, RawUciMessage, UciMoveList};
+use crate::{MessageTryFromRawMessageError, UciMoveList};
 use crate::messages::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetPositionParameterPointer};
+use crate::messages::gui::raw_gui_message::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,22 +16,22 @@ pub enum SetPositionMessageKind {
     },
 }
 
-impl TryFrom<RawUciMessage<GuiMessage>> for SetPositionMessageKind {
-    type Error = MessageTryFromRawUciMessageError<GuiMessageParameterPointer>;
+impl TryFrom<RawGuiMessage> for SetPositionMessageKind {
+    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
-    fn try_from(raw_uci_message: RawUciMessage<GuiMessage>) -> Result<Self, Self::Error> {
-        if raw_uci_message.message_pointer != GuiMessagePointer::SetPosition {
+    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != GuiMessagePointer::SetPosition {
             return Err(Self::Error::InvalidMessage);
         };
 
-        let fen = raw_uci_message
+        let fen = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::SetPosition(
                 GuiMessageSetPositionParameterPointer::Fen,
             ))
             .cloned();
 
-        let moves = raw_uci_message
+        let moves = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::SetPosition(
                 GuiMessageSetPositionParameterPointer::Moves,
@@ -62,5 +62,24 @@ impl Display for SetPositionMessageKind {
         }
         
         f.write_char('\n')
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use std::str::FromStr;
+    use crate::messages::{GuiMessage, SetPositionMessageKind};
+    use crate::{UciMoveList};
+    use shakmaty::uci::Uci as UciMove;
+
+    #[test]
+    fn to_from_str() {
+        let repr = GuiMessage::SetPosition(SetPositionMessageKind::StartingPosition {
+            moves: Some(UciMoveList(vec![UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()])),
+        });
+        let str_repr = "position startpos moves d2d4 d7d5\n";
+        assert_eq!(repr.to_string(), str_repr);
+        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
     }
 }

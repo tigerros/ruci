@@ -1,9 +1,12 @@
+mod raw_engine_message;
+use raw_engine_message::RawEngineMessage;
 dry_mods::mods! {
     pub mod use id, best_move, copy_protection, info, option, registration;
 }
 
-use crate::{define_message_enum, MessageTryFromRawUciMessageError, RawUciMessage};
+use crate::{define_message_enum, MessageParseError, MessageTryFromRawMessageError};
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 define_message_enum! {
     /// A message sent from the engine to the GUI.
@@ -39,32 +42,47 @@ define_message_enum! {
     }
 }
 
-impl TryFrom<RawUciMessage<Self>> for EngineMessage {
-    type Error = MessageTryFromRawUciMessageError<EngineMessageParameterPointer>;
+impl FromStr for EngineMessage {
+    type Err = MessageParseError<EngineMessageParameterPointer>;
+
+    /// Tries to parse a string into this message.
+    ///
+    /// # Errors
+    ///
+    /// - Errors with [`MessageParseError::RawMessageParseError`] if the string could not be parsed into a [`RawEngineMessage`].
+    /// - Errors with [`MessageParseError::MessageTryFromRawMessageError`] if the [`RawUciMessage`] could not be parsed into [`Self`].
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw_message =
+            RawEngineMessage::from_str(s).map_err(MessageParseError::RawMessageParseError)?;
+
+        Self::try_from(raw_message).map_err(MessageParseError::MessageTryFromRawMessageError)
+    }
+}
+
+impl TryFrom<RawEngineMessage> for EngineMessage {
+    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
-    fn try_from(raw_uci_message: RawUciMessage<Self>) -> Result<Self, Self::Error> {
-        match raw_uci_message.message_pointer {
+    fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
+        match raw_message.message_pointer {
             // Value-less, parameter-less messages
             EngineMessagePointer::UciOk => Ok(Self::UciOk),
             EngineMessagePointer::ReadyOk => Ok(Self::ReadyOk),
             // Messages with values/parameters
-            EngineMessagePointer::Id => Ok(Self::Id(IdMessageKind::try_from(raw_uci_message)?)),
+            EngineMessagePointer::Id => Ok(Self::Id(IdMessageKind::try_from(raw_message)?)),
             EngineMessagePointer::BestMove => {
-                Ok(Self::BestMove(BestMoveMessage::try_from(raw_uci_message)?))
+                Ok(Self::BestMove(BestMoveMessage::try_from(raw_message)?))
             }
             EngineMessagePointer::CopyProtection => Ok(Self::CopyProtection(
-                CopyProtectionMessageKind::try_from(raw_uci_message)?,
+                CopyProtectionMessageKind::try_from(raw_message)?,
             )),
             EngineMessagePointer::Registration => Ok(Self::Registration(
-                RegistrationMessageKind::try_from(raw_uci_message)?,
+                RegistrationMessageKind::try_from(raw_message)?,
             )),
-            EngineMessagePointer::Info => Ok(Self::Info(Box::new(InfoMessage::try_from(
-                raw_uci_message,
-            )?))),
-            EngineMessagePointer::Option => {
-                Ok(Self::Option(OptionMessage::try_from(raw_uci_message)?))
+            EngineMessagePointer::Info => {
+                Ok(Self::Info(Box::new(InfoMessage::try_from(raw_message)?)))
             }
+            EngineMessagePointer::Option => Ok(Self::Option(OptionMessage::try_from(raw_message)?)),
         }
     }
 }

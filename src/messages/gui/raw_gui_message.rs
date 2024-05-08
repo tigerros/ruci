@@ -1,52 +1,26 @@
-use crate::{Message, MessageParameterPointer, MessagePointer};
+use crate::messages::gui::{GuiMessageParameterPointer, GuiMessagePointer};
+use crate::{MessageParameterPointer, MessagePointer, RawMessageParseError};
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
-/// Represents a semi-parsed UCI message.
 #[derive(Debug, Clone)]
-pub struct RawUciMessage<M>
-where
-    M: Message,
-{
-    pub message_pointer: M::Pointer,
-    pub parameters: HashMap<M::ParameterPointer, String>,
+pub struct RawGuiMessage {
+    pub message_pointer: GuiMessagePointer,
+    pub parameters: HashMap<GuiMessageParameterPointer, String>,
     /// Parameters like [`ponder`](https://backscattering.de/chess/uci/#gui-go-ponder) or [`infinite`](https://backscattering.de/chess/uci/#gui-go-infinite), that don't have a value.
-    pub void_parameters: Vec<M::ParameterPointer>,
+    pub void_parameters: Vec<GuiMessageParameterPointer>,
     pub value: Option<String>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MessageTryFromRawUciMessageError<MessageParameterPtr>
-where
-    MessageParameterPtr: MessageParameterPointer,
-{
-    /// This error only occurs when you are trying to parse a message directly, i.e.,
-    /// trying to get [`InfoMessage`](crate::messages::InfoMessage) directly instead of [`EngineMessage`](crate::messages::EngineMessage).
-    InvalidMessage,
-    ParameterParseError(MessageParameterPtr),
-    MissingParameter(MessageParameterPtr),
-    ValueParseError,
-    MissingValue,
-}
-
-#[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RawUciMessageParseError {
-    NoMessage,
-}
-
-impl<M> FromStr for RawUciMessage<M>
-where
-    M: Message,
-{
-    type Err = RawUciMessageParseError;
+impl FromStr for RawGuiMessage {
+    type Err = RawMessageParseError;
 
     /// Should only be used with one line.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts = s.trim().split(' ').collect::<Vec<_>>();
 
-        let Some(Ok(message_pointer)) = parts.first().map(|p| M::Pointer::from_str(p)) else {
+        let Some(Ok(message_pointer)) = parts.first().map(|p| GuiMessagePointer::from_str(p))
+        else {
             return Err(Self::Err::NoMessage);
         };
 
@@ -68,19 +42,19 @@ where
             });
         }
 
-        let mut parameters = HashMap::<M::ParameterPointer, String>::with_capacity(
+        let mut parameters = HashMap::<GuiMessageParameterPointer, String>::with_capacity(
             parts.len().saturating_div(2).saturating_sub(1),
         );
         let mut void_parameters = Vec::with_capacity(2);
         let mut value = String::with_capacity(30);
         let mut value_override = None::<String>;
-        let mut last_parameter = None::<M::ParameterPointer>;
+        let mut last_parameter = None::<GuiMessageParameterPointer>;
         let mut first_parameter_encountered = false;
 
         for part in parts_rest {
             //println!("Part: {part}");
             let Ok(parameter_pointer) =
-                M::ParameterPointer::from_message_and_str(message_pointer, part)
+                GuiMessageParameterPointer::from_message_and_str(message_pointer, part)
             else {
                 value.push_str(part);
                 value.push(' ');
@@ -116,7 +90,6 @@ where
         }
 
         if let Some(last_parameter_some) = last_parameter {
-            value.pop();
             //println!("\tInserting last_param_some [{:?};{:?}]", last_parameter_some, value.trim());
             parameters.insert(last_parameter_some, value.trim().to_string());
         }
@@ -133,28 +106,5 @@ where
                 Some(value.trim().to_string())
             },
         })
-    }
-}
-
-impl<M> Display for RawUciMessage<M>
-where
-    M: Message,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.message_pointer.as_string())?;
-
-        for (parameter, parameter_value) in &self.parameters {
-            f.write_char(' ')?;
-            f.write_str(parameter.as_string())?;
-            f.write_char(' ')?;
-            f.write_str(parameter_value)?;
-        }
-
-        for void_parameter in &self.void_parameters {
-            f.write_char(' ')?;
-            f.write_str(void_parameter.as_string())?;
-        }
-
-        f.write_char('\n')
     }
 }

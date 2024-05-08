@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::{GuiMessage};
 use crate::messages::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageRegisterParameterPointer};
-use crate::{MessageTryFromRawUciMessageError, RawUciMessage};
+use crate::{MessageTryFromRawMessageError};
+use crate::messages::gui::raw_gui_message::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,28 +13,28 @@ pub enum RegisterMessageKind {
     NameAndCode { name: String, code: String },
 }
 
-impl TryFrom<RawUciMessage<GuiMessage>> for RegisterMessageKind {
-    type Error = MessageTryFromRawUciMessageError<GuiMessageParameterPointer>;
+impl TryFrom<RawGuiMessage> for RegisterMessageKind {
+    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
-    fn try_from(raw_uci_message: RawUciMessage<GuiMessage>) -> Result<Self, Self::Error> {
-        if raw_uci_message.message_pointer != GuiMessagePointer::Register {
+    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != GuiMessagePointer::Register {
             return Err(Self::Error::InvalidMessage);
         };
 
-        if let Some(value) = raw_uci_message.value {
+        if let Some(value) = raw_message.value {
             if value == "later" {
                 return Ok(Self::Later);
             }
         }
 
-        let name = raw_uci_message
+        let name = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Register(
                 GuiMessageRegisterParameterPointer::Name,
             ))
             .cloned();
 
-        let code = raw_uci_message
+        let code = raw_message
             .parameters
             .get(&GuiMessageParameterPointer::Register(
                 GuiMessageRegisterParameterPointer::Code,
@@ -75,5 +75,25 @@ impl Display for RegisterMessageKind {
         }
         
         f.write_char('\n')
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+    use pretty_assertions::assert_eq;
+    
+    use crate::messages::{GuiMessage, RegisterMessageKind};
+
+    #[test]
+    fn to_from_str() {
+        let repr = GuiMessage::Register(RegisterMessageKind::NameAndCode {
+            name: "john smith".to_string(),
+            code: "31 tango".to_string()
+        });
+        let str_repr = "register name john smith code 31 tango\n";
+
+        assert_eq!(repr.to_string(), str_repr);
+        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
     }
 }
