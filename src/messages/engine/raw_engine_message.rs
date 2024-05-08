@@ -57,7 +57,7 @@ impl FromStr for RawEngineMessage {
         let mut first_parameter_encountered = false;
 
         for part in parts_rest {
-            println!("Part: {part}");
+            //println!("Part: {part}");
             let Ok(parameter_pointer) =
                 EngineMessageParameterPointer::from_message_and_str(message_pointer, part)
             else {
@@ -73,9 +73,9 @@ impl FromStr for RawEngineMessage {
 
             first_parameter_encountered = true;
 
-            println!("\tParameter pointer: {:?}", parameter_pointer);
-            println!("\tValue: [{value}]");
-            println!("\tLast parameter: {last_parameter:#?}");
+            //println!("\tParameter pointer: {:?}", parameter_pointer);
+            //println!("\tValue: [{value}]");
+            //println!("\tLast parameter: {last_parameter:#?}");
 
             if let Some(last_parameter_some) = last_parameter {
                 if last_parameter_some
@@ -85,11 +85,11 @@ impl FromStr for RawEngineMessage {
                 {
                     option_vars.push(value.trim().to_string());
                 } else {
-                    println!(
-                        "\tInserting last_param_some [{:?};{:?}]",
-                        last_parameter_some,
-                        value.trim()
-                    );
+                    //println!(
+                    //    "\tInserting last_param_some [{:?};{:?}]",
+                    //    last_parameter_some,
+                    //    value.trim()
+                    //);
                     parameters.insert(last_parameter_some, value.trim().to_string());
                 }
 
@@ -97,7 +97,7 @@ impl FromStr for RawEngineMessage {
             }
 
             last_parameter = Some(parameter_pointer);
-            println!("\tLast param: {:?}", last_parameter);
+            //println!("\tLast param: {:?}", last_parameter);
         }
 
         if let Some(last_parameter_some) = last_parameter {

@@ -22,11 +22,11 @@ pub enum OptionMessageType {
 impl Display for OptionMessageType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            OptionMessageType::Check => "check",
-            OptionMessageType::Spin => "spin",
-            OptionMessageType::Combo => "combo",
-            OptionMessageType::Button => "button",
-            OptionMessageType::String => "string"
+            Self::Check => "check",
+            Self::Spin => "spin",
+            Self::Combo => "combo",
+            Self::Button => "button",
+            Self::String => "string"
         })
     }
 }
@@ -77,19 +77,19 @@ pub enum OptionMessage {
 }
 
 impl OptionMessage {
-    pub fn name(&self) -> &String {
+    pub const fn name(&self) -> &String {
         match self {
-            OptionMessage::Check { name, .. } | OptionMessage::Spin { name, .. } | OptionMessage::Combo { name, .. } | OptionMessage::Button { name, .. } | OptionMessage::String { name, .. } => name,
+            Self::Check { name, .. } | Self::Spin { name, .. } | Self::Combo { name, .. } | Self::Button { name, .. } | Self::String { name, .. } => name,
         }
     }
 
-    pub fn r#type(&self) -> OptionMessageType {
+    pub const fn r#type(&self) -> OptionMessageType {
         match self {
-            OptionMessage::Check { .. } => OptionMessageType::Check,
-            OptionMessage::Spin { .. } => OptionMessageType::Spin,
-            OptionMessage::Combo { .. } => OptionMessageType::Combo,
-            OptionMessage::Button { .. } => OptionMessageType::Button,
-            OptionMessage::String { .. } => OptionMessageType::String
+            Self::Check { .. } => OptionMessageType::Check,
+            Self::Spin { .. } => OptionMessageType::Spin,
+            Self::Combo { .. } => OptionMessageType::Combo,
+            Self::Button { .. } => OptionMessageType::Button,
+            Self::String { .. } => OptionMessageType::String
         }
     }
 }
@@ -200,10 +200,10 @@ impl Display for OptionMessage {
         write!(f, "option name {} type {}", self.name(), self.r#type())?;
 
         match self {
-            OptionMessage::Check { default, .. } => if let Some(default) = default {
+            Self::Check { default, .. } => if let Some(default) = default {
                 write!(f, " default {default}")?;
             }
-            OptionMessage::Spin { default, min, max, .. } => {
+            Self::Spin { default, min, max, .. } => {
                 if let Some(default) = default {
                     write!(f, " default {default}")?;
                 }
@@ -216,7 +216,7 @@ impl Display for OptionMessage {
                     write!(f, " max {max}")?;
                 }
             }
-            OptionMessage::Combo { default, variations, .. } => {
+            Self::Combo { default, variations, .. } => {
                 if let Some(default) = default {
                     write!(f, " default {default}")?;
                 }
@@ -225,8 +225,8 @@ impl Display for OptionMessage {
                     write!(f, " var {variation}")?;
                 }
             }
-            OptionMessage::Button { .. } => {},
-            OptionMessage::String { default, .. } => if let Some(default) = default {
+            Self::Button { .. } => {},
+            Self::String { default, .. } => if let Some(default) = default {
                 write!(f, " default {default}")?;
             },
         }

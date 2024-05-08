@@ -139,7 +139,7 @@ where
         &mut self,
     ) -> Result<MReceive, UciReadMessageError<MReceive::ParameterPointer>> {
         MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Io)?)
-            .map_err(|e| UciReadMessageError::MessageParse(e))
+            .map_err(UciReadMessageError::MessageParse)
     }
 
     /// Reads one line without the trailing `'\n'` character.

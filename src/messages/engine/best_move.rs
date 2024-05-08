@@ -20,7 +20,7 @@ impl TryFrom<RawEngineMessage> for BestMoveMessage {
             return Err(Self::Error::InvalidMessage);
         };
         
-        println!("value: {:?}", raw_message.value);
+        //println!("value: {:?}", raw_message.value);
 
         let Ok(r#move) = raw_message
             .value
