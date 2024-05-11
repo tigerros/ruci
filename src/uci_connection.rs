@@ -258,7 +258,7 @@ impl EngineConnection {
         }
     }
 
-    /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
+    /// Spawns a new thread which sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it. The [`info`](https://backscattering.de/chess/uci/#engine-info) messages are sent through the returned receiver.
     ///
     /// See also:
@@ -267,12 +267,11 @@ impl EngineConnection {
     ///
     /// # Errors
     ///
-    /// - Writing (sending the message) errored.
-    /// - Reading (reading back the responses) errored.
+    /// - Creating the thread failed.
     pub fn go_async(
         arc_self: Arc<Mutex<Self>>,
         message: GoMessage,
-    ) -> GuiToEngineUciConnectionGo<impl FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>>
+    ) -> io::Result<GuiToEngineUciConnectionGo<impl FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>>>
     {
         let (info_sender, info_receiver) = mpsc::channel();
         let is_running = Arc::new(AtomicBool::new(true));
@@ -290,7 +289,7 @@ impl EngineConnection {
             Ok(())
         };
 
-        let thread = thread::spawn(move || {
+        let thread = thread::Builder::new().name(format!("go_{}", message.to_string().replace(|c: char| c.is_whitespace(), "_"))).spawn(move || {
             if !is_running.load(Ordering::SeqCst) {
                 return Err(GuiToEngineUciConnectionGoError::Io(
                     io::ErrorKind::ConnectionAborted.into(),
@@ -342,13 +341,13 @@ impl EngineConnection {
                     _ => (),
                 }
             }
-        });
+        })?;
 
-        GuiToEngineUciConnectionGo {
+        Ok(GuiToEngineUciConnectionGo {
             stop,
             info_receiver,
             thread,
-        }
+        })
     }
 
     /// Sends the [`isready`](https://backscattering.de/chess/uci/#gui-isready) message and waits for the [`readyok`](https://backscattering.de/chess/uci/#engine-readyok) response.
