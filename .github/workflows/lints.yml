@@ -48,4 +48,4 @@ jobs:
           override: true
 
       - name: Clippy
-        run: cargo clippy --workspace --examples --tests -- --warn clippy::pedantic --warn clippy::nursery --deny warnings
+        run: cargo clippy --workspace --examples --tests --all-features -- --warn clippy::pedantic --warn clippy::nursery --deny warnings

@@ -10,14 +10,19 @@ categories = ["parser-implementations", "game-development"]
 keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
 
+[[example]]
+name = "go_stop"
+required-features = ["uci-connection-go-async"]
+
 [dependencies]
 shakmaty = "0.27.0"
 paste = "1.0.14"
 dry-mods = "0.1.5"
+parking_lot = { version = "0.12.2", features = ["arc_lock"], optional = true }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
 
 [features]
-default = ["uci-connection"]
-uci-connection = []
+default = []
+uci-connection-go-async = ["parking_lot"]

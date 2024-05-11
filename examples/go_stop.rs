@@ -4,10 +4,12 @@
 //! This example requires that you have installed stockfish (I have used stockfish 16.1).
 //!
 //! Output on my machine can be found on [pastebin](https://pastebin.com/uF91FKGL).
+//! Do note that this is what should "roughly" be the output, I might not update it every time I update the crate.
 
+use parking_lot::Mutex;
 use ruci::messages::{GoMessage, GuiMessage};
 use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -17,12 +19,12 @@ fn main() {
     ));
 
     println!("Sending use UCI message, waiting for uciok");
-    let (id, options) = uci.lock().unwrap().use_uci().unwrap();
+    let (id, options) = uci.lock_arc().use_uci().unwrap();
     println!("Received uciok");
     println!("ID: {id:#?}");
     println!("Options: {options:#?}");
     println!("Sending isready message, waiting for readyok");
-    uci.lock().unwrap().is_ready().unwrap();
+    uci.lock_arc().is_ready().unwrap();
     println!("Received readyok");
 
     let GuiToEngineUciConnectionGo {
@@ -61,7 +63,7 @@ fn main() {
     println!("Aborted");
     println!("Thread result: {:#?}", thread.join());
     println!("Sending quit message");
-    uci.lock().unwrap().send_message(&GuiMessage::Quit).unwrap();
+    uci.lock_arc().send_message(&GuiMessage::Quit).unwrap();
     println!("Sent");
     thread::sleep(Duration::from_secs(100));
 }

@@ -6,11 +6,20 @@ use std::io;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
-use std::thread::JoinHandle;
+
+#[cfg(feature = "uci-connection-go-async")]
+use parking_lot::Mutex;
+#[cfg(feature = "uci-connection-go-async")]
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+        mpsc::Receiver,
+        Arc,
+    },
+    thread,
+    thread::JoinHandle,
+};
 
 /// A connection to an engine, used by a GUI.
 pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
@@ -166,17 +175,12 @@ where
     }
 }
 
-#[derive(Debug)]
-pub enum GuiToEngineUciConnectionGoError {
-    Io(io::Error),
-    Poison,
-}
-
+#[cfg(feature = "uci-connection-go-async")]
 /// Returned by the [`EngineConnection::go_async`] function.
 #[derive(Debug)]
 pub struct GuiToEngineUciConnectionGo<Stop>
 where
-    Stop: FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>,
+    Stop: FnOnce() -> io::Result<()>,
 {
     /// Calling this function sends a "stop" signal to the thread
     /// and also sends the [`stop`](https://backscattering.de/chess/uci/#gui-stop) message to the engine.
@@ -197,7 +201,7 @@ where
     /// - [`GuiToEngineUciConnectionGoError::Poison`]: the [`EngineConnection`] mutex was poisoned.
     /// - [`GuiToEngineUciConnectionGoError::Io(io::ErrorKind::ConnectionAborted)`](GuiToEngineUciConnectionGoError::Io): the `self.stop` function was called, and the thread aborted.
     /// - [`GuiToEngineUciConnectionGoError::Io`]: write/read IO errors.
-    pub thread: JoinHandle<Result<BestMoveMessage, GuiToEngineUciConnectionGoError>>,
+    pub thread: JoinHandle<io::Result<BestMoveMessage>>,
 }
 
 impl EngineConnection {
@@ -258,6 +262,7 @@ impl EngineConnection {
         }
     }
 
+    #[cfg(feature = "uci-connection-go-async")]
     /// Spawns a new thread which sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it. The [`info`](https://backscattering.de/chess/uci/#engine-info) messages are sent through the returned receiver.
     ///
@@ -271,9 +276,7 @@ impl EngineConnection {
     pub fn go_async(
         arc_self: Arc<Mutex<Self>>,
         message: GoMessage,
-    ) -> io::Result<
-        GuiToEngineUciConnectionGo<impl FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>>,
-    > {
+    ) -> io::Result<GuiToEngineUciConnectionGo<impl FnOnce() -> io::Result<()>>> {
         let (info_sender, info_receiver) = mpsc::channel();
         let is_running = Arc::new(AtomicBool::new(true));
         let is_running2 = is_running.clone();
@@ -281,11 +284,7 @@ impl EngineConnection {
 
         let stop = move || {
             is_running2.store(false, Ordering::SeqCst);
-            arc_self2
-                .lock()
-                .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?
-                .send_message(&GuiMessage::Stop)
-                .map_err(GuiToEngineUciConnectionGoError::Io)?;
+            arc_self2.lock_arc().send_message(&GuiMessage::Stop)?;
 
             Ok(())
         };
@@ -299,50 +298,36 @@ impl EngineConnection {
             ))
             .spawn(move || {
                 if !is_running.load(Ordering::SeqCst) {
-                    return Err(GuiToEngineUciConnectionGoError::Io(
-                        io::ErrorKind::ConnectionAborted.into(),
-                    ));
+                    return Err(io::ErrorKind::ConnectionAborted.into());
                 }
 
-                let mut guard = arc_self
-                    .lock()
-                    .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?;
+                let mut guard = arc_self.lock_arc();
 
-                guard
-                    .send_message(&GuiMessage::Go(message))
-                    .map_err(GuiToEngineUciConnectionGoError::Io)?;
+                guard.send_message(&GuiMessage::Go(message))?;
 
                 loop {
                     if !is_running.load(Ordering::SeqCst) {
-                        return Err(GuiToEngineUciConnectionGoError::Io(
-                            io::ErrorKind::ConnectionAborted.into(),
-                        ));
+                        return Err(io::ErrorKind::ConnectionAborted.into());
                     };
 
                     let message = guard.read_message();
                     let engine_to_gui_message = match message {
                         Ok(msg) => msg,
-                        Err(UciReadMessageError::Io(e)) => {
-                            return Err(GuiToEngineUciConnectionGoError::Io(e))
-                        }
+                        Err(UciReadMessageError::Io(e)) => return Err(e),
                         Err(_) => continue,
                     };
 
                     if !is_running.load(Ordering::SeqCst) {
                         // Clippy wants this for some reason
                         drop(guard);
-                        return Err(GuiToEngineUciConnectionGoError::Io(
-                            io::ErrorKind::ConnectionAborted.into(),
-                        ));
+                        return Err(io::ErrorKind::ConnectionAborted.into());
                     }
 
                     match engine_to_gui_message {
                         EngineMessage::Info(info) => {
                             if info_sender.send(info).is_err() {
                                 // Return value doesn't matter because the receiver doesn't exist.
-                                return Err(GuiToEngineUciConnectionGoError::Io(
-                                    io::ErrorKind::Other.into(),
-                                ));
+                                return Err(io::ErrorKind::Other.into());
                             }
                         }
                         EngineMessage::BestMove(best_move) => return Ok(best_move),

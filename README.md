@@ -11,6 +11,8 @@
 This crate is for parsing and creating UCI messages.
 It follows the [UCI standard](https://backscattering.de/chess/uci).
 
+See the [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example for a demo on how to send and receive messages.
+
 ## Features
 
-- `uci-connection` (default): Enables two "helper" structs to manage the actual IO (`EngineConnection` and `GuiConnection`) when it comes to working with UCI. See also the [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example.
+- `uci-connection`: enables two structs to manage the actual IO (`EngineConnection` and `GuiConnection`) when it comes to working with UCI.
