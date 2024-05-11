@@ -45,7 +45,8 @@ fn main() {
             move_time: None,
             infinite: false,
         },
-    ).unwrap();
+    )
+    .unwrap();
 
     thread::spawn(move || {
         while let Ok(info) = info_receiver.recv() {

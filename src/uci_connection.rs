@@ -271,8 +271,9 @@ impl EngineConnection {
     pub fn go_async(
         arc_self: Arc<Mutex<Self>>,
         message: GoMessage,
-    ) -> io::Result<GuiToEngineUciConnectionGo<impl FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>>>
-    {
+    ) -> io::Result<
+        GuiToEngineUciConnectionGo<impl FnOnce() -> Result<(), GuiToEngineUciConnectionGoError>>,
+    > {
         let (info_sender, info_receiver) = mpsc::channel();
         let is_running = Arc::new(AtomicBool::new(true));
         let is_running2 = is_running.clone();
@@ -289,59 +290,66 @@ impl EngineConnection {
             Ok(())
         };
 
-        let thread = thread::Builder::new().name(format!("go_{}", message.to_string().replace(|c: char| c.is_whitespace(), "_"))).spawn(move || {
-            if !is_running.load(Ordering::SeqCst) {
-                return Err(GuiToEngineUciConnectionGoError::Io(
-                    io::ErrorKind::ConnectionAborted.into(),
-                ));
-            }
-
-            let mut guard = arc_self
-                .lock()
-                .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?;
-
-            guard
-                .send_message(&GuiMessage::Go(message))
-                .map_err(GuiToEngineUciConnectionGoError::Io)?;
-
-            loop {
+        let thread = thread::Builder::new()
+            .name(format!(
+                "go_{}",
+                message
+                    .to_string()
+                    .replace(|c: char| c.is_whitespace(), "_")
+            ))
+            .spawn(move || {
                 if !is_running.load(Ordering::SeqCst) {
-                    return Err(GuiToEngineUciConnectionGoError::Io(
-                        io::ErrorKind::ConnectionAborted.into(),
-                    ));
-                };
-
-                let message = guard.read_message();
-                let engine_to_gui_message = match message {
-                    Ok(msg) => msg,
-                    Err(UciReadMessageError::Io(e)) => {
-                        return Err(GuiToEngineUciConnectionGoError::Io(e))
-                    }
-                    Err(_) => continue,
-                };
-
-                if !is_running.load(Ordering::SeqCst) {
-                    // Clippy wants this for some reason
-                    drop(guard);
                     return Err(GuiToEngineUciConnectionGoError::Io(
                         io::ErrorKind::ConnectionAborted.into(),
                     ));
                 }
 
-                match engine_to_gui_message {
-                    EngineMessage::Info(info) => {
-                        if info_sender.send(info).is_err() {
-                            // Return value doesn't matter because the receiver doesn't exist.
-                            return Err(GuiToEngineUciConnectionGoError::Io(
-                                io::ErrorKind::Other.into(),
-                            ));
+                let mut guard = arc_self
+                    .lock()
+                    .map_err(|_| GuiToEngineUciConnectionGoError::Poison)?;
+
+                guard
+                    .send_message(&GuiMessage::Go(message))
+                    .map_err(GuiToEngineUciConnectionGoError::Io)?;
+
+                loop {
+                    if !is_running.load(Ordering::SeqCst) {
+                        return Err(GuiToEngineUciConnectionGoError::Io(
+                            io::ErrorKind::ConnectionAborted.into(),
+                        ));
+                    };
+
+                    let message = guard.read_message();
+                    let engine_to_gui_message = match message {
+                        Ok(msg) => msg,
+                        Err(UciReadMessageError::Io(e)) => {
+                            return Err(GuiToEngineUciConnectionGoError::Io(e))
                         }
+                        Err(_) => continue,
+                    };
+
+                    if !is_running.load(Ordering::SeqCst) {
+                        // Clippy wants this for some reason
+                        drop(guard);
+                        return Err(GuiToEngineUciConnectionGoError::Io(
+                            io::ErrorKind::ConnectionAborted.into(),
+                        ));
                     }
-                    EngineMessage::BestMove(best_move) => return Ok(best_move),
-                    _ => (),
+
+                    match engine_to_gui_message {
+                        EngineMessage::Info(info) => {
+                            if info_sender.send(info).is_err() {
+                                // Return value doesn't matter because the receiver doesn't exist.
+                                return Err(GuiToEngineUciConnectionGoError::Io(
+                                    io::ErrorKind::Other.into(),
+                                ));
+                            }
+                        }
+                        EngineMessage::BestMove(best_move) => return Ok(best_move),
+                        _ => (),
+                    }
                 }
-            }
-        })?;
+            })?;
 
         Ok(GuiToEngineUciConnectionGo {
             stop,
