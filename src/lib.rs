@@ -1,4 +1,3 @@
-#![doc = include_str!("../README.md")]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 #![warn(clippy::pedantic)]
