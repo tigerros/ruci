@@ -6,7 +6,7 @@
 
 # RUCI
 
-**Warning: this crate basically has no tests, and I'm not confident in it. I'm publishing it to comfortably use it in another project of mine, I do not guarantee that it works for you.**
+**Warning: this crate is not fully tested.**
 
 <ins>R</ins>ust <ins>U</ins>niversal <ins>C</ins>hess <ins>I</ins>nterface.
 
