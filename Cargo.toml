@@ -12,6 +12,7 @@ include = ["src", "README.md"]
 
 [[example]]
 name = "go_stop"
+path = "examples/go_stop.rs"
 required-features = ["uci-connection-go-async"]
 
 [dependencies]
