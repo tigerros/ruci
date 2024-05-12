@@ -1,5 +1,5 @@
-[![tests](https://img.shields.io/github/actions/workflow/status/tigerros/ruci/tests.yml?label=tests
-)](https://github.com/tigerros/ruci/actions/workflows/tests.yml)
+[![tests](https://img.shields.io/github/actions/workflow/status/tigerros/ruci/tests.yml?label=tests)](https://github.com/tigerros/ruci/actions/workflows/tests.yml)
+[![coverage](https://img.shields.io/codecov/c/gh/tigerros/ruci)](https://app.codecov.io/gh/tigerros/ruci/)
 [![docs.rs](https://img.shields.io/docsrs/ruci?logo=docs.rs&label=docs.rs)](https://docs.rs/ruci/)
 [![crates.io](https://img.shields.io/crates/v/ruci?logo=rust)](https://crates.io/crates/ruci)
 [![license](https://img.shields.io/crates/l/ruci)](https://github.com/tigerros/ruci/blob/master/LICENSE)
