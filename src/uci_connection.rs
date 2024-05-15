@@ -2,24 +2,11 @@ use crate::messages::{BestMoveMessage, EngineMessage, IdMessageKind, InfoMessage
 use crate::messages::{GoMessage, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 
-use std::io;
-use std::io::{Read, Write};
+use tokio::io;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use std::marker::PhantomData;
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-
-#[cfg(feature = "uci-connection-go-async")]
-use parking_lot::Mutex;
-#[cfg(feature = "uci-connection-go-async")]
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc,
-        mpsc::Receiver,
-        Arc,
-    },
-    thread,
-    thread::JoinHandle,
-};
+use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+use std::process::Stdio;
 
 /// A connection to an engine, used by a GUI.
 pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
@@ -69,7 +56,7 @@ where
     /// - Spawning the process errored.
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
-    pub fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
+    pub fn from_path(path: &str) -> Result<Self, UciCreationError> {
         #[cfg(windows)]
         use std::os::windows::process::CommandExt;
 
@@ -104,8 +91,8 @@ where
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    pub fn send_message(&mut self, message: &MSend) -> io::Result<()> {
-        self.stdin.write_all(message.to_string().as_bytes())
+    pub async fn send_message(&mut self, message: &MSend) -> io::Result<()> {
+        self.stdin.write_all(message.to_string().as_bytes()).await
     }
 
     /// Skips some lines.
@@ -113,12 +100,12 @@ where
     /// # Errors
     ///
     /// See [`Read::read_exact`].
-    pub fn skip_lines(&mut self, count: usize) -> io::Result<()> {
+    pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = [0; 1];
         let mut skipped_count = 0;
 
         loop {
-            self.stdout.read_exact(&mut buf)?;
+            self.stdout.read_exact(&mut buf).await?;
 
             if buf[0] == b'\n' {
                 // CLIPPY: `skipped_count` never overflows because it starts at 0, increments by 1, and stops once `count` is reached.
@@ -144,10 +131,10 @@ where
     ///
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    pub fn read_message(
+    pub async fn read_message(
         &mut self,
     ) -> Result<MReceive, UciReadMessageError<MReceive::ParameterPointer>> {
-        MReceive::from_str(&self.read_line().map_err(UciReadMessageError::Io)?)
+        MReceive::from_str(&self.read_line().await.map_err(UciReadMessageError::Io)?)
             .map_err(UciReadMessageError::MessageParse)
     }
 
@@ -157,12 +144,12 @@ where
     ///
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    pub fn read_line(&mut self) -> io::Result<String> {
+    pub async fn read_line(&mut self) -> io::Result<String> {
         let mut s = String::with_capacity(100);
         let mut buf = [0; 1];
 
         loop {
-            self.stdout.read_exact(&mut buf)?;
+            self.stdout.read_exact(&mut buf).await?;
 
             if buf[0] == b'\n' {
                 break;
@@ -175,35 +162,6 @@ where
     }
 }
 
-#[cfg(feature = "uci-connection-go-async")]
-/// Returned by the [`EngineConnection::go_async`] function.
-#[derive(Debug)]
-pub struct GuiToEngineUciConnectionGo<Stop>
-where
-    Stop: FnOnce() -> io::Result<()>,
-{
-    /// Calling this function sends a "stop" signal to the thread
-    /// and also sends the [`stop`](https://backscattering.de/chess/uci/#gui-stop) message to the engine.
-    ///
-    /// This function does not wait for the `self.thread` to finish.
-    ///
-    /// # Errors
-    ///
-    /// - [`GuiToEngineUciConnectionGoError::Poison`]: the [`EngineConnection`] mutex was poisoned.
-    /// - [`GuiToEngineUciConnectionGoError::Io`]: see [`UciConnection::send_message`].
-    pub stop: Stop,
-    /// All [`info`](https://backscattering.de/chess/uci/#engine-info) messages will be sent through this receiver.
-    pub info_receiver: Receiver<Box<InfoMessage>>,
-    /// This is the handle to the thread, use it to wait for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message.
-    ///
-    /// # Errors
-    ///
-    /// - [`GuiToEngineUciConnectionGoError::Poison`]: the [`EngineConnection`] mutex was poisoned.
-    /// - [`GuiToEngineUciConnectionGoError::Io(io::ErrorKind::ConnectionAborted)`](GuiToEngineUciConnectionGoError::Io): the `self.stop` function was called, and the thread aborted.
-    /// - [`GuiToEngineUciConnectionGoError::Io`]: write/read IO errors.
-    pub thread: JoinHandle<io::Result<BestMoveMessage>>,
-}
-
 impl EngineConnection {
     /// Sends the [`GuiMessage::UseUci`] message and returns the engine's ID and a vector of options
     /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
@@ -211,14 +169,14 @@ impl EngineConnection {
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    pub fn use_uci(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
-        self.send_message(&GuiMessage::UseUci)?;
+    pub async fn use_uci(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
+        self.send_message(&GuiMessage::UseUci).await?;
 
         let mut options = Vec::with_capacity(40);
         let mut id = None::<IdMessageKind>;
 
         loop {
-            let Ok(engine_to_gui_message) = self.read_message() else {
+            let Ok(engine_to_gui_message) = self.read_message().await else {
                 continue;
             };
 
@@ -240,15 +198,15 @@ impl EngineConnection {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
-    pub fn go(&mut self, message: GoMessage) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
+    pub async fn go(&mut self, message: GoMessage) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
         let mut info_messages = Vec::<InfoMessage>::with_capacity(
             message.depth.map_or(100, |depth| depth.saturating_add(3)),
         );
 
-        self.send_message(&GuiMessage::Go(message))?;
+        self.send_message(&GuiMessage::Go(message)).await?;
 
         loop {
-            let engine_to_gui_message = match self.read_message() {
+            let engine_to_gui_message = match self.read_message().await {
                 Ok(msg) => msg,
                 Err(UciReadMessageError::Io(e)) => return Err(e),
                 Err(_) => continue,
@@ -349,11 +307,11 @@ impl EngineConnection {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading until [`readyok`](https://backscattering.de/chess/uci/#engine-readyok)) errored.
-    pub fn is_ready(&mut self) -> io::Result<()> {
-        self.send_message(&GuiMessage::IsReady)?;
+    pub async fn is_ready(&mut self) -> io::Result<()> {
+        self.send_message(&GuiMessage::IsReady).await?;
 
         loop {
-            match self.read_message() {
+            match self.read_message().await {
                 Ok(EngineMessage::ReadyOk) => return Ok(()),
                 Ok(_) | Err(_) => continue,
             }

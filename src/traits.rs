@@ -14,7 +14,7 @@ where
 
 /// There are two implementors of this trait, [`GuiMessage`](crate::messages::GuiMessage) and [`EngineMessage`](crate::messages::EngineMessage).
 pub trait Message:
-    Debug + Display + FromStr<Err = MessageParseError<Self::ParameterPointer>>
+    Debug + Display + FromStr<Err = MessageParseError<Self::ParameterPointer>> + Send + Sync + 'static
 {
     type Pointer: MessagePointer;
     type ParameterPointer: MessageParameterPointer<MessagePointer = Self::Pointer>;
