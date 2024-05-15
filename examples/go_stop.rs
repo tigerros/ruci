@@ -6,41 +6,34 @@
 //! Output on my machine can be found on [pastebin](https://pastebin.com/uF91FKGL).
 //! Do note that this is what should "roughly" be the output, I might not update it every time I update the crate.
 
+use parking_lot::Mutex;
 use ruci::messages::{GoMessage, GuiMessage};
-use ruci::EngineConnection;
-use std::process::Stdio;
+use ruci::{EngineConnection, GuiToEngineUciConnectionGo};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use tokio::io::{stdout, AsyncWriteExt, Stdout};
-use tokio::join;
-use tokio::sync::Mutex;
-use tokio::task;
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let uci = Arc::new(Mutex::new(
         EngineConnection::new_from_path("stockfish").unwrap(),
     ));
-    let uci_guard = uci.lock().await;
 
-    println!("Sending `uci` and `isready` messages.");
-    let use_uci_fut = uci_guard.use_uci();
-    let is_ready_fut = uci_guard.is_ready();
+    println!("Sending use UCI message, waiting for uciok");
+    let (id, options) = uci.lock_arc().use_uci().unwrap();
+    println!("Received uciok");
+    println!("ID: {id:#?}");
+    println!("Options: {options:#?}");
+    println!("Sending isready message, waiting for readyok");
+    uci.lock_arc().is_ready().unwrap();
+    println!("Received readyok");
 
-    let (id, options) = join!(use_uci_fut, is_ready_fut).0.unwrap();
-
-    println!("Received `uciok` and `readyok`.");
-    //println!("ID: {id:#?}");
-    //println!("Options: {options:#?}");
-
-    let uci2 = Arc::clone(&uci);
-
-    let go_task = task::spawn(async move {
-        let uci_guard = uci2.lock().await;
-
-        println!("Starting go");
-        let bestmove = uci_guard.go(GoMessage {
+    let GuiToEngineUciConnectionGo {
+        stop,
+        info_receiver,
+        thread,
+    } = EngineConnection::go_async(
+        uci.clone(),
+        GoMessage {
             search_moves: None,
             ponder: false,
             white_time: None,
@@ -48,34 +41,29 @@ async fn main() {
             white_increment: None,
             black_increment: None,
             moves_to_go: None,
-            depth: Some(5),
+            depth: Some(30),
             nodes: None,
             mate: None,
             move_time: None,
             infinite: false,
-        }).await.unwrap().1;
-        println!("finished");
-        println!("bestmove: {bestmove:#?}");
+        },
+    )
+    .unwrap();
+
+    thread::spawn(move || {
+        while let Ok(info) = info_receiver.recv() {
+            println!("Info: {info:#?}");
+        }
     });
-    
-    let res = go_task.await;
-    
-    println!("Res: {res:#?}");
 
-    // thread::spawn(move || {
-    //     while let Ok(info) = info_receiver.recv() {
-    //         println!("Info: {info:#?}");
-    //     }
-    // });
-
-    println!("Waiting 3 secs.");
-    tokio::time::sleep(Duration::from_secs(3)).await;
-    println!("Aborting.");
-    //go_task.abort();
-    println!("Aborted.");
-    //println!("Task result: {:#?}", go_task.await);
-    println!("Sending quit message.");
-    uci_guard.send_message(&GuiMessage::Quit).await.unwrap();
-    println!("Sent.");
-    tokio::time::sleep(Duration::from_secs(100)).await;
+    println!("Waiting");
+    thread::sleep(Duration::from_secs(3));
+    println!("Aborting");
+    stop().unwrap();
+    println!("Aborted");
+    println!("Thread result: {:#?}", thread.join());
+    println!("Sending quit message");
+    uci.lock_arc().send_message(&GuiMessage::Quit).unwrap();
+    println!("Sent");
+    thread::sleep(Duration::from_secs(100));
 }
