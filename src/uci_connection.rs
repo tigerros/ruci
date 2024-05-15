@@ -1,16 +1,15 @@
+use std::cell::RefCell;
 use crate::messages::{BestMoveMessage, EngineMessage, IdMessageKind, InfoMessage, OptionMessage};
 use crate::messages::{GoMessage, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
-use std::ffi::OsStr;
 
 use std::marker::PhantomData;
-use std::process::Stdio;
-use std::sync::Arc;
+use tokio::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-use tokio::sync::{mpsc, Mutex};
-use tokio::task::JoinHandle;
-use tokio::{io, task};
+use std::process::Stdio;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 /// A connection to an engine, used by a GUI.
 pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
@@ -36,50 +35,27 @@ where
 }
 
 #[derive(Debug)]
-struct UciConnectionInner {
+pub struct UciConnectionInner {
     pub process: Child,
     pub stdout: ChildStdout,
     pub stdin: ChildStdin,
 }
 
+impl UciConnectionInner {
+    pub async fn send_message(this: Arc<Mutex<Self>>, message: &impl Message) -> io::Result<()> {
+        self.lock().await.stdin.write_all(message.to_string().as_bytes()).await
+    }
+}
+
 #[derive(Debug)]
-/// A basis of a UCI connection; use [`EngineConnection`] or [`GuiConnection`] instead.
-///
-/// This is actually an [`Arc<Mutex<T>>`] wrapper around an inner struct.
-/// For that reason, when you want to share a [`UciConnection`] across multiple threads, use [`UciConnection::clone_arc`].
+/// This is the basis of a UCI connection; use [`EngineConnection`] or [`GuiConnection`] instead.
 pub struct UciConnection<MSend, MReceive>
 where
     MSend: Message,
     MReceive: Message,
 {
-    inner: Arc<Mutex<UciConnectionInner>>,
+    pub inner: Arc<Mutex<UciConnectionInner>>,
     _phantom: PhantomData<(MSend, MReceive)>,
-}
-
-impl<MSend, MReceive> From<UciConnectionInner> for UciConnection<MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
-    fn from(inner: UciConnectionInner) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(inner)),
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<MSend, MReceive> From<Arc<Mutex<UciConnectionInner>>> for UciConnection<MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
-    fn from(inner: Arc<Mutex<UciConnectionInner>>) -> Self {
-        Self {
-            inner,
-            _phantom: PhantomData,
-        }
-    }
 }
 
 impl<MSend, MReceive> UciConnection<MSend, MReceive>
@@ -94,7 +70,7 @@ where
     /// - Spawning the process errored.
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
-    pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, UciCreationError> {
+    pub fn new_from_path(path: &str) -> Result<Self, UciCreationError> {
         #[cfg(windows)]
         use std::os::windows::process::CommandExt;
 
@@ -126,27 +102,13 @@ where
         })
     }
 
-    /// Clones the inner [`Arc<Mutex<T>>`] and puts it in a new [`UciConnection`] instance.
-    #[must_use]
-    pub fn clone_arc(&self) -> Self {
-        Self {
-            inner: Arc::clone(&self.inner),
-            _phantom: PhantomData,
-        }
-    }
-
     /// Sends a message.
     ///
     /// # Errors
     ///
     /// See [`Write::write_all`].
     pub async fn send_message(&self, message: &MSend) -> io::Result<()> {
-        self.inner
-            .lock()
-            .await
-            .stdin
-            .write_all(message.to_string().as_bytes())
-            .await
+        self.inner.lock().await.stdin.write_all(message.to_string().as_bytes()).await
     }
 
     /// Skips some lines.
@@ -245,10 +207,10 @@ impl EngineConnection {
         }
     }
 
-    /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) response,
+    /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it, along with a list of [`info`](https://backscattering.de/chess/uci/#engine-info) messages.
     ///
-    /// See also the [`Self::go_task`] function, which spawns a new task and sends back the info messages through a receiver.
+    /// See also the [`Self::go_async`] function, which can be interrupted.
     ///
     /// # Errors
     ///
@@ -274,54 +236,6 @@ impl EngineConnection {
                 _ => (),
             }
         }
-    }
-
-    /// Spawns a new task which sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message
-    /// and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) response.
-    /// It sends the [`info`](https://backscattering.de/chess/uci/#engine-info) messages through the returned receiver.
-    ///
-    /// See also the [`Self::go`] function for a simpler alternative.
-    ///
-    /// # Errors
-    ///
-    /// This function does not error, but the task [`JoinHandle`] does.
-    /// - Writing (sending the message) errored.
-    /// - Reading (reading back the responses) errored.
-    pub fn go_task(
-        &self,
-        message: GoMessage,
-    ) -> (
-        mpsc::Receiver<Box<InfoMessage>>,
-        JoinHandle<io::Result<BestMoveMessage>>,
-    ) {
-        let (info_sender, info_receiver) = mpsc::channel(200);
-        let uci = self.clone_arc();
-
-        let handle = task::spawn(async move {
-            uci.send_message(&GuiMessage::Go(message)).await?;
-            let mut is_info_receiver_open = true;
-
-            loop {
-                let engine_to_gui_message = match uci.read_message().await {
-                    Ok(msg) => msg,
-                    Err(UciReadMessageError::Io(e)) => return Err(e),
-                    Err(_) => continue,
-                };
-
-                match engine_to_gui_message {
-                    EngineMessage::Info(info) => {
-                        if is_info_receiver_open && info_sender.send(info).await.is_err() {
-                            // Receiver closed, so don't send messages anymore.
-                            is_info_receiver_open = false;
-                        }
-                    }
-                    EngineMessage::BestMove(best_move) => return Ok(best_move),
-                    _ => (),
-                }
-            }
-        });
-
-        (info_receiver, handle)
     }
 
     /// Sends the [`isready`](https://backscattering.de/chess/uci/#gui-isready) message and waits for the [`readyok`](https://backscattering.de/chess/uci/#engine-readyok) response.
