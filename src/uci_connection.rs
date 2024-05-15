@@ -2,11 +2,11 @@ use crate::messages::{BestMoveMessage, EngineMessage, IdMessageKind, InfoMessage
 use crate::messages::{GoMessage, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 
+use std::marker::PhantomData;
+use std::process::Stdio;
 use tokio::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use std::marker::PhantomData;
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-use std::process::Stdio;
 
 /// A connection to an engine, used by a GUI.
 pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
@@ -57,9 +57,6 @@ where
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
     pub fn from_path(path: &str) -> Result<Self, UciCreationError> {
-        #[cfg(windows)]
-        use std::os::windows::process::CommandExt;
-
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -198,7 +195,10 @@ impl EngineConnection {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
-    pub async fn go(&mut self, message: GoMessage) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
+    pub async fn go(
+        &mut self,
+        message: GoMessage,
+    ) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
         let mut info_messages = Vec::<InfoMessage>::with_capacity(
             message.depth.map_or(100, |depth| depth.saturating_add(3)),
         );
