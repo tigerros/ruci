@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter, Write};
+use shakmaty::Color;
 use crate::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::Uci as UciMove;
 use crate::messages::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
@@ -7,7 +8,7 @@ use crate::messages::engine::raw_engine_message::RawEngineMessage;
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
-pub struct InfoMessageDepthField {
+pub struct InfoMessageDepth {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: usize,
     /// <https://backscattering.de/chess/uci/#engine-info-seldepth>
@@ -16,30 +17,35 @@ pub struct InfoMessageDepthField {
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum InfoMessageScoreFieldBound {
+pub enum InfoMessageScoreBound {
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     Lowerbound,
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
     Upperbound,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum InfoMessageScoreKind {
+    /// <https://backscattering.de/chess/uci/#engine-info-score-centipawns>
+    Centipawns(isize),
+    /// <https://backscattering.de/chess/uci/#engine-info-score-mate>
+    MateIn(isize),
+}
+
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
-pub struct InfoMessageScoreField {
-    /// <https://backscattering.de/chess/uci/#engine-info-score-cp>
-    pub centipawns: Option<isize>,
-    /// <https://backscattering.de/chess/uci/#engine-info-score-mate>
-    pub mate_in: Option<isize>,
+pub struct InfoMessageScore {
+    pub kind: InfoMessageScoreKind,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
-    pub bound: Option<InfoMessageScoreFieldBound>,
+    pub bound: Option<InfoMessageScoreBound>,
 }
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
-pub struct InfoMessageRefutationField {
+pub struct InfoMessageRefutation {
     pub refuted_move: UciMove,
     pub refutation: UciMoveList,
 }
@@ -47,7 +53,7 @@ pub struct InfoMessageRefutationField {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
-pub struct InfoMessageCurrentLineField {
+pub struct InfoMessageCurrentLine {
     pub used_cpu: Option<usize>,
     pub line: UciMoveList,
 }
@@ -57,7 +63,7 @@ pub struct InfoMessageCurrentLineField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InfoMessage {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
-    pub depth: Option<InfoMessageDepthField>,
+    pub depth: Option<InfoMessageDepth>,
     /// <https://backscattering.de/chess/uci/#engine-info-time>
     pub time: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-nodes>
@@ -67,7 +73,7 @@ pub struct InfoMessage {
     /// <https://backscattering.de/chess/uci/#engine-info-multipv>
     pub multi_primary_variation: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score>
-    pub score: Option<InfoMessageScoreField>,
+    pub score: Option<InfoMessageScore>,
     /// <https://backscattering.de/chess/uci/#engine-info-currmove>
     pub current_move: Option<UciMove>,
     /// <https://backscattering.de/chess/uci/#engine-info-currmovenumber>
@@ -85,9 +91,38 @@ pub struct InfoMessage {
     /// <https://backscattering.de/chess/uci/#engine-info-string>
     pub string: Option<String>,
     /// <https://backscattering.de/chess/uci/#engine-info-refutation>
-    pub refutation: Option<InfoMessageRefutationField>,
+    pub refutation: Option<InfoMessageRefutation>,
     /// <https://backscattering.de/chess/uci/#engine-info-currline>
-    pub current_line: Option<InfoMessageCurrentLineField>,
+    pub current_line: Option<InfoMessageCurrentLine>,
+}
+
+impl InfoMessageScoreKind {
+    /// The centipawn and mate scores are dependent on whose turn it is to move.
+    ///
+    /// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
+    /// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
+    ///
+    /// This function returns a "standardized" score.
+    /// A positive score means that white has the advantage, and a negative score means that
+    /// black has the advantage.
+    #[must_use]
+    #[allow(clippy::arithmetic_side_effects)]
+    pub const fn standardize(self, turn: Color) -> Self {
+        match (turn, self) {
+            (Color::White, Self::Centipawns(centipawns)) => Self::Centipawns(centipawns),
+            (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(if centipawns < 0 {
+               centipawns.abs()
+            } else {
+                -centipawns
+            }),
+            (Color::White, Self::MateIn(mate_in)) => Self::MateIn(mate_in),
+            (Color::Black, Self::MateIn(mate_in)) => Self::MateIn(if mate_in < 0 {
+                mate_in.abs()
+            } else {
+                -mate_in
+            }),
+        }
+    }
 }
 
 impl TryFrom<RawEngineMessage> for InfoMessage {
@@ -107,7 +142,7 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
                 EngineMessageInfoParameterPointer::Depth,
             ))
             .and_then(|s| {
-                s.parse().ok().map(|depth| InfoMessageDepthField {
+                s.parse().ok().map(|depth| InfoMessageDepth {
                     depth,
                     selective_search_depth: raw_message
                         .parameters
@@ -151,7 +186,7 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
             .get(&EngineMessageParameterPointer::Info(
                 EngineMessageInfoParameterPointer::Score,
             ))
-            .map(|s| {
+            .and_then(|s| {
                 fn isize_at_plus1_position(split: &[&str], position: Option<usize>) -> Option<isize> {
                     position.and_then(|position| {
                         if position == usize::MAX {
@@ -172,20 +207,30 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
                 let is_upperbound = split.iter().any(|&part| part == "upperbound");
                 let centipawns = isize_at_plus1_position(&split, centipawns_position);
                 let mate_in = isize_at_plus1_position(&split, mate_in_position);
+                let kind = if let Some(centipawns) = centipawns {
+                    Some(InfoMessageScoreKind::Centipawns(centipawns))
+                } else if let Some(mate_in) = mate_in {
+                    Some(InfoMessageScoreKind::MateIn(mate_in))
+                } else {
+                    None
+                };
 
-                InfoMessageScoreField {
-                    centipawns,
-                    mate_in,
+                let Some(kind) = kind else {
+                    return None;
+                };
+
+                Some(InfoMessageScore {
+                    kind,
                     bound: if is_lowerbound && is_upperbound {
                         None
                     } else if is_lowerbound {
-                        Some(InfoMessageScoreFieldBound::Lowerbound)
+                        Some(InfoMessageScoreBound::Lowerbound)
                     } else if is_upperbound {
-                        Some(InfoMessageScoreFieldBound::Upperbound)
+                        Some(InfoMessageScoreBound::Upperbound)
                     } else {
                         None
                     },
-                }
+                })
             });
 
         let current_move = raw_message
@@ -254,7 +299,7 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
                 let refuted_move = move_list.0.first()?;
                 let refutation = move_list.0.get(1..)?;
 
-                Some(InfoMessageRefutationField {
+                Some(InfoMessageRefutation {
                     refuted_move: refuted_move.clone(),
                     refutation: UciMoveList(refutation.to_vec()),
                 })
@@ -275,7 +320,7 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
                     return None;
                 };
 
-                Some(InfoMessageCurrentLineField {
+                Some(InfoMessageCurrentLine {
                     used_cpu: Some(used_cpu),
                     line,
                 })
@@ -333,19 +378,16 @@ impl Display for InfoMessage {
         if let Some(score) = &self.score {
             f.write_str(" score")?;
 
-            if let Some(centipawns) = score.centipawns {
-                write!(f, " cp {centipawns}")?;
-            }
-
-            if let Some(mate_in) = score.mate_in {
-                write!(f, " mate {mate_in}")?;
+            match score.kind {
+                InfoMessageScoreKind::Centipawns(centipawns) => write!(f, " cp {centipawns}")?,
+                InfoMessageScoreKind::MateIn(mate_in) => write!(f, " mate {mate_in}")?,
             }
 
             match score.bound {
-                Some(InfoMessageScoreFieldBound::Upperbound) => {
+                Some(InfoMessageScoreBound::Upperbound) => {
                     f.write_str(" upperbound")?;
                 }
-                Some(InfoMessageScoreFieldBound::Lowerbound) => {
+                Some(InfoMessageScoreBound::Lowerbound) => {
                     f.write_str(" lowerbound")?;
                 }
                 None => {}
@@ -409,16 +451,26 @@ impl Display for InfoMessage {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    use crate::messages::engine::{EngineMessage, InfoMessageCurrentLineField, InfoMessageDepthField, InfoMessageRefutationField, InfoMessageScoreField, InfoMessageScoreFieldBound};
+    use crate::messages::engine::{EngineMessage, InfoMessageCurrentLine, InfoMessageDepth, InfoMessageRefutation, InfoMessageScore, InfoMessageScoreBound};
     use crate::{UciMoveList};
     use super::InfoMessage;
     use shakmaty::uci::Uci as UciMove;
     use pretty_assertions::assert_eq;
+    use shakmaty::Color;
+    use crate::messages::InfoMessageScoreKind;
+    
+    #[test]
+    fn score_kind_standardize() {
+        assert_eq!(InfoMessageScoreKind::Centipawns(-20).standardize(Color::White), InfoMessageScoreKind::Centipawns(-20));
+        assert_eq!(InfoMessageScoreKind::Centipawns(-15).standardize(Color::Black), InfoMessageScoreKind::Centipawns(15));
+        assert_eq!(InfoMessageScoreKind::Centipawns(10).standardize(Color::White), InfoMessageScoreKind::Centipawns(10));
+        assert_eq!(InfoMessageScoreKind::Centipawns(5).standardize(Color::Black), InfoMessageScoreKind::Centipawns(-5));
+    }
 
     #[test]
     fn to_from_str() {
         let repr = EngineMessage::Info(Box::new(InfoMessage {
-            depth: Some(InfoMessageDepthField {
+            depth: Some(InfoMessageDepth {
                 depth: 20,
                 selective_search_depth: Some(31)
             }),
@@ -426,10 +478,9 @@ mod tests {
             nodes: Some(4),
             primary_variation: Some(UciMoveList(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
             multi_primary_variation: Some(1),
-            score: Some(InfoMessageScoreField {
-                centipawns: Some(22),
-                mate_in: None,
-                bound: Some(InfoMessageScoreFieldBound::Lowerbound),
+            score: Some(InfoMessageScore {
+                kind: InfoMessageScoreKind::Centipawns(22),
+                bound: Some(InfoMessageScoreBound::Lowerbound),
             }),
             current_move: Some(UciMove::from_ascii(b"e2e4").unwrap()),
             current_move_number: None,
@@ -439,11 +490,11 @@ mod tests {
             shredder_base_hits: None,
             cpu_load: None,
             string: Some("blabla".to_string()),
-            refutation: Some(InfoMessageRefutationField {
+            refutation: Some(InfoMessageRefutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
                 refutation: UciMoveList(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
             }),
-            current_line: Some(InfoMessageCurrentLineField {
+            current_line: Some(InfoMessageCurrentLine {
                 used_cpu: Some(1),
                 line: UciMoveList(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
             }),
