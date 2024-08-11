@@ -1,4 +1,4 @@
-use shakmaty::uci::Uci as UciMove;
+use shakmaty::uci::UciMove;
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 

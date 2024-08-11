@@ -71,7 +71,7 @@ mod tests {
     use std::str::FromStr;
     use crate::messages::{GuiMessage, SetPositionMessageKind};
     use crate::{UciMoveList};
-    use shakmaty::uci::Uci as UciMove;
+    use shakmaty::uci::UciMove;
 
     #[test]
     fn to_from_str() {

@@ -43,11 +43,11 @@ pub trait MessageParameterPointer: Copy + Debug + Hash + Eq + PartialEq {
     /// # Errors
     ///
     /// - [`MessageParameterPointerParseError::MessageHasNoParameters`]: if the `message_pointer` argument
-    /// points to a message without parameters, such as [`uciok`](https://backscattering.de/chess/uci/#engine-uciok).
+    ///     points to a message without parameters, such as [`uciok`](https://backscattering.de/chess/uci/#engine-uciok).
     /// - [`MessageParameterPointerParseError::StringDoesNotMapToParameterPointer`]: if the `message_pointer` argument
-    /// points to a message, which *does* have parameters, but the `s` argument doesn't match any of them.
-    /// For example, if you pass in a message pointer for the [`id`](https://backscattering.de/chess/uci/#engine-id) command, but the `s` argument
-    /// is `"developer"`, this will error because `id` only has `name` and `author` parameters.
+    ///     points to a message, which *does* have parameters, but the `s` argument doesn't match any of them.
+    ///     For example, if you pass in a message pointer for the [`id`](https://backscattering.de/chess/uci/#engine-id) command, but the `s` argument
+    ///     is `"developer"`, this will error because `id` only has `name` and `author` parameters.
     fn from_message_and_str(
         message_pointer: Self::MessagePointer,
         s: &str,

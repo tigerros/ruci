@@ -205,7 +205,7 @@ mod tests {
     use crate::messages::{GoMessage, GuiMessage};
     use crate::{UciMoveList};
     use pretty_assertions::assert_eq;
-    use shakmaty::uci::Uci as UciMove;
+    use shakmaty::uci::UciMove;
     use std::num::NonZeroUsize;
     use std::str::FromStr;
 

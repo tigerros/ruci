@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Write};
-use shakmaty::uci::Uci as UciMove;
+use shakmaty::uci::UciMove;
 use crate::messages::engine::{EngineMessageBestMoveParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 use crate::{MessageTryFromRawMessageError};
 use crate::messages::engine::raw_engine_message::RawEngineMessage;
@@ -59,7 +59,7 @@ mod tests {
     use std::str::FromStr;
     use crate::messages::{EngineMessage, BestMoveMessage};
     
-    use shakmaty::uci::Uci as UciMove;
+    use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
 
     #[test]

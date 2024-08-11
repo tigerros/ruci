@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
 use shakmaty::Color;
 use crate::{MessageTryFromRawMessageError, UciMoveList};
-use shakmaty::uci::Uci as UciMove;
+use shakmaty::uci::UciMove;
 use crate::messages::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 use crate::messages::engine::raw_engine_message::RawEngineMessage;
 
@@ -110,17 +110,9 @@ impl InfoMessageScoreKind {
     pub const fn standardize(self, turn: Color) -> Self {
         match (turn, self) {
             (Color::White, Self::Centipawns(centipawns)) => Self::Centipawns(centipawns),
-            (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(if centipawns < 0 {
-               centipawns.abs()
-            } else {
-                -centipawns
-            }),
+            (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(-centipawns),
             (Color::White, Self::MateIn(mate_in)) => Self::MateIn(mate_in),
-            (Color::Black, Self::MateIn(mate_in)) => Self::MateIn(if mate_in < 0 {
-                mate_in.abs()
-            } else {
-                -mate_in
-            }),
+            (Color::Black, Self::MateIn(mate_in)) => Self::MateIn(-mate_in),
         }
     }
 }
@@ -215,9 +207,7 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
                     None
                 };
 
-                let Some(kind) = kind else {
-                    return None;
-                };
+                let kind = kind?;
 
                 Some(InfoMessageScore {
                     kind,
@@ -454,7 +444,7 @@ mod tests {
     use crate::messages::engine::{EngineMessage, InfoMessageCurrentLine, InfoMessageDepth, InfoMessageRefutation, InfoMessageScore, InfoMessageScoreBound};
     use crate::{UciMoveList};
     use super::InfoMessage;
-    use shakmaty::uci::Uci as UciMove;
+    use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
     use crate::messages::InfoMessageScoreKind;
