@@ -1,12 +1,14 @@
 use crate::messages::{BestMoveMessage, EngineMessage, IdMessageKind, InfoMessage, OptionMessage};
 use crate::messages::{GoMessage, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
-
 use std::marker::PhantomData;
 use std::process::Stdio;
+use std::sync::Arc;
 use tokio::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 
 /// A connection to an engine, used by a GUI.
 pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
@@ -189,7 +191,13 @@ impl EngineConnection {
     /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it, along with a list of [`info`](https://backscattering.de/chess/uci/#engine-info) messages.
     ///
-    /// See also the [`Self::go_async`] function, which can be interrupted.
+    /// Note that the engine will only send the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove)
+    /// message if you set some constraint to prevent the engine from thinking forever.
+    /// This can be `depth` or `wtime`/`btime`.
+    ///
+    /// If you don't have that kind of constraint but want to receive scores and best continuations
+    /// (without waiting until the engine finishes with `bestmove`),
+    /// use the [`Self::go_async_info`] function.
     ///
     /// # Errors
     ///
@@ -198,8 +206,8 @@ impl EngineConnection {
     pub async fn go(
         &mut self,
         message: GoMessage,
-    ) -> io::Result<(Vec<InfoMessage>, BestMoveMessage)> {
-        let mut info_messages = Vec::<InfoMessage>::with_capacity(
+    ) -> io::Result<(Vec<Box<InfoMessage>>, BestMoveMessage)> {
+        let mut info_messages = Vec::<Box<InfoMessage>>::with_capacity(
             message.depth.map_or(100, |depth| depth.saturating_add(3)),
         );
 
@@ -213,92 +221,62 @@ impl EngineConnection {
             };
 
             match engine_to_gui_message {
-                EngineMessage::Info(info) => info_messages.push(*info),
+                EngineMessage::Info(info) => info_messages.push(info),
                 EngineMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
                 _ => (),
             }
         }
     }
 
-    #[cfg(feature = "uci-connection-go-async")]
-    /// Spawns a new thread which sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
-    /// returning it. The [`info`](https://backscattering.de/chess/uci/#engine-info) messages are sent through the returned receiver.
+    /// Same as [`Self::go`], but instead of returning the [`info`](https://backscattering.de/chess/uci/#engine-info)
+    /// messages and the best move together (after waiting for the engine), it immediately returns a tuple which contains:
     ///
-    /// See also:
-    /// - The [`Self::go`] function for a simpler alternative, but one that cannot be interrupted.
-    /// - The [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example.
+    /// - A receiver for the info messages.
+    /// - A handle to a task which will send info messages to the receiver and, once the engine returns a
+    ///   [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message, will return that message.
     ///
-    /// # Errors
-    ///
-    /// - Creating the thread failed.
-    pub fn go_async(
-        arc_self: Arc<Mutex<Self>>,
+    /// The spawned task will never panic. It is thus safe to call [`Result::unwrap`] on the handle.
+    /// However, the value returned by the handle may be an error, so don't call `unwrap` twice!
+    pub fn go_async_info(
+        arc_self: Arc<parking_lot::Mutex<Self>>,
         message: GoMessage,
-    ) -> io::Result<GuiToEngineUciConnectionGo<impl FnOnce() -> io::Result<()>>> {
-        let (info_sender, info_receiver) = mpsc::channel();
-        let is_running = Arc::new(AtomicBool::new(true));
-        let is_running2 = is_running.clone();
-        let arc_self2 = arc_self.clone();
+    ) -> (
+        mpsc::Receiver<Box<InfoMessage>>,
+        JoinHandle<io::Result<BestMoveMessage>>,
+    ) {
+        let (tx, rx) = mpsc::channel(message.depth.map_or(100, |depth| depth.saturating_add(3)));
 
-        let stop = move || {
-            is_running2.store(false, Ordering::SeqCst);
-            arc_self2.lock_arc().send_message(&GuiMessage::Stop)?;
+        (
+            rx,
+            tokio::spawn(async move {
+                let mut channel_closed = false;
+                let mut lock = arc_self.lock_arc();
 
-            Ok(())
-        };
-
-        let thread = thread::Builder::new()
-            .name(format!(
-                "go_{}",
-                message
-                    .to_string()
-                    .replace(|c: char| c.is_whitespace(), "_")
-            ))
-            .spawn(move || {
-                if !is_running.load(Ordering::SeqCst) {
-                    return Err(io::ErrorKind::ConnectionAborted.into());
-                }
-
-                let mut guard = arc_self.lock_arc();
-
-                guard.send_message(&GuiMessage::Go(message))?;
+                lock.send_message(&GuiMessage::Go(message)).await?;
 
                 loop {
-                    if !is_running.load(Ordering::SeqCst) {
-                        return Err(io::ErrorKind::ConnectionAborted.into());
-                    };
-
-                    let message = guard.read_message();
-                    let engine_to_gui_message = match message {
+                    let engine_to_gui_message = match lock.read_message().await {
                         Ok(msg) => msg,
                         Err(UciReadMessageError::Io(e)) => return Err(e),
                         Err(_) => continue,
                     };
 
-                    if !is_running.load(Ordering::SeqCst) {
-                        // Clippy wants this for some reason
-                        drop(guard);
-                        return Err(io::ErrorKind::ConnectionAborted.into());
-                    }
-
                     match engine_to_gui_message {
-                        EngineMessage::Info(info) => {
-                            if info_sender.send(info).is_err() {
-                                // Return value doesn't matter because the receiver doesn't exist.
-                                return Err(io::ErrorKind::Other.into());
+                        EngineMessage::Info(info) if !channel_closed => {
+                            if tx.send(info).await.is_err() {
+                                channel_closed = true;
                             }
                         }
-                        EngineMessage::BestMove(best_move) => return Ok(best_move),
+                        EngineMessage::BestMove(best_move) => {
+                            // Clippy wants this
+                            drop(lock);
+                            return Ok(best_move);
+                        }
                         _ => (),
                     }
                 }
-            })?;
-
-        Ok(GuiToEngineUciConnectionGo {
-            stop,
-            info_receiver,
-            thread,
-        })
+            }),
+        )
     }
 
     /// Sends the [`isready`](https://backscattering.de/chess/uci/#gui-isready) message and waits for the [`readyok`](https://backscattering.de/chess/uci/#engine-readyok) response.

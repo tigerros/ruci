@@ -24,6 +24,7 @@ pub enum InfoMessageScoreBound {
     Upperbound,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InfoMessageScoreKind {
     /// <https://backscattering.de/chess/uci/#engine-info-score-centipawns>
@@ -199,13 +200,10 @@ impl TryFrom<RawEngineMessage> for InfoMessage {
                 let is_upperbound = split.iter().any(|&part| part == "upperbound");
                 let centipawns = isize_at_plus1_position(&split, centipawns_position);
                 let mate_in = isize_at_plus1_position(&split, mate_in_position);
-                let kind = if let Some(centipawns) = centipawns {
-                    Some(InfoMessageScoreKind::Centipawns(centipawns))
-                } else if let Some(mate_in) = mate_in {
-                    Some(InfoMessageScoreKind::MateIn(mate_in))
-                } else {
-                    None
-                };
+                let kind = centipawns.map_or(
+                    mate_in.map(InfoMessageScoreKind::MateIn),
+                    |centipawns| Some(InfoMessageScoreKind::Centipawns(centipawns))
+                );
 
                 let kind = kind?;
 
