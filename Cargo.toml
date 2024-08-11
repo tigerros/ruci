@@ -11,19 +11,26 @@ keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
 
 [[example]]
-name = "go_stop"
-path = "examples/go_stop.rs"
-required-features = ["uci-connection-go-async"]
+name = "go_async_info"
+path = "examples/go_async_info.rs"
+required-features = ["uci-connection"]
+
+[[example]]
+name = "go"
+path = "examples/go.rs"
+required-features = ["uci-connection"]
 
 [dependencies]
-shakmaty = "0.27.0"
-paste = "1.0.14"
+shakmaty = "0.27.1"
+paste = "1.0.15"
 dry-mods = "0.1.5"
-parking_lot = { version = "0.12.2", features = ["arc_lock"], optional = true }
+parking_lot = { version = "0.12.3", features = ["arc_lock", "send_guard"], optional = true }
+tokio = { version = "1.39.2", features = ["rt", "sync", "io-std", "io-util", "process"], optional = true }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
+tokio = { version = "1.39.2", features = ["full"] }
 
 [features]
 default = []
-uci-connection-go-async = ["parking_lot"]
+uci-connection = ["tokio", "parking_lot"]

@@ -78,12 +78,13 @@ macro_rules! define_message_enum {
                 fn as_string(self) -> &'static str {
                     match self {
                         $($(
-                        #[allow(unused_doc_comments)]
-                        #[doc = define_message_enum!(empty_string=$has_parameters)]
-                        Self::$message_ident(parameter_pointer) => match parameter_pointer {
-                            $(
-                            [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => $message_parameter_string,
-                            )+
+                        Self::$message_ident(parameter_pointer) => {
+                            define_message_enum!(empty=$has_parameters);
+                            match parameter_pointer {
+                                $(
+                                [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => $message_parameter_string,
+                                )+
+                            }
                         },
                         )?)+
                     }
@@ -92,13 +93,14 @@ macro_rules! define_message_enum {
                 fn from_message_and_str(message_pointer: Self::MessagePointer, s: &str) -> Result<Self, $crate::MessageParameterPointerParseError> {
                     match message_pointer {
                         $($(
-                        #[allow(unused_doc_comments)]
-                        #[doc = define_message_enum!(empty_string=$has_parameters)]
-                        Self::MessagePointer::$message_ident => match s {
-                            $(
-                            $message_parameter_string => Ok(Self::[< $message_ident >]([< $ident $message_ident ParameterPointer >]::$message_parameter_ident)),
-                            )+
-                            _ => Err($crate::MessageParameterPointerParseError::StringDoesNotMapToParameterPointer)
+                        Self::MessagePointer::$message_ident => {
+                            define_message_enum!(empty=$has_parameters);
+                            match s {
+                                $(
+                                $message_parameter_string => Ok(Self::[< $message_ident >]([< $ident $message_ident ParameterPointer >]::$message_parameter_ident)),
+                                )+
+                                _ => Err($crate::MessageParameterPointerParseError::StringDoesNotMapToParameterPointer)
+                            }
                         },
                         )?)+
                         _ => Err($crate::MessageParameterPointerParseError::MessageHasNoParameters)
@@ -109,15 +111,17 @@ macro_rules! define_message_enum {
                 fn has_value(self) -> bool {
                     match self {
                         $($(
-                        #[allow(unused_doc_comments)]
-                        #[doc = define_message_enum!(empty_string=$has_parameters)]
-                        Self::$message_ident(parameter_pointer) => match parameter_pointer {
-                            $($(
-                            #[allow(unused_doc_comments)]
-                            #[doc = define_message_enum!(empty_string=$has_value)]
-                            [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => false,
-                            )?)+
-                            _ => true
+                        Self::$message_ident(parameter_pointer) => {
+                            define_message_enum!(empty=$has_parameters);
+                            match parameter_pointer {
+                                $($(
+                                [< $ident $message_ident ParameterPointer >]::$message_parameter_ident => {
+                                    define_message_enum!(empty=$has_value);
+                                    false
+                                },
+                                )?)+
+                                _ => true
+                            }
                         },
                         )?)+
                         _ => true
@@ -135,9 +139,10 @@ macro_rules! define_message_enum {
                 fn has_parameters(self) -> bool {
                     match self {
                         $($(
-                        #[allow(unused_doc_comments)]
-                        #[doc = define_message_enum!(empty_string=$has_parameters)]
-                        Self::$message_ident => true,
+                        Self::$message_ident => {
+                            define_message_enum!(empty=$has_parameters);
+                            true
+                        },
                         )?)+
                         _ => false
                     }

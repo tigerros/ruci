@@ -17,4 +17,4 @@ See the [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.
 
 ## Features
 
-- `uci-connection`: enables two structs to manage the actual IO (`EngineConnection` and `GuiConnection`) when it comes to working with UCI.
+- `uci-connection`: enables two structs to manage the actual IO (`EngineConnection` and `GuiConnection`) when it comes to working with UCI. Note that this will add [`tokio`](https://crates.io/crates/tokio) and [`parking_lot`](https://crates.io/crates/parking_lot) as dependencies.

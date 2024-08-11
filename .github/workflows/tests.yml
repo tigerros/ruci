@@ -16,4 +16,4 @@ jobs:
           override: true
 
       - name: Test
-        run: cargo test --workspace --all-features
+        run: cargo test --workspace --all-features -q
