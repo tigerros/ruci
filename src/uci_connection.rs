@@ -51,6 +51,25 @@ where
     MSend: Message,
     MReceive: Message,
 {
+    pub const fn new(process: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self {
+        Self { process, stdout, stdin, _phantom: PhantomData }
+    }
+
+    /// # Errors
+    /// 
+    /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
+    pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
+        let Some(stdout) = process.stdout.take() else {
+            return Err(UciCreationError::StdoutIsNone);
+        };
+
+        let Some(stdin) = process.stdin.take() else {
+            return Err(UciCreationError::StdinIsNone);
+        };
+
+        Ok(Self { process, stdout, stdin, _phantom: PhantomData })
+    }
+    
     /// Creates a new UCI connection from the given executable path.
     ///
     /// # Errors
