@@ -62,8 +62,7 @@ impl FromStr for GuiMessage {
     ///
     /// # Errors
     ///
-    /// - Errors with [`MessageParseError::RawMessageParseError`] if the string could not be parsed into a [`RawGuiMessage`].
-    /// - Errors with [`MessageParseError::MessageTryFromRawMessageError`] if the [`RawUciMessage`] could not be parsed into [`Self`].
+    /// See [`MessageParseError`].
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let raw_message =
             RawGuiMessage::from_str(s).map_err(MessageParseError::RawMessageParseError)?;

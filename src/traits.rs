@@ -8,7 +8,9 @@ pub enum MessageParseError<MessageParameterPtr>
 where
     MessageParameterPtr: MessageParameterPointer,
 {
+    /// The string could not be parsed into a raw message.
     RawMessageParseError(RawMessageParseError),
+    /// The raw message could not be parsed into a concrete message.
     MessageTryFromRawMessageError(MessageTryFromRawMessageError<MessageParameterPtr>),
 }
 

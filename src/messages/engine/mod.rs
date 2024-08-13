@@ -49,8 +49,7 @@ impl FromStr for EngineMessage {
     ///
     /// # Errors
     ///
-    /// - Errors with [`MessageParseError::RawMessageParseError`] if the string could not be parsed into a [`RawEngineMessage`].
-    /// - Errors with [`MessageParseError::MessageTryFromRawMessageError`] if the [`RawUciMessage`] could not be parsed into [`Self`].
+    /// See [`MessageParseError`].
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let raw_message =
             RawEngineMessage::from_str(s).map_err(MessageParseError::RawMessageParseError)?;
