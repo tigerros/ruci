@@ -6,8 +6,6 @@
 
 # RUCI
 
-**Warning: this crate is not fully tested.**
-
 <ins>R</ins>ust <ins>U</ins>niversal <ins>C</ins>hess <ins>I</ins>nterface.
 
 This crate is for parsing and creating UCI messages.
