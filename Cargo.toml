@@ -11,7 +11,7 @@ keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["uci-connection"]
 
 [[example]]
 name = "go_async_info"
