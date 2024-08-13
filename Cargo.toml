@@ -10,6 +10,9 @@ categories = ["parser-implementations", "game-development"]
 keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [[example]]
 name = "go_async_info"
 path = "examples/go_async_info.rs"
