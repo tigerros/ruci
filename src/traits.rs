@@ -14,7 +14,6 @@ where
     MessageTryFromRawMessageError(MessageTryFromRawMessageError<MessageParameterPtr>),
 }
 
-/// There are two implementors of this trait, [`GuiMessage`](crate::messages::GuiMessage) and [`EngineMessage`](crate::messages::EngineMessage).
 pub trait Message:
     Debug + Display + FromStr<Err = MessageParseError<Self::ParameterPointer>> + Send + Sync + 'static
 {
