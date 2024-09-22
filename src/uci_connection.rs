@@ -51,37 +51,36 @@ where
     MSend: Message,
     MReceive: Message,
 {
-    // pub const fn new(process: Child, stdout: BufReader<ChildStdout>, stdin: BufWriter<ChildStdin>) -> Self {
-    //     Self {
-    //         process,
-    //         stdout,
-    //         stdin,
-    //         _phantom: PhantomData,
-    //     }
-    // }
-    //
-    // /// # Errors
-    // ///
-    // /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
-    // pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
-    //     let Some(stdout) = process.stdout.take() else {
-    //         return Err(UciCreationError::StdoutIsNone);
-    //     };
-    //
-    //     let Some(stdin) = process.stdin.take() else {
-    //         return Err(UciCreationError::StdinIsNone);
-    //     };
-    //
-    //     let stdout = BufReader::new(stdout);
-    //     let stdin = BufWriter::new(stdin);
-    //
-    //     Ok(Self {
-    //         process,
-    //         stdout,
-    //         stdin,
-    //         _phantom: PhantomData,
-    //     })
-    // }
+    pub const fn new(process: Child, stdout: BufReader<ChildStdout>, stdin: ChildStdin) -> Self {
+        Self {
+            process,
+            stdout,
+            stdin,
+            _phantom: PhantomData,
+        }
+    }
+    
+    /// # Errors
+    ///
+    /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
+    pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
+        let Some(stdout) = process.stdout.take() else {
+            return Err(UciCreationError::StdoutIsNone);
+        };
+    
+        let Some(stdin) = process.stdin.take() else {
+            return Err(UciCreationError::StdinIsNone);
+        };
+    
+        let stdout = BufReader::new(stdout);
+    
+        Ok(Self {
+            process,
+            stdout,
+            stdin,
+            _phantom: PhantomData,
+        })
+    }
 
     /// Creates a new UCI connection from the given executable path.
     ///
@@ -139,24 +138,6 @@ where
         for _ in 0..count {
             self.stdout.read_line(&mut buf).await?;
         }
-
-        // loop {
-        //     self.stdout.read_exact(&mut buf).await?;
-        //
-        //     if buf[0] == b'\n' {
-        //         // CLIPPY: `skipped_count` never overflows because it starts at 0, increments by 1, and stops once `count` is reached.
-        //         #[allow(clippy::arithmetic_side_effects)]
-        //         {
-        //             skipped_count += 1;
-        //         }
-        //
-        //         if skipped_count == count {
-        //             break;
-        //         }
-        //
-        //         continue;
-        //     }
-        // }
 
         Ok(())
     }
@@ -337,4 +318,25 @@ fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
             IdMessageKind::NameAndAuthor { name, author }
         }
     });
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[tokio::test]
+    async fn skip_lines() {
+        let mut engine_conn = EngineConnection::from_path("/resources/stockfish.exe").unwrap();
+
+        engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
+
+        engine_conn.skip_lines(4).await.unwrap();
+
+        let mut line = String::new();
+        engine_conn.stdout.read_line(&mut line).await.unwrap();
+
+        assert_eq!(line, "option name Debug Log File type string default\n");
+    }
 }
