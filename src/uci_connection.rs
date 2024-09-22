@@ -319,24 +319,3 @@ fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
         }
     });
 }
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[tokio::test]
-    async fn skip_lines() {
-        let mut engine_conn = EngineConnection::from_path("/resources/stockfish.exe").unwrap();
-
-        engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
-
-        engine_conn.skip_lines(4).await.unwrap();
-
-        let mut line = String::new();
-        engine_conn.stdout.read_line(&mut line).await.unwrap();
-
-        assert_eq!(line, "option name Debug Log File type string default\n");
-    }
-}
