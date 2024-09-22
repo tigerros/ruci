@@ -328,7 +328,6 @@ mod tests {
 
     #[tokio::test]
     async fn skip_lines() {
-        println!("{:?}", std::env::current_dir().unwrap());
         let mut engine_conn = EngineConnection::from_path("resources/stockfish.exe").unwrap();
 
         engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
@@ -338,6 +337,9 @@ mod tests {
         let mut line = String::new();
         engine_conn.stdout.read_line(&mut line).await.unwrap();
 
-        assert_eq!(line, "option name Debug Log File type string default\n");
+        assert_eq!(
+            line.trim(),
+            "option name Debug Log File type string default"
+        );
     }
 }
