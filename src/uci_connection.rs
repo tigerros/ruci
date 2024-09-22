@@ -329,7 +329,7 @@ mod tests {
     #[tokio::test]
     async fn skip_lines() {
         println!("{:?}", std::env::current_dir().unwrap());
-        let mut engine_conn = EngineConnection::from_path("/resources/stockfish.exe").unwrap();
+        let mut engine_conn = EngineConnection::from_path("resources/stockfish.exe").unwrap();
 
         engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
 
