@@ -59,7 +59,7 @@ where
             _phantom: PhantomData,
         }
     }
-    
+
     /// # Errors
     ///
     /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
@@ -67,13 +67,13 @@ where
         let Some(stdout) = process.stdout.take() else {
             return Err(UciCreationError::StdoutIsNone);
         };
-    
+
         let Some(stdin) = process.stdin.take() else {
             return Err(UciCreationError::StdinIsNone);
         };
-    
+
         let stdout = BufReader::new(stdout);
-    
+
         Ok(Self {
             process,
             stdout,
