@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -41,7 +41,7 @@ where
     MReceive: Message,
 {
     pub process: Child,
-    pub stdout: ChildStdout,
+    pub stdout: BufReader<ChildStdout>,
     pub stdin: ChildStdin,
     _phantom: PhantomData<(MSend, MReceive)>,
 }
@@ -51,34 +51,37 @@ where
     MSend: Message,
     MReceive: Message,
 {
-    pub const fn new(process: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self {
-        Self {
-            process,
-            stdout,
-            stdin,
-            _phantom: PhantomData,
-        }
-    }
-
-    /// # Errors
-    ///
-    /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
-        let Some(stdout) = process.stdout.take() else {
-            return Err(UciCreationError::StdoutIsNone);
-        };
-
-        let Some(stdin) = process.stdin.take() else {
-            return Err(UciCreationError::StdinIsNone);
-        };
-
-        Ok(Self {
-            process,
-            stdout,
-            stdin,
-            _phantom: PhantomData,
-        })
-    }
+    // pub const fn new(process: Child, stdout: BufReader<ChildStdout>, stdin: BufWriter<ChildStdin>) -> Self {
+    //     Self {
+    //         process,
+    //         stdout,
+    //         stdin,
+    //         _phantom: PhantomData,
+    //     }
+    // }
+    // 
+    // /// # Errors
+    // ///
+    // /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
+    // pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
+    //     let Some(stdout) = process.stdout.take() else {
+    //         return Err(UciCreationError::StdoutIsNone);
+    //     };
+    // 
+    //     let Some(stdin) = process.stdin.take() else {
+    //         return Err(UciCreationError::StdinIsNone);
+    //     };
+    //     
+    //     let stdout = BufReader::new(stdout);
+    //     let stdin = BufWriter::new(stdin);
+    // 
+    //     Ok(Self {
+    //         process,
+    //         stdout,
+    //         stdin,
+    //         _phantom: PhantomData,
+    //     })
+    // }
 
     /// Creates a new UCI connection from the given executable path.
     ///
@@ -101,10 +104,12 @@ where
         let Some(stdout) = process.stdout.take() else {
             return Err(UciCreationError::StdoutIsNone);
         };
-
+        
         let Some(stdin) = process.stdin.take() else {
             return Err(UciCreationError::StdinIsNone);
         };
+
+        let stdout = BufReader::new(stdout);
 
         Ok(Self {
             process,
@@ -129,26 +134,29 @@ where
     ///
     /// See [`Read::read_exact`].
     pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
-        let mut buf = [0; 1];
-        let mut skipped_count = 0;
-
-        loop {
-            self.stdout.read_exact(&mut buf).await?;
-
-            if buf[0] == b'\n' {
-                // CLIPPY: `skipped_count` never overflows because it starts at 0, increments by 1, and stops once `count` is reached.
-                #[allow(clippy::arithmetic_side_effects)]
-                {
-                    skipped_count += 1;
-                }
-
-                if skipped_count == count {
-                    break;
-                }
-
-                continue;
-            }
+        let mut buf = String::new();
+        
+        for _ in 0..count {
+            self.stdout.read_line(&mut buf).await?;
         }
+
+        // loop {
+        //     self.stdout.read_exact(&mut buf).await?;
+        // 
+        //     if buf[0] == b'\n' {
+        //         // CLIPPY: `skipped_count` never overflows because it starts at 0, increments by 1, and stops once `count` is reached.
+        //         #[allow(clippy::arithmetic_side_effects)]
+        //         {
+        //             skipped_count += 1;
+        //         }
+        // 
+        //         if skipped_count == count {
+        //             break;
+        //         }
+        // 
+        //         continue;
+        //     }
+        // }
 
         Ok(())
     }
@@ -162,31 +170,11 @@ where
     pub async fn read_message(
         &mut self,
     ) -> Result<MReceive, UciReadMessageError<MReceive::ParameterPointer>> {
-        MReceive::from_str(&self.read_line().await.map_err(UciReadMessageError::Io)?)
+        let mut line = String::new();
+        self.stdout.read_line(&mut line).await.map_err(UciReadMessageError::Io)?;
+        
+        MReceive::from_str(&line)
             .map_err(UciReadMessageError::MessageParse)
-    }
-
-    /// Reads one line without the trailing `'\n'` character.
-    ///
-    /// # Errors
-    ///
-    /// - Reading resulted in an IO error.
-    /// - Parsing the message errors.
-    pub async fn read_line(&mut self) -> io::Result<String> {
-        let mut s = String::with_capacity(100);
-        let mut buf = [0; 1];
-
-        loop {
-            self.stdout.read_exact(&mut buf).await?;
-
-            if buf[0] == b'\n' {
-                break;
-            }
-
-            s.push(char::from(buf[0]));
-        }
-
-        Ok(s)
     }
 }
 
@@ -347,4 +335,25 @@ fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
             IdMessageKind::NameAndAuthor { name, author }
         }
     });
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    
+    #[tokio::test]
+    async fn skip_lines() {
+        let mut engine_conn = EngineConnection::from_path("/resources/stockfish.exe").unwrap();
+
+        engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
+
+        engine_conn.skip_lines(4).await.unwrap();
+
+        let mut line = String::new();
+        engine_conn.stdout.read_line(&mut line).await.unwrap();
+        
+        assert_eq!(line, "option name Debug Log File type string default\n");
+    }
 }

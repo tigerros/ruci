@@ -8,20 +8,21 @@
 use ruci::messages::{GoMessage, GuiMessage};
 use ruci::EngineConnection;
 use std::io;
+use tokio::io::AsyncBufReadExt;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let mut engine_conn = EngineConnection::from_path("stockfish").unwrap();
 
     println!("== Sending use UCI message, waiting for uciok");
-
+    
     let (id, options) = engine_conn.use_uci().await?;
-
+    
     println!("== Received uciok");
     println!("== ID: {id:?}");
     println!("== Options: {options:?}");
     println!("== Sending isready message, waiting for readyok");
-
+    
     let (infos, best_move) = engine_conn
         .go(GoMessage {
             search_moves: None,
@@ -38,13 +39,13 @@ async fn main() -> io::Result<()> {
             infinite: false,
         })
         .await?;
-
+    
     for info in infos {
         println!("Info: {info:?}");
     }
-
+    
     println!("Best move: {best_move:?}");
-
+    
     println!("== Sending quit message");
     engine_conn.send_message(&GuiMessage::Quit).await?;
     println!("== Sent. Program terminated");
