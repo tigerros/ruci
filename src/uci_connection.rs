@@ -245,8 +245,6 @@ impl EngineConnection {
 
             match engine_to_gui_message {
                 EngineMessage::Info(info) => last_info_message = Some(*info),
-                // CLIPPY: Engines always return at least one info message.
-                #[allow(clippy::unwrap_used)]
                 EngineMessage::BestMove(best_move) => return Ok((last_info_message, best_move)),
                 _ => (),
             }
