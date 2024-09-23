@@ -230,7 +230,7 @@ impl EngineConnection {
         }
     }
 
-    #[allow(clippy::missing_panics_doc)]
+    // CLIPPY: Errors doc is in the linked `go` function.
     #[allow(clippy::missing_errors_doc)]
     /// Equivalent to the [`go`] function, but doesn't store a vector of info messages,
     /// and returns only the last one instead.
