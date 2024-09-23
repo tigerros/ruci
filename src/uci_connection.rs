@@ -230,6 +230,8 @@ impl EngineConnection {
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
+    #[allow(clippy::missing_errors_doc)]
     /// Equivalent to the [`go`] function, but doesn't store a vector of info messages,
     /// and returns only the last one instead.
     pub async fn go_only_last_info(&mut self, message: GoMessage) -> io::Result<(Option<InfoMessage>, BestMoveMessage)> {
