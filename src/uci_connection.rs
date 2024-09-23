@@ -122,7 +122,7 @@ where
     ///
     /// # Errors
     ///
-    /// See [`Write::write_all`].
+    /// See [`AsyncWriteExt::write_all`].
     pub async fn send_message(&mut self, message: &MSend) -> io::Result<()> {
         self.stdin.write_all(message.to_string().as_bytes()).await
     }
@@ -131,7 +131,7 @@ where
     ///
     /// # Errors
     ///
-    /// See [`Read::read_exact`].
+    /// See [`AsyncBufReadExt::read_line`].
     pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = String::new();
 
@@ -207,11 +207,13 @@ impl EngineConnection {
         &mut self,
         message: GoMessage,
     ) -> io::Result<(Vec<Box<InfoMessage>>, BestMoveMessage)> {
-        let mut info_messages = Vec::<Box<InfoMessage>>::with_capacity(
-            message.depth.map_or(100, |depth| depth.saturating_add(3)),
-        );
-
+        let message_depth = message.depth;
+        
         self.send_message(&GuiMessage::Go(message)).await?;
+
+        let mut info_messages = Vec::<Box<InfoMessage>>::with_capacity(
+            message_depth.map_or(100, |depth| depth.saturating_add(3)),
+        );
 
         loop {
             let engine_to_gui_message = match self.read_message().await {
@@ -223,6 +225,29 @@ impl EngineConnection {
             match engine_to_gui_message {
                 EngineMessage::Info(info) => info_messages.push(info),
                 EngineMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
+                _ => (),
+            }
+        }
+    }
+    
+    /// Equivalent to the [`go`] function, but doesn't store a vec of info messages, instead just returning the last one.
+    pub async fn go_only_last_info(&mut self, message: GoMessage) -> io::Result<(Box<InfoMessage>, BestMoveMessage)> {
+        self.send_message(&GuiMessage::Go(message)).await?;
+        
+        let mut last_info_message = None;
+
+        loop {
+            let engine_to_gui_message = match self.read_message().await {
+                Ok(msg) => msg,
+                Err(UciReadMessageError::Io(e)) => return Err(e),
+                Err(_) => continue,
+            };
+
+            match engine_to_gui_message {
+                EngineMessage::Info(info) => last_info_message = Some(info),
+                // CLIPPY: Engines always return at least one info message.
+                #[allow(clippy::unwrap_used)]
+                EngineMessage::BestMove(best_move) => return Ok((last_info_message.unwrap(), best_move)),
                 _ => (),
             }
         }
