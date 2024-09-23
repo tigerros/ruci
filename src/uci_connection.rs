@@ -208,7 +208,7 @@ impl EngineConnection {
         message: GoMessage,
     ) -> io::Result<(Vec<Box<InfoMessage>>, BestMoveMessage)> {
         let message_depth = message.depth;
-        
+
         self.send_message(&GuiMessage::Go(message)).await?;
 
         let mut info_messages = Vec::<Box<InfoMessage>>::with_capacity(
@@ -229,11 +229,12 @@ impl EngineConnection {
             }
         }
     }
-    
-    /// Equivalent to the [`go`] function, but doesn't store a vec of info messages, instead just returning the last one.
+
+    /// Equivalent to the [`go`] function, but doesn't store a vector of info messages,
+    /// and returns only the last one instead.
     pub async fn go_only_last_info(&mut self, message: GoMessage) -> io::Result<(Option<InfoMessage>, BestMoveMessage)> {
         self.send_message(&GuiMessage::Go(message)).await?;
-        
+
         let mut last_info_message = None;
 
         loop {
