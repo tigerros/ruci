@@ -33,6 +33,27 @@ pub enum InfoMessageScoreKind {
     MateIn(isize),
 }
 
+impl InfoMessageScoreKind {
+    /// The centipawn and mate scores are dependent on whose turn it is to move.
+    ///
+    /// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
+    /// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
+    ///
+    /// This function returns a "standardized" score.
+    /// A positive score means that white has the advantage, and a negative score means that
+    /// black has the advantage.
+    #[must_use]
+    #[allow(clippy::arithmetic_side_effects)]
+    pub const fn standardize(self, turn: Color) -> Self {
+        match (turn, self) {
+            (Color::White, Self::Centipawns(centipawns)) => Self::Centipawns(centipawns),
+            (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(-centipawns),
+            (Color::White, Self::MateIn(mate_in)) => Self::MateIn(mate_in),
+            (Color::Black, Self::MateIn(mate_in)) => Self::MateIn(-mate_in),
+        }
+    }
+}
+
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
@@ -95,27 +116,6 @@ pub struct InfoMessage {
     pub refutation: Option<InfoMessageRefutation>,
     /// <https://backscattering.de/chess/uci/#engine-info-currline>
     pub current_line: Option<InfoMessageCurrentLine>,
-}
-
-impl InfoMessageScoreKind {
-    /// The centipawn and mate scores are dependent on whose turn it is to move.
-    ///
-    /// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
-    /// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
-    ///
-    /// This function returns a "standardized" score.
-    /// A positive score means that white has the advantage, and a negative score means that
-    /// black has the advantage.
-    #[must_use]
-    #[allow(clippy::arithmetic_side_effects)]
-    pub const fn standardize(self, turn: Color) -> Self {
-        match (turn, self) {
-            (Color::White, Self::Centipawns(centipawns)) => Self::Centipawns(centipawns),
-            (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(-centipawns),
-            (Color::White, Self::MateIn(mate_in)) => Self::MateIn(mate_in),
-            (Color::Black, Self::MateIn(mate_in)) => Self::MateIn(-mate_in),
-        }
-    }
 }
 
 impl TryFrom<RawEngineMessage> for InfoMessage {
