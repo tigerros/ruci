@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter, Write};
-use shakmaty::Color;
+use std::num::NonZeroUsize;
+use shakmaty::{ByColor, Color};
 use crate::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::UciMove;
 use crate::messages::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
@@ -33,6 +34,20 @@ pub enum InfoMessageScoreKind {
     MateIn(isize),
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum ColorWithAdvantage {
+    Equal,
+    White(NonZeroUsize),
+    Black(NonZeroUsize)
+}
+
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum InfoMessageScoreKindStandardized {
+    Centipawns(ColorWithAdvantage),
+    MateIn(ColorWithAdvantage),
+}
+
 impl InfoMessageScoreKind {
     /// The centipawn and mate scores are dependent on whose turn it is to move.
     ///
@@ -44,7 +59,8 @@ impl InfoMessageScoreKind {
     /// black has the advantage.
     #[must_use]
     #[allow(clippy::arithmetic_side_effects)]
-    pub const fn standardize(self, turn: Color) -> Self {
+    pub const fn standardized(self, turn: Color) -> InfoMessageScoreKindStandardized {
+        InfoMessageScoreKindStandardized::Centipawns(ColorWithAdvantage::Equal);
         match (turn, self) {
             (Color::White, Self::Centipawns(centipawns)) => Self::Centipawns(centipawns),
             (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(-centipawns),
