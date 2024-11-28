@@ -93,15 +93,11 @@ impl TryFrom<RawGuiMessage> for GuiMessage {
                 b"off" => Ok(Self::Debug(false)),
                 _ => Err(Self::Error::ValueParseError),
             },
-            GuiMessagePointer::SetOption => {
-                Ok(Self::SetOption(SetOption::try_from(raw_message)?))
+            GuiMessagePointer::SetOption => Ok(Self::SetOption(SetOption::try_from(raw_message)?)),
+            GuiMessagePointer::Register => Ok(Self::Register(Register::try_from(raw_message)?)),
+            GuiMessagePointer::SetPosition => {
+                Ok(Self::SetPosition(SetPosition::try_from(raw_message)?))
             }
-            GuiMessagePointer::Register => {
-                Ok(Self::Register(Register::try_from(raw_message)?))
-            }
-            GuiMessagePointer::SetPosition => Ok(Self::SetPosition(
-                SetPosition::try_from(raw_message)?,
-            )),
             GuiMessagePointer::Go => Ok(Self::Go(Go::try_from(raw_message)?)),
         }
     }

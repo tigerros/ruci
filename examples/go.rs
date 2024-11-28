@@ -6,7 +6,10 @@
 //! This example requires that you have installed Stockfish.
 
 use ruci::messages::{EngineMessageParameterPointer, Go, GuiMessage};
-use ruci::{EngineConnection, MessageParseError, MessageTryFromRawMessageError, RawMessageParseError, UciReadMessageError};
+use ruci::{
+    EngineConnection, MessageParseError, MessageTryFromRawMessageError, RawMessageParseError,
+    UciReadMessageError,
+};
 use std::io;
 
 #[tokio::main]
@@ -14,7 +17,7 @@ async fn main() -> io::Result<()> {
     let mut engine_conn = EngineConnection::from_path("stockfish").unwrap();
 
     println!("== Sending use UCI message, waiting for uciok");
-    
+
     let (id, options) = engine_conn.use_uci().await?;
 
     println!("== Received uciok");

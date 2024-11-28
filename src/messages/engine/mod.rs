@@ -74,18 +74,14 @@ impl TryFrom<RawEngineMessage> for EngineMessage {
             EngineMessagePointer::ReadyOk => Ok(Self::ReadyOk),
             // Messages with values/parameters
             EngineMessagePointer::Id => Ok(Self::Id(Id::try_from(raw_message)?)),
-            EngineMessagePointer::BestMove => {
-                Ok(Self::BestMove(BestMove::try_from(raw_message)?))
+            EngineMessagePointer::BestMove => Ok(Self::BestMove(BestMove::try_from(raw_message)?)),
+            EngineMessagePointer::CopyProtection => {
+                Ok(Self::CopyProtection(CopyProtection::try_from(raw_message)?))
             }
-            EngineMessagePointer::CopyProtection => Ok(Self::CopyProtection(
-                CopyProtection::try_from(raw_message)?,
-            )),
-            EngineMessagePointer::Registration => Ok(Self::Registration(
-                Registration::try_from(raw_message)?,
-            )),
-            EngineMessagePointer::Info => {
-                Ok(Self::Info(Box::new(Info::try_from(raw_message)?)))
+            EngineMessagePointer::Registration => {
+                Ok(Self::Registration(Registration::try_from(raw_message)?))
             }
+            EngineMessagePointer::Info => Ok(Self::Info(Box::new(Info::try_from(raw_message)?))),
             EngineMessagePointer::Option => Ok(Self::Option(Option::try_from(raw_message)?)),
         }
     }

@@ -203,10 +203,7 @@ impl EngineConnection {
     ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
-    pub async fn go(
-        &mut self,
-        message: Go,
-    ) -> io::Result<(Vec<Box<Info>>, BestMove)> {
+    pub async fn go(&mut self, message: Go) -> io::Result<(Vec<Box<Info>>, BestMove)> {
         let message_depth = message.depth;
 
         self.send_message(&GuiMessage::Go(message)).await?;
@@ -266,10 +263,7 @@ impl EngineConnection {
     pub fn go_async_info(
         arc_self: Arc<parking_lot::Mutex<Self>>,
         message: Go,
-    ) -> (
-        mpsc::Receiver<Box<Info>>,
-        JoinHandle<io::Result<BestMove>>,
-    ) {
+    ) -> (mpsc::Receiver<Box<Info>>, JoinHandle<io::Result<BestMove>>) {
         let (tx, rx) = mpsc::channel(message.depth.map_or(100, |depth| depth.saturating_add(3)));
 
         (
@@ -332,17 +326,9 @@ fn update_id(old_id: &mut Option<Id>, new_id: Id) {
     *old_id = Some(match (old_id_some, new_id) {
         (Id::Author(author), Id::Author(_)) => Id::Author(author),
         (Id::Name(name), Id::Name(_)) => Id::Name(name),
-        (
-            Id::Author(author),
-            Id::Name(name) | Id::NameAndAuthor { name, .. },
-        )
-        | (
-            Id::Name(name),
-            Id::Author(author) | Id::NameAndAuthor { author, .. },
-        )
-        | (Id::NameAndAuthor { name, author }, _) => {
-            Id::NameAndAuthor { name, author }
-        }
+        (Id::Author(author), Id::Name(name) | Id::NameAndAuthor { name, .. })
+        | (Id::Name(name), Id::Author(author) | Id::NameAndAuthor { author, .. })
+        | (Id::NameAndAuthor { name, author }, _) => Id::NameAndAuthor { name, author },
     });
 }
 
