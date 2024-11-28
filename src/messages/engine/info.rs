@@ -4,7 +4,7 @@ use shakmaty::Color;
 use crate::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::UciMove;
 use crate::messages::RawEngineMessage;
-use crate::messages::pointers::engine::*;
+use crate::messages::pointers::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -62,8 +62,6 @@ impl ScoreKind {
     /// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
     ///
     /// This function returns a "standardized" score.
-    /// A positive score means that white has the advantage, and a negative score means that
-    /// black has the advantage.
     #[must_use]
     #[allow(clippy::arithmetic_side_effects)]
     pub const fn standardized(self, turn: Color) -> ScoreKindStandardized {
