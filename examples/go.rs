@@ -5,11 +5,8 @@
 //!
 //! This example requires that you have installed Stockfish.
 
-use ruci::messages::{EngineMessageParameterPointer, Go, GuiMessage};
-use ruci::{
-    EngineConnection, MessageParseError, MessageTryFromRawMessageError, RawMessageParseError,
-    UciReadMessageError,
-};
+use ruci::messages::{Go, GuiMessage};
+use ruci::EngineConnection;
 use std::io;
 
 #[tokio::main]

@@ -1,4 +1,4 @@
-use crate::messages::{BestMove, EngineMessage, Id, Info, Option};
+use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
 use crate::messages::{Go, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 use std::marker::PhantomData;
@@ -168,7 +168,7 @@ impl EngineConnection {
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    pub async fn use_uci(&mut self) -> io::Result<(Option<Id>, Vec<Option>)> {
+    pub async fn use_uci(&mut self) -> io::Result<(Option<Id>, Vec<OptionMessage>)> {
         self.send_message(&GuiMessage::UseUci).await?;
 
         let mut options = Vec::with_capacity(40);
