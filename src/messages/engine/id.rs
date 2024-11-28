@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::{RawEngineMessage, EngineMessageIdParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
-use crate::{MessageTryFromRawMessageError};
+use crate::messages::RawEngineMessage;
+use crate::MessageTryFromRawMessageError;
+use crate::messages::pointers::engine::*;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]

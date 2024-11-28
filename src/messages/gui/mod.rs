@@ -52,6 +52,8 @@ define_message_enum! {
     }
 }
 
+use pointers::*;
+
 impl FromStr for GuiMessage {
     type Err = MessageParseError<GuiMessageParameterPointer>;
 

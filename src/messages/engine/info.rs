@@ -3,7 +3,8 @@ use std::num::NonZeroUsize;
 use shakmaty::Color;
 use crate::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::UciMove;
-use crate::messages::{RawEngineMessage, EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::messages::RawEngineMessage;
+use crate::messages::pointers::engine::*;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

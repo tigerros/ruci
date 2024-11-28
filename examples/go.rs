@@ -14,23 +14,7 @@ async fn main() -> io::Result<()> {
     let mut engine_conn = EngineConnection::from_path("stockfish").unwrap();
 
     println!("== Sending use UCI message, waiting for uciok");
-
-    match engine_conn.read_message().await {
-        Ok(ok) => {},
-        Err(e) => match e {
-            UciReadMessageError::Io(_) => {}
-            UciReadMessageError::MessageParse(e) => match e {
-                MessageParseError::RawMessageParseError(e) => match e { RawMessageParseError::NoMessage => {} }
-                MessageParseError::MessageTryFromRawMessageError(e) => match e {
-                    MessageTryFromRawMessageError::InvalidMessage => {}
-                    MessageTryFromRawMessageError::ParameterParseError(_) => {}
-                    MessageTryFromRawMessageError::MissingParameter(_) => {}
-                    MessageTryFromRawMessageError::ValueParseError => {}
-                    MessageTryFromRawMessageError::MissingValue => {}
-                }
-            }
-        }
-    }
+    
     let (id, options) = engine_conn.use_uci().await?;
 
     println!("== Received uciok");

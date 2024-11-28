@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::{RawEngineMessage, EngineMessageOptionParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::messages::{RawEngineMessage, EngineMessage};
 use crate::{MessageTryFromRawMessageError};
+use crate::messages::pointers::engine::*;
 
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]

@@ -45,6 +45,8 @@ define_message_enum! {
     }
 }
 
+use pointers::*;
+
 impl FromStr for EngineMessage {
     type Err = MessageParseError<EngineMessageParameterPointer>;
 
@@ -62,7 +64,7 @@ impl FromStr for EngineMessage {
 }
 
 impl TryFrom<RawEngineMessage> for EngineMessage {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+    type Error = MessageTryFromRawMessageError<pointers::EngineMessageParameterPointer>;
 
     #[allow(clippy::too_many_lines)]
     fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {

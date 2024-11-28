@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageRegisterParameterPointer};
+use crate::messages::pointers::gui::*;
 use crate::{MessageTryFromRawMessageError};
 use crate::messages::RawGuiMessage;
 
