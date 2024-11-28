@@ -59,8 +59,7 @@ impl InfoMessageScoreKind {
     /// black has the advantage.
     #[must_use]
     #[allow(clippy::arithmetic_side_effects)]
-    pub const fn standardized(self, turn: Color) -> InfoMessageScoreKindStandardized {
-        InfoMessageScoreKindStandardized::Centipawns(ColorWithAdvantage::Equal);
+    pub const fn standardize(self, turn: Color) -> Self {
         match (turn, self) {
             (Color::White, Self::Centipawns(centipawns)) => Self::Centipawns(centipawns),
             (Color::Black, Self::Centipawns(centipawns)) => Self::Centipawns(-centipawns),
