@@ -1,11 +1,8 @@
-mod raw_gui_message;
-use raw_gui_message::RawGuiMessage;
+use super::RawGuiMessage;
 
 dry_mods::mods! {
-    pub mod use go, register, set_option, set_position;
+    mod pub use go, register, set_option, set_position;
 }
-
-// TODO: Tests
 
 use crate::define_message_enum::define_message_enum;
 use crate::{MessageParseError, MessageTryFromRawMessageError};
@@ -27,22 +24,22 @@ define_message_enum! {
         /// <https://backscattering.de/chess/uci/#gui-setoption>
         %["setoption"]
         %%[parameters = [(Name, "name"), (Value, "value")]]
-        SetOption(%SetOptionMessage),
+        SetOption(%SetOption),
         /// <https://backscattering.de/chess/uci/#gui-register>
         %["register"]
         %%[parameters = [(Name, "name"), (Code, "code")]]
-        Register(%RegisterMessageKind),
+        Register(%Register),
         /// <https://backscattering.de/chess/uci/#gui-ucinewgame>
         %["ucinewgame"]
         UciNewGame,
         /// <https://backscattering.de/chess/uci/#gui-position>
         %["position"]
         %%[parameters = [(Fen, "fen"), (Moves, "moves")]]
-        SetPosition(%SetPositionMessageKind),
+        SetPosition(%SetPosition),
         /// <https://backscattering.de/chess/uci/#gui-go>
         %["go"]
         %%[parameters = [(SearchMoves, "searchmoves"), **(Ponder, "ponder"), (WhiteTime, "wtime"), (BlackTime, "btime"), (WhiteIncrement, "winc"), (BlackIncrement, "binc"), (MovesToGo, "movestogo"), (Depth, "depth"), (Nodes, "nodes"), (Mate, "mate"), (MoveTime, "movetime"), **(Infinite, "infinite")]]
-        Go(%GoMessage),
+        Go(%Go),
         /// <https://backscattering.de/chess/uci/#gui-stop>
         %["stop"]
         Stop,
@@ -95,15 +92,15 @@ impl TryFrom<RawGuiMessage> for GuiMessage {
                 _ => Err(Self::Error::ValueParseError),
             },
             GuiMessagePointer::SetOption => {
-                Ok(Self::SetOption(SetOptionMessage::try_from(raw_message)?))
+                Ok(Self::SetOption(SetOption::try_from(raw_message)?))
             }
             GuiMessagePointer::Register => {
-                Ok(Self::Register(RegisterMessageKind::try_from(raw_message)?))
+                Ok(Self::Register(Register::try_from(raw_message)?))
             }
             GuiMessagePointer::SetPosition => Ok(Self::SetPosition(
-                SetPositionMessageKind::try_from(raw_message)?,
+                SetPosition::try_from(raw_message)?,
             )),
-            GuiMessagePointer::Go => Ok(Self::Go(GoMessage::try_from(raw_message)?)),
+            GuiMessagePointer::Go => Ok(Self::Go(Go::try_from(raw_message)?)),
         }
     }
 }

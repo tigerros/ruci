@@ -6,7 +6,7 @@ where
     MessageParameterPtr: MessageParameterPointer,
 {
     /// This error only occurs when you are trying to parse a message directly, i.e.,
-    /// trying to get [`InfoMessage`](crate::messages::InfoMessage) directly instead of [`EngineMessage`](crate::messages::EngineMessage).
+    /// trying to get [`InfoMessage`](crate::messages::Info) directly instead of [`EngineMessage`](crate::messages::EngineMessage).
     InvalidMessage,
     ParameterParseError(MessageParameterPtr),
     MissingParameter(MessageParameterPtr),

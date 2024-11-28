@@ -7,7 +7,7 @@
 //! This example requires that you have installed Stockfish.
 
 use parking_lot::Mutex;
-use ruci::messages::{GoMessage, GuiMessage};
+use ruci::messages::{Go, GuiMessage};
 use ruci::EngineConnection;
 use std::io;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ async fn main() -> io::Result<()> {
 
     let (mut info_rx, handle) = EngineConnection::go_async_info(
         engine_conn.clone(),
-        GoMessage {
+        Go {
             search_moves: None,
             ponder: false,
             white_time: None,

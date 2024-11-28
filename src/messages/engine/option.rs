@@ -1,12 +1,11 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::engine::{EngineMessageOptionParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::messages::{RawEngineMessage, EngineMessageOptionParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 use crate::{MessageTryFromRawMessageError};
-use crate::messages::engine::raw_engine_message::RawEngineMessage;
 
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum OptionMessageType {
+pub enum OptionType {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check,
     /// <https://backscattering.de/chess/uci/#engine-option-type-spin>
@@ -19,7 +18,7 @@ pub enum OptionMessageType {
     String,
 }
 
-impl Display for OptionMessageType {
+impl Display for OptionType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::Check => "check",
@@ -31,34 +30,36 @@ impl Display for OptionMessageType {
     }
 }
 
+type StdOption<T> = std::option::Option<T>;
+
 /// <https://backscattering.de/chess/uci/#engine-option>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OptionMessage {
+pub enum Option {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check {
         /// <https://backscattering.de/chess/uci/#engine-option-name>
         name: String,
         /// <https://backscattering.de/chess/uci/#engine-option-default>
-        default: Option<bool>
+        default: StdOption<bool>
     },
     /// <https://backscattering.de/chess/uci/#engine-option-type-spin>
     Spin {
         /// <https://backscattering.de/chess/uci/#engine-option-name>
         name: String,
         /// <https://backscattering.de/chess/uci/#engine-option-default>
-        default: Option<i64>,
+        default: StdOption<i64>,
         /// <https://backscattering.de/chess/uci/#engine-option-min>
-        min: Option<i64>,
+        min: StdOption<i64>,
         /// <https://backscattering.de/chess/uci/#engine-option-max>
-        max: Option<i64>,
+        max: StdOption<i64>,
     },
     /// <https://backscattering.de/chess/uci/#engine-option-type-combo>
     Combo {
         /// <https://backscattering.de/chess/uci/#engine-option-name>
         name: String,
         /// <https://backscattering.de/chess/uci/#engine-option-default>
-        default: Option<String>,
+        default: StdOption<String>,
         /// <https://backscattering.de/chess/uci/#engine-option-var>
         variations: Vec<String>,
     },
@@ -72,29 +73,29 @@ pub enum OptionMessage {
         /// <https://backscattering.de/chess/uci/#engine-option-name>
         name: String,
         /// <https://backscattering.de/chess/uci/#engine-option-default>
-        default: Option<String>,
+        default: StdOption<String>,
     },
 }
 
-impl OptionMessage {
+impl Option {
     pub const fn name(&self) -> &String {
         match self {
             Self::Check { name, .. } | Self::Spin { name, .. } | Self::Combo { name, .. } | Self::Button { name, .. } | Self::String { name, .. } => name,
         }
     }
 
-    pub const fn r#type(&self) -> OptionMessageType {
+    pub const fn r#type(&self) -> OptionType {
         match self {
-            Self::Check { .. } => OptionMessageType::Check,
-            Self::Spin { .. } => OptionMessageType::Spin,
-            Self::Combo { .. } => OptionMessageType::Combo,
-            Self::Button { .. } => OptionMessageType::Button,
-            Self::String { .. } => OptionMessageType::String
+            Self::Check { .. } => OptionType::Check,
+            Self::Spin { .. } => OptionType::Spin,
+            Self::Combo { .. } => OptionType::Combo,
+            Self::Button { .. } => OptionType::Button,
+            Self::String { .. } => OptionType::String
         }
     }
 }
 
-impl TryFrom<RawEngineMessage> for OptionMessage {
+impl TryFrom<RawEngineMessage> for Option {
     type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
     fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
@@ -195,7 +196,7 @@ impl TryFrom<RawEngineMessage> for OptionMessage {
     }
 }
 
-impl Display for OptionMessage {
+impl Display for Option {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "option name {} type {}", self.name(), self.r#type())?;
 
@@ -239,11 +240,11 @@ impl Display for OptionMessage {
 mod tests {
     use std::str::FromStr;
     use pretty_assertions::assert_eq;
-    use crate::messages::{EngineMessage, OptionMessage};
+    use crate::messages::{EngineMessage, Option};
 
     #[test]
     fn to_from_str_min_max() {
-        let repr = EngineMessage::Option(OptionMessage::Spin {
+        let repr = EngineMessage::Option(Option::Spin {
             name: "Skill Level".to_string(),
             default: Some(20),
             min: Some(-10),
@@ -257,7 +258,7 @@ mod tests {
 
     #[test]
     fn to_from_str_var() {
-        let repr = EngineMessage::Option(OptionMessage::Combo {
+        let repr = EngineMessage::Option(Option::Combo {
             name: "K Personality".to_string(),
             default: Some("Default p".to_string()),
             variations: vec!["Aggressive p".to_string(), "Defensive p".to_string(), "Positional".to_string(), "Endgame".to_string()],

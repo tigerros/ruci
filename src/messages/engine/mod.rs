@@ -1,8 +1,11 @@
-mod raw_engine_message;
-use raw_engine_message::RawEngineMessage;
+use super::RawEngineMessage;
 dry_mods::mods! {
-    pub mod use id, best_move, copy_protection, info, option, registration;
+    // Don't expose the modules of message modules that only have on type in them.
+    mod pub use id, best_move, copy_protection, registration;
+    pub mod info, option;
 }
+
+pub use {info::Info, option::Option};
 
 use crate::{define_message_enum, MessageParseError, MessageTryFromRawMessageError};
 use std::fmt::{Display, Formatter};
@@ -14,7 +17,7 @@ define_message_enum! {
         /// <https://backscattering.de/chess/uci/#engine-id>
         %["id"]
         %%[parameters = [(Name, "name"), (Author, "author")]]
-        Id(%IdMessageKind),
+        Id(%Id),
         /// <https://backscattering.de/chess/uci/#engine-uciok>
         %["uciok"]
         UciOk,
@@ -24,21 +27,21 @@ define_message_enum! {
         /// <https://backscattering.de/chess/uci/#engine-bestmove>
         %["bestmove"]
         %%[parameters = [(Ponder, "ponder")]]
-        BestMove(%BestMoveMessage),
+        BestMove(%BestMove),
         /// <https://backscattering.de/chess/uci/#engine-copyprotection>
         %["copyprotection"]
-        CopyProtection(%CopyProtectionMessageKind),
+        CopyProtection(%CopyProtection),
         /// <https://backscattering.de/chess/uci/#engine-registration>
         %["registration"]
-        Registration(%RegistrationMessageKind),
+        Registration(%Registration),
         /// <https://backscattering.de/chess/uci/#engine-info>
         %["info"]
         %%[parameters = [(Depth, "depth"), (SelectiveSearchDepth, "seldepth"), (Time, "time"), (Nodes, "nodes"), (PrimaryVariation, "pv"), (MultiPrimaryVariation, "multipv"), (Score, "score"), (CurrentMove, "currmove"), (CurrentMoveNumber, "currmovenumber"), (HashFull, "hashfull"), (NodesPerSecond, "nps"), (TableBaseHits, "tbhits"), (ShredderBaseHits, "sbhits"), (CpuLoad, "cpuload"), (String, "string"), (Refutation, "refutation"), (CurrentLine, "currline")]]
-        Info(%Box<InfoMessage>),
+        Info(%Box<Info>),
         /// <https://backscattering.de/chess/uci/#engine-option>
         %["option"]
         %%[parameters = [(Name, "name"), (Type, "type"), (Default, "default"), (Min, "min"), (Max, "max"), (Var, "var")]]
-        Option(%OptionMessage)
+        Option(%Option)
     }
 }
 
@@ -68,20 +71,20 @@ impl TryFrom<RawEngineMessage> for EngineMessage {
             EngineMessagePointer::UciOk => Ok(Self::UciOk),
             EngineMessagePointer::ReadyOk => Ok(Self::ReadyOk),
             // Messages with values/parameters
-            EngineMessagePointer::Id => Ok(Self::Id(IdMessageKind::try_from(raw_message)?)),
+            EngineMessagePointer::Id => Ok(Self::Id(Id::try_from(raw_message)?)),
             EngineMessagePointer::BestMove => {
-                Ok(Self::BestMove(BestMoveMessage::try_from(raw_message)?))
+                Ok(Self::BestMove(BestMove::try_from(raw_message)?))
             }
             EngineMessagePointer::CopyProtection => Ok(Self::CopyProtection(
-                CopyProtectionMessageKind::try_from(raw_message)?,
+                CopyProtection::try_from(raw_message)?,
             )),
             EngineMessagePointer::Registration => Ok(Self::Registration(
-                RegistrationMessageKind::try_from(raw_message)?,
+                Registration::try_from(raw_message)?,
             )),
             EngineMessagePointer::Info => {
-                Ok(Self::Info(Box::new(InfoMessage::try_from(raw_message)?)))
+                Ok(Self::Info(Box::new(Info::try_from(raw_message)?)))
             }
-            EngineMessagePointer::Option => Ok(Self::Option(OptionMessage::try_from(raw_message)?)),
+            EngineMessagePointer::Option => Ok(Self::Option(Option::try_from(raw_message)?)),
         }
     }
 }

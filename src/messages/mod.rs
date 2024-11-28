@@ -1,6 +1,8 @@
 mod engine;
 mod gui;
-pub use engine::{
-    best_move::*, copy_protection::*, id::*, info::*, option::*, registration::*, EngineMessage,
-};
-pub use gui::{go::*, register::*, set_option::*, set_position::*, GuiMessage};
+mod raw_gui_message;
+mod raw_engine_message;
+pub(crate) use raw_gui_message::RawGuiMessage;
+pub(crate) use raw_engine_message::RawEngineMessage;
+pub use engine::*;
+pub use gui::*;

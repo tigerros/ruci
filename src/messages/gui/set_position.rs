@@ -1,12 +1,12 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::{MessageTryFromRawMessageError, UciMoveList};
-use crate::messages::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetPositionParameterPointer};
-use crate::messages::gui::raw_gui_message::RawGuiMessage;
+use crate::messages::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetPositionParameterPointer};
+use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#gui-position>
-pub enum SetPositionMessageKind {
+pub enum SetPosition {
     StartingPosition {
         moves: Option<UciMoveList>,
     },
@@ -16,7 +16,7 @@ pub enum SetPositionMessageKind {
     },
 }
 
-impl TryFrom<RawGuiMessage> for SetPositionMessageKind {
+impl TryFrom<RawGuiMessage> for SetPosition {
     type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
     fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
@@ -49,7 +49,7 @@ impl TryFrom<RawGuiMessage> for SetPositionMessageKind {
     }
 }
 
-impl Display for SetPositionMessageKind {
+impl Display for SetPosition {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::StartingPosition { moves: None } => f.write_str("position startpos")?,
@@ -69,13 +69,13 @@ impl Display for SetPositionMessageKind {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    use crate::messages::{GuiMessage, SetPositionMessageKind};
+    use crate::messages::{GuiMessage, SetPosition};
     use crate::{UciMoveList};
     use shakmaty::uci::UciMove;
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::SetPosition(SetPositionMessageKind::StartingPosition {
+        let repr = GuiMessage::SetPosition(SetPosition::StartingPosition {
             moves: Some(UciMoveList(vec![UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()])),
         });
         let str_repr = "position startpos moves d2d4 d7d5\n";

@@ -2,12 +2,12 @@ use std::fmt::{Display, Formatter, Write};
 use std::num::NonZeroUsize;
 use crate::{MessageTryFromRawMessageError, UciMoveList};
 use crate::messages::gui::{GuiMessageGoParameterPointer, GuiMessageParameterPointer, GuiMessagePointer};
-use crate::messages::gui::raw_gui_message::RawGuiMessage;
+use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#gui-go>
-pub struct GoMessage {
+pub struct Go {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
     pub search_moves: Option<UciMoveList>,
     /// <https://backscattering.de/chess/uci/#gui-go-ponder>
@@ -34,7 +34,7 @@ pub struct GoMessage {
     pub infinite: bool,
 }
 
-impl TryFrom<RawGuiMessage> for GoMessage {
+impl TryFrom<RawGuiMessage> for Go {
     type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
     fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
@@ -143,7 +143,7 @@ impl TryFrom<RawGuiMessage> for GoMessage {
     }
 }
 
-impl Display for GoMessage {
+impl Display for Go {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("go")?;
 
@@ -202,7 +202,7 @@ impl Display for GoMessage {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::messages::{GoMessage, GuiMessage};
+    use crate::messages::{Go, GuiMessage};
     use crate::{UciMoveList};
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::Go(GoMessage {
+        let repr = GuiMessage::Go(Go {
             search_moves: Some(UciMoveList(vec![
                 UciMove::from_ascii(b"e2e4").unwrap(),
                 UciMove::from_ascii(b"d2d4").unwrap(),

@@ -1,5 +1,5 @@
-use crate::messages::{BestMoveMessage, EngineMessage, IdMessageKind, InfoMessage, OptionMessage};
-use crate::messages::{GoMessage, GuiMessage};
+use crate::messages::{BestMove, EngineMessage, Id, Info, Option};
+use crate::messages::{Go, GuiMessage};
 use crate::{Message, MessageParameterPointer, MessageParseError};
 use std::marker::PhantomData;
 use std::process::Stdio;
@@ -168,11 +168,11 @@ impl EngineConnection {
     /// # Errors
     ///
     /// See [`Write::write_all`].
-    pub async fn use_uci(&mut self) -> io::Result<(Option<IdMessageKind>, Vec<OptionMessage>)> {
+    pub async fn use_uci(&mut self) -> io::Result<(Option<Id>, Vec<Option>)> {
         self.send_message(&GuiMessage::UseUci).await?;
 
         let mut options = Vec::with_capacity(40);
-        let mut id = None::<IdMessageKind>;
+        let mut id = None::<Id>;
 
         loop {
             let Ok(engine_to_gui_message) = self.read_message().await else {
@@ -205,13 +205,13 @@ impl EngineConnection {
     /// - Reading (reading back the responses) errored.
     pub async fn go(
         &mut self,
-        message: GoMessage,
-    ) -> io::Result<(Vec<Box<InfoMessage>>, BestMoveMessage)> {
+        message: Go,
+    ) -> io::Result<(Vec<Box<Info>>, BestMove)> {
         let message_depth = message.depth;
 
         self.send_message(&GuiMessage::Go(message)).await?;
 
-        let mut info_messages = Vec::<Box<InfoMessage>>::with_capacity(
+        let mut info_messages = Vec::<Box<Info>>::with_capacity(
             message_depth.map_or(100, |depth| depth.saturating_add(3)),
         );
 
@@ -234,7 +234,7 @@ impl EngineConnection {
     #[allow(clippy::missing_errors_doc)]
     /// Equivalent to the [`go`] function, but doesn't store a vector of info messages,
     /// and returns only the last one instead.
-    pub async fn go_only_last_info(&mut self, message: GoMessage) -> io::Result<(Option<InfoMessage>, BestMoveMessage)> {
+    pub async fn go_only_last_info(&mut self, message: Go) -> io::Result<(Option<Info>, BestMove)> {
         self.send_message(&GuiMessage::Go(message)).await?;
 
         let mut last_info_message = None;
@@ -265,10 +265,10 @@ impl EngineConnection {
     /// However, the value returned by the handle may be an error, so don't call `unwrap` twice!
     pub fn go_async_info(
         arc_self: Arc<parking_lot::Mutex<Self>>,
-        message: GoMessage,
+        message: Go,
     ) -> (
-        mpsc::Receiver<Box<InfoMessage>>,
-        JoinHandle<io::Result<BestMoveMessage>>,
+        mpsc::Receiver<Box<Info>>,
+        JoinHandle<io::Result<BestMove>>,
     ) {
         let (tx, rx) = mpsc::channel(message.depth.map_or(100, |depth| depth.saturating_add(3)));
 
@@ -323,25 +323,25 @@ impl EngineConnection {
     }
 }
 
-fn update_id(old_id: &mut Option<IdMessageKind>, new_id: IdMessageKind) {
+fn update_id(old_id: &mut Option<Id>, new_id: Id) {
     let Some(old_id_some) = old_id.take() else {
         *old_id = Some(new_id);
         return;
     };
 
     *old_id = Some(match (old_id_some, new_id) {
-        (IdMessageKind::Author(author), IdMessageKind::Author(_)) => IdMessageKind::Author(author),
-        (IdMessageKind::Name(name), IdMessageKind::Name(_)) => IdMessageKind::Name(name),
+        (Id::Author(author), Id::Author(_)) => Id::Author(author),
+        (Id::Name(name), Id::Name(_)) => Id::Name(name),
         (
-            IdMessageKind::Author(author),
-            IdMessageKind::Name(name) | IdMessageKind::NameAndAuthor { name, .. },
+            Id::Author(author),
+            Id::Name(name) | Id::NameAndAuthor { name, .. },
         )
         | (
-            IdMessageKind::Name(name),
-            IdMessageKind::Author(author) | IdMessageKind::NameAndAuthor { author, .. },
+            Id::Name(name),
+            Id::Author(author) | Id::NameAndAuthor { author, .. },
         )
-        | (IdMessageKind::NameAndAuthor { name, author }, _) => {
-            IdMessageKind::NameAndAuthor { name, author }
+        | (Id::NameAndAuthor { name, author }, _) => {
+            Id::NameAndAuthor { name, author }
         }
     });
 }

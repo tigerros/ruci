@@ -51,7 +51,7 @@ macro_rules! define_message_enum {
 
 			$($(
 			#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-            pub enum [< $ident $message_ident ParameterPointer >] {
+            pub(crate) enum [< $ident $message_ident ParameterPointer >] {
 				$(
 				$message_parameter_ident
 				),+

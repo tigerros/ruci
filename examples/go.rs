@@ -5,7 +5,7 @@
 //!
 //! This example requires that you have installed Stockfish.
 
-use ruci::messages::{GoMessage, GuiMessage};
+use ruci::messages::{Go, GuiMessage};
 use ruci::EngineConnection;
 use std::io;
 
@@ -23,7 +23,7 @@ async fn main() -> io::Result<()> {
     println!("== Sending isready message, waiting for readyok");
 
     let (infos, best_move) = engine_conn
-        .go(GoMessage {
+        .go(Go {
             search_moves: None,
             ponder: false,
             white_time: None,
