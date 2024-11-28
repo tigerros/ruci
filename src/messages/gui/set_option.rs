@@ -1,17 +1,17 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetOptionParameterPointer};
+use crate::messages::pointers::gui::*;
 use crate::{MessageTryFromRawMessageError};
-use crate::messages::gui::raw_gui_message::RawGuiMessage;
+use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#gui-setoption>
-pub struct SetOptionMessage {
+pub struct SetOption {
     pub name: String,
     pub value: Option<String>,
 }
 
-impl TryFrom<RawGuiMessage> for SetOptionMessage {
+impl TryFrom<RawGuiMessage> for SetOption {
     type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
 
     fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
@@ -44,7 +44,7 @@ impl TryFrom<RawGuiMessage> for SetOptionMessage {
     }
 }
 
-impl Display for SetOptionMessage {
+impl Display for SetOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.value {
             Some(value) => write!(f, "setoption name {} value {value}", self.name)?,
@@ -60,12 +60,12 @@ impl Display for SetOptionMessage {
 mod tests {
     use std::str::FromStr;
     
-    use crate::messages::{GuiMessage, SetOptionMessage};
+    use crate::messages::{GuiMessage, SetOption};
     use pretty_assertions::assert_eq;
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::SetOption(SetOptionMessage {
+        let repr = GuiMessage::SetOption(SetOption {
             name: "Skill Level".to_string(),
             value: Some("1".to_string()),
         });

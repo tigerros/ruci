@@ -1,18 +1,18 @@
 use std::fmt::{Display, Formatter, Write};
 use shakmaty::uci::UciMove;
-use crate::messages::engine::{EngineMessageBestMoveParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
-use crate::{MessageTryFromRawMessageError};
-use crate::messages::engine::raw_engine_message::RawEngineMessage;
+use crate::messages::RawEngineMessage;
+use crate::MessageTryFromRawMessageError;
+use crate::messages::pointers::engine::*;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-bestmove>
-pub struct BestMoveMessage {
+pub struct BestMove {
     pub r#move: UciMove,
     pub ponder: Option<UciMove>,
 }
 
-impl TryFrom<RawEngineMessage> for BestMoveMessage {
+impl TryFrom<RawEngineMessage> for BestMove {
     type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
     fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
@@ -41,7 +41,7 @@ impl TryFrom<RawEngineMessage> for BestMoveMessage {
     }
 }
 
-impl Display for BestMoveMessage {
+impl Display for BestMove {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "bestmove {}", self.r#move)?;
 
@@ -57,14 +57,14 @@ impl Display for BestMoveMessage {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    use crate::messages::{EngineMessage, BestMoveMessage};
+    use crate::messages::{EngineMessage, BestMove};
     
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn to_from_str() {
-        let repr = EngineMessage::BestMove(BestMoveMessage {
+        let repr = EngineMessage::BestMove(BestMove {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         });

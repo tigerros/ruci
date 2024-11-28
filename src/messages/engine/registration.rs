@@ -1,18 +1,18 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::{MessageTryFromRawMessageError};
-use crate::messages::engine::{EngineMessageParameterPointer, EngineMessagePointer};
-use crate::messages::engine::raw_engine_message::RawEngineMessage;
+use crate::messages::RawEngineMessage;
+use crate::messages::pointers::engine::*;
 
 /// <https://backscattering.de/chess/uci/#engine-registration>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RegistrationMessageKind {
+pub enum Registration {
     Checking,
     Ok,
     Error,
 }
 
-impl TryFrom<RawEngineMessage> for RegistrationMessageKind {
+impl TryFrom<RawEngineMessage> for Registration {
     type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
     
     fn try_from(raw_message: RawEngineMessage) -> Result<Self, MessageTryFromRawMessageError<EngineMessageParameterPointer>> {
@@ -33,7 +33,7 @@ impl TryFrom<RawEngineMessage> for RegistrationMessageKind {
     }
 }
 
-impl Display for RegistrationMessageKind {
+impl Display for Registration {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("registration ")?;
         

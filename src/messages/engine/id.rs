@@ -1,12 +1,12 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::engine::{EngineMessageIdParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
-use crate::{MessageTryFromRawMessageError};
-use crate::messages::engine::raw_engine_message::RawEngineMessage;
+use crate::messages::RawEngineMessage;
+use crate::MessageTryFromRawMessageError;
+use crate::messages::pointers::engine::*;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-id>
-pub enum IdMessageKind {
+pub enum Id {
     /// <https://backscattering.de/chess/uci/#engine-id-name>
     Name(String),
     /// <https://backscattering.de/chess/uci/#engine-id-author>
@@ -14,7 +14,7 @@ pub enum IdMessageKind {
     NameAndAuthor { name: String, author: String },
 }
 
-impl TryFrom<RawEngineMessage> for IdMessageKind {
+impl TryFrom<RawEngineMessage> for Id {
     type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
     fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
@@ -54,7 +54,7 @@ impl TryFrom<RawEngineMessage> for IdMessageKind {
     }
 }
 
-impl Display for IdMessageKind {
+impl Display for Id {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("id ")?;
 
@@ -75,11 +75,11 @@ mod tests {
     use std::str::FromStr;
     use pretty_assertions::assert_eq;
     
-    use crate::messages::{EngineMessage, IdMessageKind};
+    use crate::messages::{EngineMessage, Id};
 
     #[test]
     fn to_from_str() {
-        let repr = EngineMessage::Id(IdMessageKind::NameAndAuthor {
+        let repr = EngineMessage::Id(Id::NameAndAuthor {
             name: "Stockfish 16.1".to_string(),
             author: "The stockfish developers".to_string(),
         });

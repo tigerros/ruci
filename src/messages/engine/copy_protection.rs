@@ -1,17 +1,17 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::{MessageTryFromRawMessageError};
-use crate::messages::engine::{EngineMessageParameterPointer, EngineMessagePointer};
-use crate::messages::engine::raw_engine_message::RawEngineMessage;
+use crate::messages::RawEngineMessage;
+use crate::messages::pointers::engine::*;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-copyprotection>
-pub enum CopyProtectionMessageKind {
+pub enum CopyProtection {
     Ok,
     Error,
 }
 
-impl TryFrom<RawEngineMessage> for CopyProtectionMessageKind {
+impl TryFrom<RawEngineMessage> for CopyProtection {
     type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
 
     fn try_from(raw_message: RawEngineMessage) -> Result<Self, MessageTryFromRawMessageError<EngineMessageParameterPointer>> {
@@ -31,7 +31,7 @@ impl TryFrom<RawEngineMessage> for CopyProtectionMessageKind {
     }
 }
 
-impl Display for CopyProtectionMessageKind {
+impl Display for CopyProtection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("copyprotection ")?;
         match self {

@@ -1,6 +1,17 @@
 mod engine;
 mod gui;
+mod raw_engine_message;
+mod raw_gui_message;
+pub(crate) use raw_engine_message::RawEngineMessage;
+pub(crate) use raw_gui_message::RawGuiMessage;
+
+pub(crate) mod pointers {
+    pub use super::engine::pointers as engine;
+    pub use super::gui::pointers as gui;
+}
+
+pub use gui::{Go, GuiMessage, Register, SetOption, SetPosition};
+
 pub use engine::{
-    best_move::*, copy_protection::*, id::*, info::*, option::*, registration::*, EngineMessage,
+    info, option, BestMove, CopyProtection, EngineMessage, Id, Info, Option, Registration,
 };
-pub use gui::{go::*, register::*, set_option::*, set_position::*, GuiMessage};
