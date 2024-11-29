@@ -12,6 +12,4 @@ pub(crate) mod pointers {
 
 pub use gui::{Go, GuiMessage, Register, SetOption, SetPosition};
 
-pub use engine::{
-    info, option, BestMove, CopyProtection, EngineMessage, Id, Info, Option, Registration,
-};
+pub use engine::{info::*, option::*, BestMove, CopyProtection, EngineMessage, Id, Registration};

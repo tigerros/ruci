@@ -5,8 +5,8 @@
 //!
 //! This example requires that you have installed Stockfish.
 
-use ruci::messages::{Go, GuiMessage};
 use ruci::EngineConnection;
+use ruci::{Go, GuiMessage};
 use std::io;
 
 #[tokio::main]

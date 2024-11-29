@@ -482,7 +482,7 @@ mod tests {
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
-    use crate::messages::info::{Centipawns, ScoreKind, ScoreKindStandardized};
+    use crate::messages::{Centipawns, ScoreKind, ScoreKindStandardized};
     
     #[test]
     fn score_kind_standardize() {
