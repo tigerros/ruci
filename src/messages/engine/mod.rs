@@ -7,7 +7,8 @@ dry_mods::mods! {
 
 pub use {info::Info, option::Option};
 
-use crate::{define_message_enum, MessageParseError, MessageTryFromRawMessageError};
+use crate::auxiliary::{MessageParseError, MessageTryFromRawMessageError};
+use crate::define_message_enum;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -45,7 +46,7 @@ define_message_enum! {
     }
 }
 
-use pointers::*;
+use pointers::{EngineMessageParameterPointer, EngineMessagePointer};
 
 impl FromStr for EngineMessage {
     type Err = MessageParseError<EngineMessageParameterPointer>;

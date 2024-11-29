@@ -1,5 +1,5 @@
+use crate::auxiliary::{MessageParameterPointer, MessagePointer, RawMessageParseError};
 use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePointer};
-use crate::{MessageParameterPointer, MessagePointer, RawMessageParseError};
 use std::collections::HashMap;
 use std::str::FromStr;
 

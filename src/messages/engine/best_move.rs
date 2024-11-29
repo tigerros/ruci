@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter, Write};
 use shakmaty::uci::UciMove;
 use crate::messages::RawEngineMessage;
-use crate::MessageTryFromRawMessageError;
-use crate::messages::pointers::engine::*;
+use crate::auxiliary::MessageTryFromRawMessageError;
+use crate::messages::pointers::engine::{EngineMessageBestMoveParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]

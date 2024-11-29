@@ -1,12 +1,10 @@
 use std::fmt::{Display, Formatter, Write};
-use std::num::NonZeroUsize;
 use shakmaty::Color;
-use crate::{MessageTryFromRawMessageError, UciMoveList};
+use crate::auxiliary::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::UciMove;
 use crate::messages::RawEngineMessage;
 use crate::messages::pointers::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
 pub struct Depth {
@@ -16,7 +14,6 @@ pub struct Depth {
     pub selective_search_depth: Option<usize>,
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ScoreBound {
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
@@ -25,82 +22,48 @@ pub enum ScoreBound {
     Upperbound,
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScoreKind {
+pub enum Score {
     /// <https://backscattering.de/chess/uci/#engine-info-score-centipawns>
     Centipawns(isize),
     /// <https://backscattering.de/chess/uci/#engine-info-score-mate>
     MateIn(isize),
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum Centipawns {
-    Equal,
-    White(NonZeroUsize),
-    Black(NonZeroUsize)
-}
-
-/// Which color has mate in how many moves.
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum MateIn {
-    White(usize),
-    Black(usize)
-}
-
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScoreKindStandardized {
-    Centipawns(Centipawns),
-    MateIn(MateIn),
-}
+pub struct ScoreStandardized(Score);
 
-impl ScoreKind {
+impl ScoreStandardized {
     /// The centipawn and mate scores are dependent on whose turn it is to move.
     ///
     /// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
     /// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
     ///
     /// This function returns a "standardized" score.
-    #[must_use]
     #[allow(clippy::arithmetic_side_effects)]
-    pub const fn standardized(self, turn: Color) -> ScoreKindStandardized {
-        match (turn, self) {
-            (Color::White, Self::Centipawns(centipawns)) => match centipawns {
-                0 => ScoreKindStandardized::Centipawns(Centipawns::Equal),
-                1.. => ScoreKindStandardized::Centipawns(Centipawns::White(unsafe { NonZeroUsize::new_unchecked(centipawns as usize) })),
-                ..=-1 => ScoreKindStandardized::Centipawns(Centipawns::Black(unsafe { NonZeroUsize::new_unchecked(centipawns.abs() as usize) }))
-            },
-            (Color::Black, Self::Centipawns(centipawns)) => match centipawns {
-                0 => ScoreKindStandardized::Centipawns(Centipawns::Equal),
-                1.. => ScoreKindStandardized::Centipawns(Centipawns::Black(unsafe { NonZeroUsize::new_unchecked(centipawns as usize) })),
-                ..=-1 => ScoreKindStandardized::Centipawns(Centipawns::White(unsafe { NonZeroUsize::new_unchecked(centipawns.abs() as usize) }))
-            },
-            (Color::White, Self::MateIn(mate_in)) => if mate_in >= 0 {
-                ScoreKindStandardized::MateIn(MateIn::White(mate_in as usize))
-            } else {
-                ScoreKindStandardized::MateIn(MateIn::Black(mate_in as usize))
-            },
-            (Color::Black, Self::MateIn(mate_in)) => if mate_in >= 0 {
-                ScoreKindStandardized::MateIn(MateIn::Black(mate_in as usize))
-            } else {
-                ScoreKindStandardized::MateIn(MateIn::White(mate_in as usize))
-            },
+    pub const fn from_score(score: Score, turn: Color) -> Self {
+        match (turn, score) {
+            (Color::White, Score::Centipawns(centipawns)) => Self(Score::Centipawns(centipawns)),
+            (Color::Black, Score::Centipawns(centipawns)) => Self(Score::Centipawns(-centipawns)),
+            (Color::White, Score::MateIn(mate_in)) => Self(Score::MateIn(mate_in)),
+            (Color::Black, Score::MateIn(mate_in)) => Self(Score::MateIn(-mate_in)),
         }
+    }
+
+    pub const fn score(self) -> Score {
+        self.0
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
-pub struct Score {
-    pub kind: ScoreKind,
+pub struct ScoreWithBound {
+    pub kind: Score,
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
     pub bound: Option<ScoreBound>,
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct Refutation {
@@ -108,7 +71,6 @@ pub struct Refutation {
     pub refutation: UciMoveList,
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct CurrentLine {
@@ -117,7 +79,6 @@ pub struct CurrentLine {
 }
 
 /// <https://backscattering.de/chess/uci/#engine-info>
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
@@ -131,7 +92,7 @@ pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-multipv>
     pub multi_primary_variation: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score>
-    pub score: Option<Score>,
+    pub score: Option<ScoreWithBound>,
     /// <https://backscattering.de/chess/uci/#engine-info-currmove>
     pub current_move: Option<UciMove>,
     /// <https://backscattering.de/chess/uci/#engine-info-currmovenumber>
@@ -237,13 +198,13 @@ impl TryFrom<RawEngineMessage> for Info {
                 let centipawns = isize_at_plus1_position(&split, centipawns_position);
                 let mate_in = isize_at_plus1_position(&split, mate_in_position);
                 let kind = centipawns.map_or(
-                    mate_in.map(ScoreKind::MateIn),
-                    |centipawns| Some(ScoreKind::Centipawns(centipawns))
+                    mate_in.map(Score::MateIn),
+                    |centipawns| Some(Score::Centipawns(centipawns))
                 );
 
                 let kind = kind?;
 
-                Some(Score {
+                Some(ScoreWithBound {
                     kind,
                     bound: if is_lowerbound && is_upperbound {
                         None
@@ -403,8 +364,8 @@ impl Display for Info {
             f.write_str(" score")?;
 
             match score.kind {
-                ScoreKind::Centipawns(centipawns) => write!(f, " cp {centipawns}")?,
-                ScoreKind::MateIn(mate_in) => write!(f, " mate {mate_in}")?,
+                Score::Centipawns(centipawns) => write!(f, " cp {centipawns}")?,
+                Score::MateIn(mate_in) => write!(f, " mate {mate_in}")?,
             }
 
             match score.bound {
@@ -474,33 +435,32 @@ impl Display for Info {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::num::NonZeroUsize;
     use std::str::FromStr;
-    use crate::messages::engine::{EngineMessage, info::{CurrentLine, Depth, Refutation, Score, ScoreBound}};
-    use crate::{UciMoveList};
+    use crate::messages::engine::{EngineMessage, info::{CurrentLine, Depth, Refutation, ScoreWithBound, ScoreBound}};
+    use crate::auxiliary::UciMoveList;
     use super::Info;
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
-    use crate::messages::{Centipawns, ScoreKind, ScoreKindStandardized};
+    use crate::{Score, ScoreStandardized};
     
     #[test]
     fn score_kind_standardize() {
         assert_eq!(
-            ScoreKind::Centipawns(-20).standardized(Color::White),
-            ScoreKindStandardized::Centipawns(Centipawns::Black(NonZeroUsize::new(20).unwrap()))
+            ScoreStandardized::from_score(Score::Centipawns(-20), Color::White).score(),
+            Score::Centipawns(-20)
         );
         assert_eq!(
-            ScoreKind::Centipawns(-15).standardized(Color::Black),
-            ScoreKindStandardized::Centipawns(Centipawns::White(NonZeroUsize::new(15).unwrap()))
+            ScoreStandardized::from_score(Score::Centipawns(-15), Color::Black).score(),
+            Score::Centipawns(15)
         );
         assert_eq!(
-            ScoreKind::Centipawns(10).standardized(Color::White),
-            ScoreKindStandardized::Centipawns(Centipawns::White(NonZeroUsize::new(10).unwrap()))
+            ScoreStandardized::from_score(Score::Centipawns(10), Color::White).score(),
+            Score::Centipawns(10)
         );
         assert_eq!(
-            ScoreKind::Centipawns(5).standardized(Color::Black),
-            ScoreKindStandardized::Centipawns(Centipawns::Black(NonZeroUsize::new(5).unwrap()))
+            ScoreStandardized::from_score(Score::Centipawns(5), Color::Black).score(),
+            Score::Centipawns(-5)
         );
     }
 
@@ -515,8 +475,8 @@ mod tests {
             nodes: Some(4),
             primary_variation: Some(UciMoveList(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
             multi_primary_variation: Some(1),
-            score: Some(Score {
-                kind: ScoreKind::Centipawns(22),
+            score: Some(ScoreWithBound {
+                kind: Score::Centipawns(22),
                 bound: Some(ScoreBound::Lowerbound),
             }),
             current_move: Some(UciMove::from_ascii(b"e2e4").unwrap()),

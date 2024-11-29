@@ -1,6 +1,6 @@
 use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
 use crate::messages::{Go, GuiMessage};
-use crate::{Message, MessageParameterPointer, MessageParseError};
+use crate::auxiliary::{Message, MessageParameterPointer, MessageParseError};
 use std::marker::PhantomData;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -167,7 +167,7 @@ impl EngineConnection {
     ///
     /// # Errors
     ///
-    /// See [`Write::write_all`].
+    /// See [`AsyncWriteExt::write_all`].
     pub async fn use_uci(&mut self) -> io::Result<(Option<Id>, Vec<OptionMessage>)> {
         self.send_message(&GuiMessage::UseUci).await?;
 
@@ -229,7 +229,7 @@ impl EngineConnection {
 
     // CLIPPY: Errors doc is in the linked `go` function.
     #[allow(clippy::missing_errors_doc)]
-    /// Equivalent to the [`go`] function, but doesn't store a vector of info messages,
+    /// Equivalent to the [`Self::go`] function, but doesn't store a vector of info messages,
     /// and returns only the last one instead.
     pub async fn go_only_last_info(&mut self, message: Go) -> io::Result<(Option<Info>, BestMove)> {
         self.send_message(&GuiMessage::Go(message)).await?;

@@ -4,8 +4,8 @@ dry_mods::mods! {
     mod pub use go, register, set_option, set_position;
 }
 
+use crate::auxiliary::{MessageParseError, MessageTryFromRawMessageError};
 use crate::define_message_enum::define_message_enum;
-use crate::{MessageParseError, MessageTryFromRawMessageError};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
@@ -52,7 +52,7 @@ define_message_enum! {
     }
 }
 
-use pointers::*;
+use pointers::{GuiMessageParameterPointer, GuiMessagePointer};
 
 impl FromStr for GuiMessage {
     type Err = MessageParseError<GuiMessageParameterPointer>;

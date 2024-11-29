@@ -1,7 +1,39 @@
-use crate::{MessageTryFromRawMessageError, RawMessageParseError};
-use std::fmt::{Debug, Display};
+use shakmaty::uci::UciMove;
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::hash::Hash;
 use std::str::FromStr;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// A simple [`Vec<UciMove>`] wrapper that provides [`FromStr`] and [`Display`] implementations.
+pub struct UciMoveList(pub Vec<UciMove>);
+
+impl FromStr for UciMoveList {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(
+            s.split(' ').map_while(|part| part.parse().ok()).collect(),
+        ))
+    }
+}
+
+impl Display for UciMoveList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut first_iter = true;
+
+        for r#move in &self.0 {
+            // Do not write the space on the first iteration
+            if first_iter {
+                first_iter = false;
+            } else {
+                f.write_char(' ')?;
+            }
+
+            f.write_str(&r#move.to_string())?;
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MessageParseError<MessageParameterPtr>
@@ -12,6 +44,26 @@ where
     RawMessageParseError(RawMessageParseError),
     /// The raw message could not be parsed into a concrete message.
     MessageTryFromRawMessageError(MessageTryFromRawMessageError<MessageParameterPtr>),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MessageTryFromRawMessageError<MessageParameterPtr>
+where
+    MessageParameterPtr: MessageParameterPointer,
+{
+    /// This error only occurs when you are trying to parse a message directly, i.e.,
+    /// trying to get [`InfoMessage`](crate::messages::Info) directly instead of [`EngineMessage`](crate::messages::EngineMessage).
+    InvalidMessage,
+    ParameterParseError(MessageParameterPtr),
+    MissingParameter(MessageParameterPtr),
+    ValueParseError,
+    MissingValue,
+}
+
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RawMessageParseError {
+    NoMessage,
 }
 
 pub trait Message:

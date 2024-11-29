@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::{MessageTryFromRawMessageError, UciMoveList};
-use crate::messages::pointers::gui::*;
+use crate::auxiliary::{MessageTryFromRawMessageError, UciMoveList};
+use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetPositionParameterPointer};
 use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
@@ -70,8 +70,8 @@ impl Display for SetPosition {
 mod tests {
     use std::str::FromStr;
     use crate::messages::{GuiMessage, SetPosition};
-    use crate::{UciMoveList};
     use shakmaty::uci::UciMove;
+    use crate::auxiliary::UciMoveList;
 
     #[test]
     fn to_from_str() {

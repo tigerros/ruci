@@ -7,7 +7,7 @@
 //! This example requires that you have installed Stockfish.
 
 use parking_lot::Mutex;
-use ruci::messages::{Go, GuiMessage};
+use ruci::{Go, GuiMessage};
 use ruci::EngineConnection;
 use std::io;
 use std::sync::Arc;

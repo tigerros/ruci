@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::pointers::gui::*;
-use crate::{MessageTryFromRawMessageError};
+use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageRegisterParameterPointer};
+use crate::auxiliary::{MessageTryFromRawMessageError};
 use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]

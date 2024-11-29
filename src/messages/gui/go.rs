@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
 use std::num::NonZeroUsize;
-use crate::{MessageTryFromRawMessageError, UciMoveList};
-use crate::messages::pointers::gui::*;
+use crate::auxiliary::{MessageTryFromRawMessageError, UciMoveList};
+use crate::messages::pointers::gui::{GuiMessageGoParameterPointer, GuiMessageParameterPointer, GuiMessagePointer};
 use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
@@ -203,7 +203,7 @@ impl Display for Go {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use crate::messages::{Go, GuiMessage};
-    use crate::{UciMoveList};
+    use crate::auxiliary::UciMoveList;
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
     use std::num::NonZeroUsize;

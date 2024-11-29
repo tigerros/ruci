@@ -28,7 +28,7 @@ macro_rules! define_message_enum {
         pub mod pointers {
             use super::*;
         ::paste::paste! {
-            impl $crate::traits::Message for $ident {
+            impl $crate::auxiliary::Message for $ident {
                 type Pointer = [< $ident Pointer >];
                 type ParameterPointer = [< $ident ParameterPointer >];
             }
@@ -74,7 +74,7 @@ macro_rules! define_message_enum {
                 }
             }
 
-            impl $crate::traits::MessageParameterPointer for [< $ident ParameterPointer >] {
+            impl $crate::auxiliary::MessageParameterPointer for [< $ident ParameterPointer >] {
                 type MessagePointer = [< $ident Pointer >];
 
                 fn as_string(self) -> &'static str {
@@ -92,7 +92,7 @@ macro_rules! define_message_enum {
                     }
                 }
 
-                fn from_message_and_str(message_pointer: Self::MessagePointer, s: &str) -> Result<Self, $crate::MessageParameterPointerParseError> {
+                fn from_message_and_str(message_pointer: Self::MessagePointer, s: &str) -> Result<Self, $crate::auxiliary::MessageParameterPointerParseError> {
                     match message_pointer {
                         $($(
                         Self::MessagePointer::$message_ident => {
@@ -101,11 +101,11 @@ macro_rules! define_message_enum {
                                 $(
                                 $message_parameter_string => Ok(Self::[< $message_ident >]([< $ident $message_ident ParameterPointer >]::$message_parameter_ident)),
                                 )+
-                                _ => Err($crate::MessageParameterPointerParseError::StringDoesNotMapToParameterPointer)
+                                _ => Err($crate::auxiliary::MessageParameterPointerParseError::StringDoesNotMapToParameterPointer)
                             }
                         },
                         )?)+
-                        _ => Err($crate::MessageParameterPointerParseError::MessageHasNoParameters)
+                        _ => Err($crate::auxiliary::MessageParameterPointerParseError::MessageHasNoParameters)
                     }
                 }
 
@@ -131,7 +131,7 @@ macro_rules! define_message_enum {
                 }
             }
 
-            impl $crate::traits::MessagePointer for [< $ident Pointer >] {
+            impl $crate::auxiliary::MessagePointer for [< $ident Pointer >] {
                 fn as_string(self) -> &'static str {
                     match self {
                         $(Self::$message_ident => $message_string),+

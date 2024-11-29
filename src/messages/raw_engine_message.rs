@@ -1,7 +1,7 @@
+use crate::auxiliary::{MessageParameterPointer, MessagePointer, RawMessageParseError};
 use crate::messages::pointers::engine::{
     EngineMessageOptionParameterPointer, EngineMessageParameterPointer, EngineMessagePointer,
 };
-use crate::{MessageParameterPointer, MessagePointer, RawMessageParseError};
 use std::collections::HashMap;
 use std::str::FromStr;
 
