@@ -1,0 +1,16 @@
+name: Correctness
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Clippy
+        run: cargo clippy --workspace --examples --tests --all-features -- --deny warnings
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test
+        run: cargo test --workspace --all-features -q

@@ -1,6 +1,6 @@
+use crate::auxiliary::{Message, MessageParameterPointer, MessageParseError};
 use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
 use crate::messages::{Go, GuiMessage};
-use crate::auxiliary::{Message, MessageParameterPointer, MessageParseError};
 use std::marker::PhantomData;
 use std::process::Stdio;
 use std::sync::Arc;
