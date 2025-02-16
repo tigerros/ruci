@@ -4,6 +4,8 @@ on: [push, pull_request]
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -12,5 +14,7 @@ jobs:
         run: cargo clippy --workspace --examples --tests --all-features -- --deny warnings
       - name: Check formatting
         run: cargo fmt --all -- --check
+      - name: Make stockfish executable
+        run: chmod +x resources/stockfish-ubuntu-x86-64-avx2
       - name: Test
         run: cargo test --workspace --all-features -q
