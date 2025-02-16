@@ -340,7 +340,14 @@ mod tests {
 
     #[tokio::test]
     async fn skip_lines() {
-        let mut engine_conn = EngineConnection::from_path("resources/stockfish.exe").unwrap();
+        #[allow(clippy::panic)]
+        let mut engine_conn = if cfg!(target_os = "windows") {
+            EngineConnection::from_path("resources/stockfish-windows-x86-64-avx2.exe").unwrap()
+        } else if cfg!(target_os = "linux") {
+            EngineConnection::from_path("resources/stockfish-ubuntu-x86-64-avx2").unwrap()
+        } else {
+            panic!("Unsupported OS");
+        };
 
         engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
 
@@ -351,7 +358,7 @@ mod tests {
 
         assert_eq!(
             line.trim(),
-            "option name Debug Log File type string default"
+            "option name Debug Log File type string default <empty>"
         );
     }
 }
