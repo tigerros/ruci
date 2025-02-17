@@ -30,10 +30,10 @@
 
 pub mod auxiliary;
 mod define_message_enum;
+#[cfg(feature = "engine-connection")]
+mod engine_connection;
 mod messages;
-#[cfg(feature = "uci-connection")]
-mod uci_connection;
 pub(crate) use define_message_enum::define_message_enum;
+#[cfg(feature = "engine-connection")]
+pub use engine_connection::*;
 pub use messages::*;
-#[cfg(feature = "uci-connection")]
-pub use uci_connection::*;

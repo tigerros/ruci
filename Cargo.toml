@@ -1,6 +1,6 @@
 [package]
 name = "ruci"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 authors = ["Leonard D. <tigerros.gh@gmail.com>"]
 description = "A UCI (Universal Chess Interface) crate."
@@ -11,29 +11,29 @@ keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
 
 [package.metadata.docs.rs]
-features = ["uci-connection"]
+features = ["engine-connection"]
 
 [[example]]
 name = "go_async_info"
 path = "examples/go_async_info.rs"
-required-features = ["uci-connection"]
+required-features = ["engine-connection"]
 
 [[example]]
 name = "go"
 path = "examples/go.rs"
-required-features = ["uci-connection"]
+required-features = ["engine-connection"]
 
 [dependencies]
-shakmaty = "0.27.2"
-paste = "1.0.15"
-dry-mods = "0.1.5"
-parking_lot = { version = "0.12.3", features = ["arc_lock", "send_guard"], optional = true }
-tokio = { version = "1.40.0", features = ["rt", "sync", "io-std", "io-util", "process"], optional = true }
+shakmaty = "0.27.*"
+paste = "1.0.*"
+dry-mods = "0.1.*"
+parking_lot = { version = "0.12.*", features = ["arc_lock", "send_guard"], optional = true }
+tokio = { version = "1.43.*", default-features = false, features = ["rt", "sync", "io-util", "process"], optional = true }
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
-tokio = { version = "1.40.0", features = ["full"] }
+pretty_assertions = "1.4.*"
+tokio = { version = "1.43.*", features = ["full"] }
 
 [features]
 default = []
-uci-connection = ["tokio", "parking_lot"]
+engine-connection = ["tokio", "parking_lot"]

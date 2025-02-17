@@ -5,14 +5,12 @@
 [![license](https://img.shields.io/crates/l/ruci)](https://github.com/tigerros/ruci/blob/master/LICENSE)
 
 # RUCI
-
 <ins>R</ins>ust <ins>U</ins>niversal <ins>C</ins>hess <ins>I</ins>nterface.
 
 This crate is for parsing and creating UCI messages.
 It follows the [UCI standard](https://backscattering.de/chess/uci).
 
-See the [go_stop](https://github.com/tigerros/ruci/tree/master/examples/go_stop.rs) example for a demo on how to send and receive messages.
+See the examples for a demo on how to send and receive messages.
 
 ## Features
-
-- `uci-connection`: enables two structs to manage the actual IO (`EngineConnection` and `GuiConnection`) when it comes to working with UCI. Note that this will add [`tokio`](https://crates.io/crates/tokio) and [`parking_lot`](https://crates.io/crates/parking_lot) as dependencies.
+- `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) and [`parking_lot`](https://crates.io/crates/parking_lot) as dependencies. If you're making an engine, listen to stdin and parse it into a `GuiMessage`, then send out an a string representation of a `EngineMessage`.

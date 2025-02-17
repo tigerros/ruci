@@ -1,19 +1,15 @@
-use crate::auxiliary::{Message, MessageParameterPointer, MessageParseError};
+use crate::auxiliary::MessageParseError;
+use crate::messages::pointers::engine::EngineMessageParameterPointer;
 use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
 use crate::messages::{Go, GuiMessage};
-use std::marker::PhantomData;
 use std::process::Stdio;
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
-
-/// A connection to an engine, used by a GUI.
-pub type EngineConnection = UciConnection<GuiMessage, EngineMessage>;
-/// A connection to a GUI, used by an engine.
-pub type GuiConnection = UciConnection<EngineMessage, GuiMessage>;
 
 #[derive(Debug)]
 /// Something went wrong with spawning the engine process.
@@ -25,43 +21,20 @@ pub enum UciCreationError {
 
 #[derive(Debug)]
 /// Reading the message either resulted in an IO error, or it could not be parsed.
-pub enum UciReadMessageError<MessageParameterPtr>
-where
-    MessageParameterPtr: MessageParameterPointer,
-{
+pub enum UciReadMessageError {
     Io(io::Error),
-    MessageParse(MessageParseError<MessageParameterPtr>),
+    MessageParse(MessageParseError<EngineMessageParameterPointer>),
 }
 
 #[derive(Debug)]
-/// This is the basis of a UCI connection; use [`EngineConnection`] or [`GuiConnection`] instead.
-pub struct UciConnection<MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
+pub struct EngineConnection {
     pub process: Child,
     pub stdout: BufReader<ChildStdout>,
     pub stdin: ChildStdin,
-    _phantom: PhantomData<(MSend, MReceive)>,
 }
 
-impl<MSend, MReceive> UciConnection<MSend, MReceive>
-where
-    MSend: Message,
-    MReceive: Message,
-{
-    pub const fn new(process: Child, stdout: BufReader<ChildStdout>, stdin: ChildStdin) -> Self {
-        Self {
-            process,
-            stdout,
-            stdin,
-            _phantom: PhantomData,
-        }
-    }
-
+impl EngineConnection {
     /// # Errors
-    ///
     /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
     pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
         let Some(stdout) = process.stdout.take() else {
@@ -78,14 +51,12 @@ where
             process,
             stdout,
             stdin,
-            _phantom: PhantomData,
         })
     }
 
-    /// Creates a new UCI connection from the given executable path.
+    /// Creates a new connection from the given executable path.
     ///
     /// # Errors
-    ///
     /// - Spawning the process errored.
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
@@ -114,23 +85,20 @@ where
             process,
             stdout,
             stdin,
-            _phantom: PhantomData,
         })
     }
 
     /// Sends a message.
     ///
     /// # Errors
-    ///
     /// See [`AsyncWriteExt::write_all`].
-    pub async fn send_message(&mut self, message: &MSend) -> io::Result<()> {
+    pub async fn send_message(&mut self, message: &GuiMessage) -> io::Result<()> {
         self.stdin.write_all(message.to_string().as_bytes()).await
     }
 
     /// Skips some lines.
     ///
     /// # Errors
-    ///
     /// See [`AsyncBufReadExt::read_line`].
     pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = String::new();
@@ -145,19 +113,16 @@ where
     /// Reads a line and attempts to parse it into a message.
     ///
     /// # Errors
-    ///
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    pub async fn read_message(
-        &mut self,
-    ) -> Result<MReceive, UciReadMessageError<MReceive::ParameterPointer>> {
+    pub async fn read_message(&mut self) -> Result<EngineMessage, UciReadMessageError> {
         let mut line = String::new();
         self.stdout
             .read_line(&mut line)
             .await
             .map_err(UciReadMessageError::Io)?;
 
-        MReceive::from_str(&line).map_err(UciReadMessageError::MessageParse)
+        EngineMessage::from_str(&line).map_err(UciReadMessageError::MessageParse)
     }
 }
 
@@ -166,7 +131,6 @@ impl EngineConnection {
     /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
     ///
     /// # Errors
-    ///
     /// See [`AsyncWriteExt::write_all`].
     pub async fn use_uci(&mut self) -> io::Result<(Option<Id>, Vec<OptionMessage>)> {
         self.send_message(&GuiMessage::UseUci).await?;
@@ -200,7 +164,6 @@ impl EngineConnection {
     /// use the [`Self::go_async_info`] function.
     ///
     /// # Errors
-    ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
     pub async fn go(&mut self, message: Go) -> io::Result<(Vec<Box<Info>>, BestMove)> {
@@ -302,7 +265,6 @@ impl EngineConnection {
     /// Sends the [`isready`](https://backscattering.de/chess/uci/#gui-isready) message and waits for the [`readyok`](https://backscattering.de/chess/uci/#engine-readyok) response.
     ///
     /// # Errors
-    ///
     /// - Writing (sending the message) errored.
     /// - Reading (reading until [`readyok`](https://backscattering.de/chess/uci/#engine-readyok)) errored.
     pub async fn is_ready(&mut self) -> io::Result<()> {
