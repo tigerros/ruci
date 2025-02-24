@@ -9,6 +9,7 @@ repository = "https://github.com/tigerros/ruci"
 categories = ["parser-implementations", "game-development"]
 keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
+rust-version = "1.75.0"
 
 [package.metadata.docs.rs]
 features = ["engine-connection"]
@@ -24,15 +25,15 @@ path = "examples/go.rs"
 required-features = ["engine-connection"]
 
 [dependencies]
-shakmaty = "0.27.*"
-paste = "1.0.*"
-dry-mods = "0.1.*"
-parking_lot = { version = "0.12.*", features = ["arc_lock", "send_guard"], optional = true }
-tokio = { version = "1.43.*", default-features = false, features = ["rt", "sync", "io-util", "process"], optional = true }
+shakmaty = "~0.27"
+paste = "~1.0"
+dry-mods = "~0.1"
+parking_lot = { version = "~0.12", features = ["arc_lock", "send_guard"], optional = true }
+tokio = { version = "~1.43", default-features = false, features = ["rt", "sync", "io-util", "process"], optional = true }
 
 [dev-dependencies]
-pretty_assertions = "1.4.*"
-tokio = { version = "1.43.*", features = ["full"] }
+pretty_assertions = "~1.4"
+tokio = { version = "~1.43", default-features = false, features = ["macros", "rt-multi-thread"] }
 
 [features]
 default = []
