@@ -15,8 +15,10 @@ use tokio::task::JoinHandle;
 /// Something went wrong with spawning the engine process.
 pub enum UciCreationError {
     Spawn(io::Error),
-    StdoutIsNone,
-    StdinIsNone,
+    /// See <https://docs.rs/tokio/1.43.0/tokio/process/struct.Child.html#structfield.stdout>.
+    StdoutIsNotCaptured,
+    /// See <https://docs.rs/tokio/1.43.0/tokio/process/struct.Child.html#structfield.stdin>.
+    StdinIsNotCaptured,
 }
 
 #[derive(Debug)]
@@ -38,11 +40,11 @@ impl EngineConnection {
     /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
     pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
         let Some(stdout) = process.stdout.take() else {
-            return Err(UciCreationError::StdoutIsNone);
+            return Err(UciCreationError::StdoutIsNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(UciCreationError::StdinIsNone);
+            return Err(UciCreationError::StdinIsNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -72,11 +74,11 @@ impl EngineConnection {
         let mut process = cmd.spawn().map_err(UciCreationError::Spawn)?;
 
         let Some(stdout) = process.stdout.take() else {
-            return Err(UciCreationError::StdoutIsNone);
+            return Err(UciCreationError::StdoutIsNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(UciCreationError::StdinIsNone);
+            return Err(UciCreationError::StdinIsNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
