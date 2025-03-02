@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt::Display;
 use crate::auxiliary::MessageParseError;
 use crate::messages::pointers::engine::EngineMessageParameterPointer;
 use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
@@ -13,7 +15,7 @@ use tokio::task::JoinHandle;
 
 #[derive(Debug)]
 /// Something went wrong with spawning the engine process.
-pub enum UciCreationError {
+pub enum CreationError {
     Spawn(io::Error),
     /// See <https://docs.rs/tokio/1.43.0/tokio/process/struct.Child.html#structfield.stdout>.
     StdoutIsNotCaptured,
@@ -21,12 +23,35 @@ pub enum UciCreationError {
     StdinIsNotCaptured,
 }
 
+impl Display for CreationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Spawn(e) => write!(f, "failed to spawn UCI engine connection: {e}"),
+            Self::StdoutIsNotCaptured => write!(f, "UCI engine connection process stdout is not captured"),
+            Self::StdinIsNotCaptured => write!(f, "UCI engine connection process stdin is not captured"),
+        }
+    }
+}
+
+impl Error for CreationError {}
+
 #[derive(Debug)]
 /// Reading the message either resulted in an IO error, or it could not be parsed.
-pub enum UciReadMessageError {
+pub enum ReadMessageError {
     Io(io::Error),
     MessageParse(MessageParseError<EngineMessageParameterPointer>),
 }
+
+impl Display for ReadMessageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Io(e) => write!(f, "failed to read UCI engine message: {e}"),
+            Self::MessageParse(e) => write!(f, "failed to parse UCI engine message: {e:?}"),
+        }
+    }
+}
+
+impl Error for ReadMessageError {}
 
 #[derive(Debug)]
 pub struct EngineConnection {
@@ -37,14 +62,14 @@ pub struct EngineConnection {
 
 impl EngineConnection {
     /// # Errors
-    /// [`UciCreationError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(mut process: Child) -> Result<Self, UciCreationError> {
+    /// [`CreationError::Spawn`] is guaranteed not to occur here.
+    pub fn from_process(mut process: Child) -> Result<Self, CreationError> {
         let Some(stdout) = process.stdout.take() else {
-            return Err(UciCreationError::StdoutIsNotCaptured);
+            return Err(CreationError::StdoutIsNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(UciCreationError::StdinIsNotCaptured);
+            return Err(CreationError::StdinIsNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -62,7 +87,7 @@ impl EngineConnection {
     /// - Spawning the process errored.
     /// - Stdout is [`None`].
     /// - Stdin is [`None`].
-    pub fn from_path(path: &str) -> Result<Self, UciCreationError> {
+    pub fn from_path(path: &str) -> Result<Self, CreationError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -71,14 +96,14 @@ impl EngineConnection {
         // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
         let cmd = cmd.creation_flags(0x0800_0000);
 
-        let mut process = cmd.spawn().map_err(UciCreationError::Spawn)?;
+        let mut process = cmd.spawn().map_err(CreationError::Spawn)?;
 
         let Some(stdout) = process.stdout.take() else {
-            return Err(UciCreationError::StdoutIsNotCaptured);
+            return Err(CreationError::StdoutIsNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(UciCreationError::StdinIsNotCaptured);
+            return Err(CreationError::StdinIsNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -117,18 +142,16 @@ impl EngineConnection {
     /// # Errors
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    pub async fn read_message(&mut self) -> Result<EngineMessage, UciReadMessageError> {
+    pub async fn read_message(&mut self) -> Result<EngineMessage, ReadMessageError> {
         let mut line = String::new();
         self.stdout
             .read_line(&mut line)
             .await
-            .map_err(UciReadMessageError::Io)?;
+            .map_err(ReadMessageError::Io)?;
 
-        EngineMessage::from_str(&line).map_err(UciReadMessageError::MessageParse)
+        EngineMessage::from_str(&line).map_err(ReadMessageError::MessageParse)
     }
-}
 
-impl EngineConnection {
     /// Sends the [`GuiMessage::UseUci`] message and returns the engine's ID and a vector of options
     /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
     ///
@@ -180,7 +203,7 @@ impl EngineConnection {
         loop {
             let engine_to_gui_message = match self.read_message().await {
                 Ok(msg) => msg,
-                Err(UciReadMessageError::Io(e)) => return Err(e),
+                Err(ReadMessageError::Io(e)) => return Err(e),
                 Err(_) => continue,
             };
 
@@ -204,7 +227,7 @@ impl EngineConnection {
         loop {
             let engine_to_gui_message = match self.read_message().await {
                 Ok(msg) => msg,
-                Err(UciReadMessageError::Io(e)) => return Err(e),
+                Err(ReadMessageError::Io(e)) => return Err(e),
                 Err(_) => continue,
             };
 
@@ -242,7 +265,7 @@ impl EngineConnection {
                 loop {
                     let engine_to_gui_message = match lock.read_message().await {
                         Ok(msg) => msg,
-                        Err(UciReadMessageError::Io(e)) => return Err(e),
+                        Err(ReadMessageError::Io(e)) => return Err(e),
                         Err(_) => continue,
                     };
 
