@@ -1,9 +1,9 @@
-use std::error::Error;
-use std::fmt::Display;
 use crate::auxiliary::MessageParseError;
 use crate::messages::pointers::engine::EngineMessageParameterPointer;
 use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
 use crate::messages::{Go, GuiMessage};
+use std::error::Error;
+use std::fmt::Display;
 use std::process::Stdio;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -27,8 +27,12 @@ impl Display for CreationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Spawn(e) => write!(f, "failed to spawn UCI engine connection: {e}"),
-            Self::StdoutIsNotCaptured => write!(f, "UCI engine connection process stdout is not captured"),
-            Self::StdinIsNotCaptured => write!(f, "UCI engine connection process stdin is not captured"),
+            Self::StdoutIsNotCaptured => {
+                write!(f, "UCI engine connection process stdout is not captured")
+            }
+            Self::StdinIsNotCaptured => {
+                write!(f, "UCI engine connection process stdin is not captured")
+            }
         }
     }
 }
