@@ -4,7 +4,7 @@ use crate::messages::RawEngineMessage;
 use crate::messages::pointers::engine::{EngineMessageParameterPointer, EngineMessagePointer};
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-copyprotection>
 pub enum CopyProtection {
     Ok,

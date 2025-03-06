@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter, Write};
 use std::hash::Hash;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// A simple [`Vec<UciMove>`] wrapper that provides [`FromStr`] and [`Display`] implementations.
 pub struct UciMoveList(pub Vec<UciMove>);
 

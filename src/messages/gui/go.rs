@@ -5,7 +5,7 @@ use crate::messages::pointers::gui::{GuiMessageGoParameterPointer, GuiMessagePar
 use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#gui-go>
 pub struct Go {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>

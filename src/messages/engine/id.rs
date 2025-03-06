@@ -4,7 +4,7 @@ use crate::auxiliary::MessageTryFromRawMessageError;
 use crate::messages::pointers::engine::{EngineMessageIdParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-id>
 pub enum Id {
     /// <https://backscattering.de/chess/uci/#engine-id-name>

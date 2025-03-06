@@ -4,7 +4,7 @@ use crate::auxiliary::{MessageTryFromRawMessageError};
 use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#gui-register>
 pub enum Register {
     Later,

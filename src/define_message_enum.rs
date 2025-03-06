@@ -16,7 +16,7 @@ macro_rules! define_message_enum {
         }
     ) => {
         $(#[$attr])*
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub enum $ident {
             $(
             $(#[$message_attr])*

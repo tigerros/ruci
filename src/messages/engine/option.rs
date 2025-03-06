@@ -5,7 +5,7 @@ use crate::messages::pointers::engine::{EngineMessageOptionParameterPointer, Eng
 
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OptionType {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check,
@@ -35,7 +35,7 @@ type StdOption<T> = std::option::Option<T>;
 
 /// <https://backscattering.de/chess/uci/#engine-option>
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Option {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check {

@@ -5,7 +5,7 @@ use shakmaty::uci::UciMove;
 use crate::messages::RawEngineMessage;
 use crate::messages::pointers::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
 pub struct Depth {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
@@ -14,7 +14,7 @@ pub struct Depth {
     pub selective_search_depth: Option<usize>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ScoreBound {
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     Lowerbound,
@@ -22,7 +22,7 @@ pub enum ScoreBound {
     Upperbound,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Score {
     /// <https://backscattering.de/chess/uci/#engine-info-score-centipawns>
     Centipawns(isize),
@@ -37,7 +37,7 @@ pub enum Score {
 ///
 /// This struct represents a "standardized" score.
 /// No matter whose turn it is to move, `x` means that *white* has an advantage of `x`, and vice versa.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ScoreStandardized(Score);
 
 impl ScoreStandardized {
@@ -56,7 +56,7 @@ impl ScoreStandardized {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 pub struct ScoreWithBound {
     pub kind: Score,
@@ -65,14 +65,14 @@ pub struct ScoreWithBound {
     pub bound: Option<ScoreBound>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct Refutation {
     pub refuted_move: UciMove,
     pub refutation: UciMoveList,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct CurrentLine {
     pub used_cpu: Option<usize>,
@@ -80,7 +80,7 @@ pub struct CurrentLine {
 }
 
 /// <https://backscattering.de/chess/uci/#engine-info>
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: Option<Depth>,

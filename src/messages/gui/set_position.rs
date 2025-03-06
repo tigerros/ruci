@@ -4,7 +4,7 @@ use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePoint
 use crate::messages::RawGuiMessage;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#gui-position>
 pub enum SetPosition {
     StartingPosition {
