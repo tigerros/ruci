@@ -22,15 +22,14 @@ message_from_impl!(gui SetPosition);
 impl TryFrom<RawMessage> for SetPosition {
     type Error = MessageParseError;
 
-    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
         if raw_message.message_pointer != super::pointers::MessagePointer::SetPosition.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let fen = raw_message
             .parameters
-            .get(&super::pointers::SetPositionParameterPointer::Fen.into())
-            .cloned();
+            .remove(&super::pointers::SetPositionParameterPointer::Fen.into());
 
         let moves = raw_message
             .parameters

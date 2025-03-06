@@ -18,7 +18,7 @@ message_from_impl!(gui Register);
 impl TryFrom<RawMessage> for Register {
     type Error = MessageParseError;
 
-    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
         if raw_message.message_pointer != super::pointers::MessagePointer::Register.into() {
             return Err(Self::Error::InvalidMessage);
         };
@@ -31,13 +31,11 @@ impl TryFrom<RawMessage> for Register {
 
         let name = raw_message
             .parameters
-            .get(&super::pointers::RegisterParameterPointer::Name.into())
-            .cloned();
+            .remove(&super::pointers::RegisterParameterPointer::Name.into());
 
         let code = raw_message
             .parameters
-            .get(&super::pointers::RegisterParameterPointer::Code.into())
-            .cloned();
+            .remove(&super::pointers::RegisterParameterPointer::Code.into());
 
         #[allow(clippy::option_if_let_else)]
         if let Some(name) = name {

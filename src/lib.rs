@@ -76,6 +76,8 @@ pub enum Message {
 impl FromStr for Message {
     type Err = MessageParseError;
 
+    /// Tries to parse one line to a [`Message`].
+    /// If there's a newline character (`\n`) present, only the first line will be processed.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let raw_message = s
             .parse::<RawMessage>()

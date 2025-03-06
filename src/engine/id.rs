@@ -19,31 +19,31 @@ message_from_impl!(engine Id);
 impl TryFrom<RawMessage> for Id {
     type Error = MessageParseError;
 
-    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
         if raw_message.message_pointer != super::pointers::MessagePointer::Id.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let name = raw_message
             .parameters
-            .get(&super::pointers::IdParameterPointer::Name.into());
+            .remove(&super::pointers::IdParameterPointer::Name.into());
 
         let author = raw_message
             .parameters
-            .get(&super::pointers::IdParameterPointer::Author.into());
+            .remove(&super::pointers::IdParameterPointer::Author.into());
 
         #[allow(clippy::option_if_let_else)]
         if let Some(name) = name {
             if let Some(author) = author {
                 Ok(Self::NameAndAuthor {
-                    name: name.to_string(),
-                    author: author.to_string(),
+                    name,
+                    author,
                 })
             } else {
-                Ok(Self::Name(name.to_string()))
+                Ok(Self::Name(name))
             }
         } else if let Some(author) = author {
-            Ok(Self::Author(author.to_string()))
+            Ok(Self::Author(author))
         } else {
             Err(Self::Error::MissingParameter(super::pointers::IdParameterPointer::Name.into()))
         }

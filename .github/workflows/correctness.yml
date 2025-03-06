@@ -9,6 +9,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Clippy
+        run: cargo clippy --workspace --examples --tests -- --deny warnings
+      - name: Clippy all features
         run: cargo clippy --workspace --examples --tests --all-features -- --deny warnings
       - name: Check formatting
         run: cargo fmt --all -- --check

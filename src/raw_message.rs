@@ -18,6 +18,12 @@ impl FromStr for RawMessage {
 
     /// Should only be used with one line.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = if let Some((s1, _)) = s.split_once('\n') {
+            s1
+        } else {
+            s
+        };
+        
         let parts = s.trim().split(' ').collect::<Vec<_>>();
 
         let Some(Ok(message_pointer)) = parts.first().map(|p| MessagePointer::from_str(p)) else {

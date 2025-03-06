@@ -134,7 +134,7 @@ impl TryFrom<RawMessage> for Info {
 
     #[allow(clippy::too_many_lines)]
     fn try_from(
-        raw_message: RawMessage,
+        mut raw_message: RawMessage,
     ) -> Result<Self, Self::Error> {
         if raw_message.message_pointer != super::pointers::MessagePointer::Info.into() {
             return Err(Self::Error::InvalidMessage);
@@ -255,19 +255,22 @@ impl TryFrom<RawMessage> for Info {
 
         let string = raw_message
             .parameters
-            .get(&super::pointers::InfoParameterPointer::String.into())
-            .cloned();
+            .remove(&super::pointers::InfoParameterPointer::String.into());
 
         let refutation = raw_message
             .parameters
             .get(&super::pointers::InfoParameterPointer::Refutation.into())
             .and_then(|s| s.parse::<UciMoves>().ok())
-            .and_then(|move_list| {
-                let refuted_move = move_list.0.first()?;
+            .and_then(|mut move_list| {
+                if move_list.0.is_empty() {
+                    return None;
+                }
+                
+                let refuted_move = move_list.0.remove(0);
                 let refutation = move_list.0.get(1..)?;
 
                 Some(Refutation {
-                    refuted_move: refuted_move.clone(),
+                    refuted_move,
                     refutation: UciMoves(refutation.to_vec()),
                 })
             });

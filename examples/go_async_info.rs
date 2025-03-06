@@ -60,8 +60,7 @@ async fn main() -> io::Result<()> {
     println!("== Task result: {:#?}", handle.await);
     println!("== Sending quit message");
 
-    let mut engine_conn = Arc::into_inner(engine_conn).unwrap().into_inner();
-    engine_conn.send_message(&gui::Message::Quit).await?;
+    engine_conn.lock_arc().send_message(&gui::Message::Quit).await?;
 
     println!("== Sent. Program terminated");
 

@@ -101,15 +101,14 @@ impl Option {
 impl TryFrom<RawMessage> for Option {
     type Error = MessageParseError;
 
-    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
         if raw_message.message_pointer != super::pointers::MessagePointer::Option.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let Some(name) = raw_message
             .parameters
-            .get(&super::pointers::OptionParameterPointer::Name.into())
-            .cloned()
+            .remove(&super::pointers::OptionParameterPointer::Name.into())
             else {
                 return Err(Self::Error::MissingParameter(super::pointers::OptionParameterPointer::Name.into()));
             };
@@ -156,8 +155,7 @@ impl TryFrom<RawMessage> for Option {
             b"combo" => {
                 let default = raw_message
                     .parameters
-                    .get(&super::pointers::OptionParameterPointer::Default.into())
-                    .cloned();
+                    .remove(&super::pointers::OptionParameterPointer::Default.into());
 
                 Ok(Self::Combo { name, default, variations: raw_message.option_vars })
             },
@@ -165,8 +163,7 @@ impl TryFrom<RawMessage> for Option {
             b"string" => {
                 let default = raw_message
                     .parameters
-                    .get(&super::pointers::OptionParameterPointer::Default.into())
-                    .cloned();
+                    .remove(&super::pointers::OptionParameterPointer::Default.into());
 
                 Ok(Self::String { name, default })
             },
