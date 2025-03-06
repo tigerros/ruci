@@ -30,16 +30,17 @@ pub enum Score {
     MateIn(isize),
 }
 
+/// The centipawn and mate scores are dependent on whose turn it is to move.
+///
+/// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
+/// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
+///
+/// This struct represents a "standardized" score.
+/// No matter whose turn it is to move, `x` means that *white* has an advantage of `x`, and vice versa.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ScoreStandardized(Score);
 
 impl ScoreStandardized {
-    /// The centipawn and mate scores are dependent on whose turn it is to move.
-    ///
-    /// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
-    /// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
-    ///
-    /// This function returns a "standardized" score.
     #[allow(clippy::arithmetic_side_effects)]
     pub const fn from_score(score: Score, turn: Color) -> Self {
         match (turn, score) {
