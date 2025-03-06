@@ -30,13 +30,13 @@ pub enum Score {
     MateIn(isize),
 }
 
-/// The centipawn and mate scores are dependent on whose turn it is to move.
+/// This struct represents a "standardized" score (read below).
 ///
-/// If it is white's turn, and the score is `-x`, it means that *black* has an advantage of `x`.
-/// However, if it is black's turn, and the score is `-x`, it means that *white* has an advantage of `x`.
-///
-/// This struct represents a "standardized" score.
+/// Some engines return a [`Score`] dependent on whose turn it is to move.
+/// If you want to have a score independent of that, use this.
 /// No matter whose turn it is to move, `x` means that *white* has an advantage of `x`, and vice versa.
+///
+/// **Do not use** this with engines that *do* return a standardized score.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ScoreStandardized(Score);
 
