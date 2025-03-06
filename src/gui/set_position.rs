@@ -1,41 +1,40 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::auxiliary::{MessageTryFromRawMessageError, UciMoveList};
-use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetPositionParameterPointer};
-use crate::messages::RawGuiMessage;
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
+use crate::UciMoves;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#gui-position>
 pub enum SetPosition {
     StartingPosition {
-        moves: Option<UciMoveList>,
+        moves: Option<UciMoves>,
     },
     Fen {
         fen: String,
-        moves: Option<UciMoveList>,
+        moves: Option<UciMoves>,
     },
 }
 
-impl TryFrom<RawGuiMessage> for SetPosition {
-    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
+message_from_impl!(gui SetPosition);
 
-    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != GuiMessagePointer::SetPosition {
+impl TryFrom<RawMessage> for SetPosition {
+    type Error = MessageParseError;
+
+    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::SetPosition.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let fen = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::SetPosition(
-                GuiMessageSetPositionParameterPointer::Fen,
-            ))
+            .get(&super::pointers::SetPositionParameterPointer::Fen.into())
             .cloned();
 
         let moves = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::SetPosition(
-                GuiMessageSetPositionParameterPointer::Moves,
-            ))
+            .get(&super::pointers::SetPositionParameterPointer::Moves.into())
             .and_then(|s| s.parse().ok());
 
         if let Some(fen) = fen {
@@ -69,17 +68,18 @@ impl Display for SetPosition {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    use crate::messages::{GuiMessage, SetPosition};
     use shakmaty::uci::UciMove;
-    use crate::auxiliary::UciMoveList;
+    use crate::gui::SetPosition;
+    use crate::{Message, UciMoves};
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::SetPosition(SetPosition::StartingPosition {
-            moves: Some(UciMoveList(vec![UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()])),
-        });
+        let repr: Message = SetPosition::StartingPosition {
+            moves: Some(UciMoves(vec![UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()])),
+        }.into();
+
         let str_repr = "position startpos moves d2d4 d7d5\n";
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

@@ -5,8 +5,8 @@
 //!
 //! This example requires that you have installed Stockfish.
 
+use ruci::gui;
 use ruci::EngineConnection;
-use ruci::{Go, GuiMessage};
 use std::io;
 
 #[tokio::main]
@@ -23,7 +23,7 @@ async fn main() -> io::Result<()> {
     println!("== Sending isready message, waiting for readyok");
 
     let (infos, best_move) = engine_conn
-        .go(Go {
+        .go(gui::Go {
             search_moves: None,
             ponder: false,
             white_time: None,
@@ -46,7 +46,7 @@ async fn main() -> io::Result<()> {
     println!("Best move: {best_move:?}");
 
     println!("== Sending quit message");
-    engine_conn.send_message(&GuiMessage::Quit).await?;
+    engine_conn.send_message(&gui::Message::Quit).await?;
     println!("== Sent. Program terminated");
 
     Ok(())

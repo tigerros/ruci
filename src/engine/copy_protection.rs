@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::auxiliary::{MessageTryFromRawMessageError};
-use crate::messages::RawEngineMessage;
-use crate::messages::pointers::engine::{EngineMessageParameterPointer, EngineMessagePointer};
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -11,22 +11,24 @@ pub enum CopyProtection {
     Error,
 }
 
-impl TryFrom<RawEngineMessage> for CopyProtection {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+message_from_impl!(engine CopyProtection);
 
-    fn try_from(raw_message: RawEngineMessage) -> Result<Self, MessageTryFromRawMessageError<EngineMessageParameterPointer>> {
-        if raw_message.message_pointer != EngineMessagePointer::CopyProtection {
-            return Err(MessageTryFromRawMessageError::InvalidMessage);
+impl TryFrom<RawMessage> for CopyProtection {
+    type Error = MessageParseError;
+
+    fn try_from(raw_message: RawMessage) -> Result<Self, MessageParseError> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::CopyProtection.into() {
+            return Err(MessageParseError::InvalidMessage);
         }
 
         let Some(value) = raw_message.value else {
-            return Err(MessageTryFromRawMessageError::MissingValue);
+            return Err(MessageParseError::MissingValue);
         };
 
         match value.as_bytes() {
             b"ok" => Ok(Self::Ok),
             b"error" => Ok(Self::Error),
-            _ => Err(MessageTryFromRawMessageError::ValueParseError),
+            _ => Err(MessageParseError::ValueParseError),
         }
     }
 }

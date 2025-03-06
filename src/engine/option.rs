@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::RawEngineMessage;
-use crate::auxiliary::{MessageTryFromRawMessageError};
-use crate::messages::pointers::engine::{EngineMessageOptionParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
 
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]
@@ -78,6 +78,8 @@ pub enum Option {
     },
 }
 
+message_from_impl!(engine Option);
+
 impl Option {
     pub const fn name(&self) -> &String {
         match self {
@@ -96,48 +98,34 @@ impl Option {
     }
 }
 
-impl TryFrom<RawEngineMessage> for Option {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+impl TryFrom<RawMessage> for Option {
+    type Error = MessageParseError;
 
-    fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != EngineMessagePointer::Option {
+    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::Option.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let Some(name) = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Option(
-                EngineMessageOptionParameterPointer::Name,
-            ))
+            .get(&super::pointers::OptionParameterPointer::Name.into())
             .cloned()
             else {
-                return Err(Self::Error::MissingParameter(
-                    EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Name,
-                    ),
-                ));
+                return Err(Self::Error::MissingParameter(super::pointers::OptionParameterPointer::Name.into()));
             };
 
         let Some(r#type) = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Option(
-                EngineMessageOptionParameterPointer::Type,
-            ))
+            .get(&super::pointers::OptionParameterPointer::Type.into())
             else {
-                return Err(Self::Error::MissingParameter(
-                    EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Type,
-                    ),
-                ));
+                return Err(Self::Error::MissingParameter(super::pointers::OptionParameterPointer::Type.into()));
             };
 
         match r#type.as_bytes() {
             b"check" => {
                 let default = raw_message
                     .parameters
-                    .get(&EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Default,
-                    ))
+                    .get(&super::pointers::OptionParameterPointer::Default.into())
                     .and_then(|s| s.parse().ok());
 
                 Ok(Self::Check { name, default })
@@ -145,23 +133,17 @@ impl TryFrom<RawEngineMessage> for Option {
             b"spin" => {
                 let default = raw_message
                     .parameters
-                    .get(&EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Default,
-                    ))
+                    .get(&super::pointers::OptionParameterPointer::Default.into())
                     .and_then(|s| s.parse().ok());
 
                 let min = raw_message
                     .parameters
-                    .get(&EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Min,
-                    ))
+                    .get(&super::pointers::OptionParameterPointer::Min.into())
                     .and_then(|s| s.parse().ok());
 
                 let max = raw_message
                     .parameters
-                    .get(&EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Max,
-                    ))
+                    .get(&super::pointers::OptionParameterPointer::Max.into())
                     .and_then(|s| s.parse().ok());
 
                 Ok(Self::Spin {
@@ -174,9 +156,7 @@ impl TryFrom<RawEngineMessage> for Option {
             b"combo" => {
                 let default = raw_message
                     .parameters
-                    .get(&EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Default,
-                    ))
+                    .get(&super::pointers::OptionParameterPointer::Default.into())
                     .cloned();
 
                 Ok(Self::Combo { name, default, variations: raw_message.option_vars })
@@ -185,14 +165,12 @@ impl TryFrom<RawEngineMessage> for Option {
             b"string" => {
                 let default = raw_message
                     .parameters
-                    .get(&EngineMessageParameterPointer::Option(
-                        EngineMessageOptionParameterPointer::Default,
-                    ))
+                    .get(&super::pointers::OptionParameterPointer::Default.into())
                     .cloned();
 
                 Ok(Self::String { name, default })
             },
-            _ => Err(MessageTryFromRawMessageError::ParameterParseError(EngineMessageParameterPointer::Option(EngineMessageOptionParameterPointer::Type))),
+            _ => Err(MessageParseError::ParameterParseError(super::pointers::OptionParameterPointer::Type.into())),
         }
     }
 }
@@ -241,32 +219,33 @@ impl Display for Option {
 mod tests {
     use std::str::FromStr;
     use pretty_assertions::assert_eq;
-    use crate::messages::{EngineMessage, Option};
+    use crate::Message;
+    use super::Option;
 
     #[test]
     fn to_from_str_min_max() {
-        let repr = EngineMessage::Option(Option::Spin {
+        let repr: Message = Option::Spin {
             name: "Skill Level".to_string(),
             default: Some(20),
             min: Some(-10),
             max: Some(20),
-        });
+        }.into();
         let str_repr = "option name Skill Level type spin default 20 min -10 max 20\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(EngineMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 
     #[test]
     fn to_from_str_var() {
-        let repr = EngineMessage::Option(Option::Combo {
+        let repr: Message = Option::Combo {
             name: "K Personality".to_string(),
             default: Some("Default p".to_string()),
             variations: vec!["Aggressive p".to_string(), "Defensive p".to_string(), "Positional".to_string(), "Endgame".to_string()],
-        });
+        }.into();
         let str_repr = "option name K Personality type combo default Default p var Aggressive p var Defensive p var Positional var Endgame\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(EngineMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

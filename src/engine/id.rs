@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::RawEngineMessage;
-use crate::auxiliary::MessageTryFromRawMessageError;
-use crate::messages::pointers::engine::{EngineMessageIdParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -14,25 +14,23 @@ pub enum Id {
     NameAndAuthor { name: String, author: String },
 }
 
-impl TryFrom<RawEngineMessage> for Id {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+message_from_impl!(engine Id);
 
-    fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != EngineMessagePointer::Id {
+impl TryFrom<RawMessage> for Id {
+    type Error = MessageParseError;
+
+    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::Id.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let name = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Id(
-                EngineMessageIdParameterPointer::Name,
-            ));
+            .get(&super::pointers::IdParameterPointer::Name.into());
 
         let author = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Id(
-                EngineMessageIdParameterPointer::Author,
-            ));
+            .get(&super::pointers::IdParameterPointer::Author.into());
 
         #[allow(clippy::option_if_let_else)]
         if let Some(name) = name {
@@ -47,9 +45,7 @@ impl TryFrom<RawEngineMessage> for Id {
         } else if let Some(author) = author {
             Ok(Self::Author(author.to_string()))
         } else {
-            Err(Self::Error::MissingParameter(
-                EngineMessageParameterPointer::Id(EngineMessageIdParameterPointer::Name),
-            ))
+            Err(Self::Error::MissingParameter(super::pointers::IdParameterPointer::Name.into()))
         }
     }
 }
@@ -74,18 +70,18 @@ impl Display for Id {
 mod tests {
     use std::str::FromStr;
     use pretty_assertions::assert_eq;
-    
-    use crate::messages::{EngineMessage, Id};
+    use crate::Message;
+    use super::Id;
 
     #[test]
     fn to_from_str() {
-        let repr = EngineMessage::Id(Id::NameAndAuthor {
+        let repr: Message = Id::NameAndAuthor {
             name: "Stockfish 16.1".to_string(),
             author: "The stockfish developers".to_string(),
-        });
+        }.into();
         let str_repr = "id name Stockfish 16.1 author The stockfish developers\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(EngineMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

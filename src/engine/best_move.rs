@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter, Write};
 use shakmaty::uci::UciMove;
-use crate::messages::RawEngineMessage;
-use crate::auxiliary::MessageTryFromRawMessageError;
-use crate::messages::pointers::engine::{EngineMessageBestMoveParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -12,15 +12,15 @@ pub struct BestMove {
     pub ponder: Option<UciMove>,
 }
 
-impl TryFrom<RawEngineMessage> for BestMove {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+message_from_impl!(engine BestMove);
 
-    fn try_from(raw_message: RawEngineMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != EngineMessagePointer::BestMove {
+impl TryFrom<RawMessage> for BestMove {
+    type Error = MessageParseError;
+
+    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::BestMove.into() {
             return Err(Self::Error::InvalidMessage);
         };
-        
-        //println!("value: {:?}", raw_message.value);
 
         let Ok(r#move) = raw_message
             .value
@@ -32,9 +32,7 @@ impl TryFrom<RawEngineMessage> for BestMove {
 
         let ponder = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::BestMove(
-                EngineMessageBestMoveParameterPointer::Ponder,
-            ))
+            .get(&super::pointers::BestMoveParameterPointer::Ponder.into())
             .and_then(|s| s.parse().ok());
 
         Ok(Self { r#move, ponder })
@@ -57,20 +55,21 @@ impl Display for BestMove {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    use crate::messages::{EngineMessage, BestMove};
     
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
+    use crate::Message;
+    use super::BestMove;
 
     #[test]
     fn to_from_str() {
-        let repr = EngineMessage::BestMove(BestMove {
+        let repr: Message = BestMove {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
-        });
+        }.into();
         let str_repr = "bestmove e2e4 ponder c7c5\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(EngineMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

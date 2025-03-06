@@ -1,9 +1,9 @@
 use std::fmt::{Display, Formatter, Write};
 use shakmaty::Color;
-use crate::auxiliary::{MessageTryFromRawMessageError, UciMoveList};
 use shakmaty::uci::UciMove;
-use crate::messages::RawEngineMessage;
-use crate::messages::pointers::engine::{EngineMessageInfoParameterPointer, EngineMessageParameterPointer, EngineMessagePointer};
+use crate::errors::MessageParseError;
+use crate::raw_message::RawMessage;
+use crate::UciMoves;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
@@ -69,14 +69,14 @@ pub struct ScoreWithBound {
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct Refutation {
     pub refuted_move: UciMove,
-    pub refutation: UciMoveList,
+    pub refutation: UciMoves,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct CurrentLine {
     pub used_cpu: Option<usize>,
-    pub line: UciMoveList,
+    pub line: UciMoves,
 }
 
 /// <https://backscattering.de/chess/uci/#engine-info>
@@ -89,7 +89,7 @@ pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-nodes>
     pub nodes: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-pv>
-    pub primary_variation: Option<UciMoveList>,
+    pub primary_variation: Option<UciMoves>,
     /// <https://backscattering.de/chess/uci/#engine-info-multipv>
     pub multi_primary_variation: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score>
@@ -116,67 +116,65 @@ pub struct Info {
     pub current_line: Option<CurrentLine>,
 }
 
-impl TryFrom<RawEngineMessage> for Info {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+impl From<Info> for crate::Message {
+    fn from(value: Info) -> Self {
+        Self::Engine(crate::engine::Message::Info(Box::new(value)))
+    }
+}
+
+impl From<Info> for crate::engine::Message {
+    fn from(value: Info) -> Self {
+        crate::engine::Message::Info(Box::new(value))
+    }
+}
+
+impl TryFrom<RawMessage> for Info {
+    type Error = MessageParseError;
 
     #[allow(clippy::too_many_lines)]
     fn try_from(
-        raw_message: RawEngineMessage,
+        raw_message: RawMessage,
     ) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != EngineMessagePointer::Info {
+        if raw_message.message_pointer != super::pointers::MessagePointer::Info.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let depth = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::Depth,
-            ))
+            .get(&super::pointers::InfoParameterPointer::Depth.into())
             .and_then(|s| {
                 s.parse().ok().map(|depth| Depth {
                     depth,
                     selective_search_depth: raw_message
                         .parameters
-                        .get(&EngineMessageParameterPointer::Info(
-                            EngineMessageInfoParameterPointer::SelectiveSearchDepth,
-                        ))
+                        .get(&super::pointers::InfoParameterPointer::SelectiveSearchDepth.into())
                         .and_then(|s| s.parse().ok()),
                 })
             });
 
         let time = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::Time,
-            ))
+            .get(&super::pointers::InfoParameterPointer::Time.into())
             .and_then(|s| s.parse().ok());
 
         let nodes = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::Nodes,
-            ))
+            .get(&super::pointers::InfoParameterPointer::Nodes.into())
             .and_then(|s| s.parse().ok());
 
         let primary_variation = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::PrimaryVariation,
-            ))
+            .get(&super::pointers::InfoParameterPointer::PrimaryVariation.into())
             .and_then(|s| s.parse().ok());
 
         let multi_primary_variation = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::MultiPrimaryVariation,
-            ))
+            .get(&super::pointers::InfoParameterPointer::MultiPrimaryVariation.into())
             .and_then(|s| s.parse().ok());
 
         let score = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::Score,
-            ))
+            .get(&super::pointers::InfoParameterPointer::Score.into())
             .and_then(|s| {
                 fn isize_at_plus1_position(split: &[&str], position: Option<usize>) -> Option<isize> {
                     position.and_then(|position| {
@@ -221,81 +219,61 @@ impl TryFrom<RawEngineMessage> for Info {
 
         let current_move = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::CurrentMove,
-            ))
+            .get(&super::pointers::InfoParameterPointer::CurrentMove.into())
             .and_then(|s| s.parse().ok());
 
         let current_move_number = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::CurrentMoveNumber,
-            ))
+            .get(&super::pointers::InfoParameterPointer::CurrentMoveNumber.into())
             .and_then(|s| s.parse().ok());
 
         let hash_full = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::HashFull,
-            ))
+            .get(&super::pointers::InfoParameterPointer::HashFull.into())
             .and_then(|s| s.parse().ok());
 
         let nodes_per_second = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::NodesPerSecond,
-            ))
+            .get(&super::pointers::InfoParameterPointer::NodesPerSecond.into())
             .and_then(|s| s.parse().ok());
 
         let table_base_hits = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::TableBaseHits,
-            ))
+            .get(&super::pointers::InfoParameterPointer::TableBaseHits.into())
             .and_then(|s| s.parse().ok());
 
         let shredder_base_hits = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::ShredderBaseHits,
-            ))
+            .get(&super::pointers::InfoParameterPointer::ShredderBaseHits.into())
             .and_then(|s| s.parse().ok());
 
         let cpu_load = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::CpuLoad,
-            ))
+            .get(&super::pointers::InfoParameterPointer::CpuLoad.into())
             .and_then(|s| s.parse().ok());
 
         let string = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::String,
-            ))
+            .get(&super::pointers::InfoParameterPointer::String.into())
             .cloned();
 
         let refutation = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::Refutation,
-            ))
-            .and_then(|s| s.parse::<UciMoveList>().ok())
+            .get(&super::pointers::InfoParameterPointer::Refutation.into())
+            .and_then(|s| s.parse::<UciMoves>().ok())
             .and_then(|move_list| {
                 let refuted_move = move_list.0.first()?;
                 let refutation = move_list.0.get(1..)?;
 
                 Some(Refutation {
                     refuted_move: refuted_move.clone(),
-                    refutation: UciMoveList(refutation.to_vec()),
+                    refutation: UciMoves(refutation.to_vec()),
                 })
             });
 
         let current_line = raw_message
             .parameters
-            .get(&EngineMessageParameterPointer::Info(
-                EngineMessageInfoParameterPointer::CurrentLine,
-            ))
+            .get(&super::pointers::InfoParameterPointer::CurrentLine.into())
             .and_then(|s| s.split_once(' '))
             .and_then(|(used_cpu, line)| {
                 let Ok(used_cpu) = used_cpu.parse() else {
@@ -437,14 +415,13 @@ impl Display for Info {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    use crate::messages::engine::{EngineMessage, info::{CurrentLine, Depth, Refutation, ScoreWithBound, ScoreBound}};
-    use crate::auxiliary::UciMoveList;
     use super::Info;
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
-    use crate::{Score, ScoreStandardized};
-    
+    use crate::engine::{CurrentLine, Depth, Refutation, Score, ScoreBound, ScoreStandardized, ScoreWithBound};
+    use crate::{Message, UciMoves};
+
     #[test]
     fn score_kind_standardize() {
         assert_eq!(
@@ -467,14 +444,14 @@ mod tests {
 
     #[test]
     fn to_from_str() {
-        let repr = EngineMessage::Info(Box::new(Info {
+        let repr: Message = Info {
             depth: Some(Depth {
                 depth: 20,
                 selective_search_depth: Some(31)
             }),
             time: Some(12),
             nodes: Some(4),
-            primary_variation: Some(UciMoveList(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
+            primary_variation: Some(UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
             multi_primary_variation: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
@@ -490,16 +467,16 @@ mod tests {
             string: Some("blabla".to_string()),
             refutation: Some(Refutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
-                refutation: UciMoveList(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
+                refutation: UciMoves(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
             }),
             current_line: Some(CurrentLine {
                 used_cpu: Some(1),
-                line: UciMoveList(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
+                line: UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
             }),
-        }));
+        }.into();
         let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(EngineMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

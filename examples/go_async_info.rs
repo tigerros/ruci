@@ -7,8 +7,8 @@
 //! This example requires that you have installed Stockfish.
 
 use parking_lot::Mutex;
+use ruci::gui;
 use ruci::EngineConnection;
-use ruci::{Go, GuiMessage};
 use std::io;
 use std::sync::Arc;
 use std::time::Duration;
@@ -30,7 +30,7 @@ async fn main() -> io::Result<()> {
 
     let (mut info_rx, handle) = EngineConnection::go_async_info(
         engine_conn.clone(),
-        Go {
+        gui::Go {
             search_moves: None,
             ponder: false,
             white_time: None,
@@ -61,7 +61,7 @@ async fn main() -> io::Result<()> {
     println!("== Sending quit message");
 
     let mut engine_conn = Arc::into_inner(engine_conn).unwrap().into_inner();
-    engine_conn.send_message(&GuiMessage::Quit).await?;
+    engine_conn.send_message(&gui::Message::Quit).await?;
 
     println!("== Sent. Program terminated");
 

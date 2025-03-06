@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageSetOptionParameterPointer};
-use crate::auxiliary::{MessageTryFromRawMessageError};
-use crate::messages::RawGuiMessage;
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -11,34 +11,26 @@ pub struct SetOption {
     pub value: Option<String>,
 }
 
-impl TryFrom<RawGuiMessage> for SetOption {
-    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
+message_from_impl!(gui SetOption);
 
-    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != GuiMessagePointer::SetOption {
+impl TryFrom<RawMessage> for SetOption {
+    type Error = MessageParseError;
+
+    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::SetOption.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let Some(name) = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::SetOption(
-                GuiMessageSetOptionParameterPointer::Name,
-            ))
-            .cloned()
+            .remove(&super::pointers::SetOptionParameterPointer::Name.into())
             else {
-                return Err(Self::Error::MissingParameter(
-                    GuiMessageParameterPointer::SetOption(
-                        GuiMessageSetOptionParameterPointer::Name,
-                    ),
-                ));
+                return Err(Self::Error::MissingParameter(super::pointers::SetOptionParameterPointer::Name.into()));
             };
 
         let value = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::SetOption(
-                GuiMessageSetOptionParameterPointer::Value,
-            ))
-            .cloned();
+            .remove(&super::pointers::SetOptionParameterPointer::Value.into());
 
         Ok(Self { name, value })
     }
@@ -59,19 +51,19 @@ impl Display for SetOption {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
-    
-    use crate::messages::{GuiMessage, SetOption};
     use pretty_assertions::assert_eq;
+    use crate::gui::SetOption;
+    use crate::Message;
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::SetOption(SetOption {
+        let repr: Message = SetOption {
             name: "Skill Level".to_string(),
             value: Some("1".to_string()),
-        });
+        }.into();
         let str_repr = "setoption name Skill Level value 1\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

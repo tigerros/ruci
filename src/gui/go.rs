@@ -1,15 +1,16 @@
 use std::fmt::{Display, Formatter, Write};
 use std::num::NonZeroUsize;
-use crate::auxiliary::{MessageTryFromRawMessageError, UciMoveList};
-use crate::messages::pointers::gui::{GuiMessageGoParameterPointer, GuiMessageParameterPointer, GuiMessagePointer};
-use crate::messages::RawGuiMessage;
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
+use crate::UciMoves;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// <https://backscattering.de/chess/uci/#gui-go>
 pub struct Go {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
-    pub search_moves: Option<UciMoveList>,
+    pub search_moves: Option<UciMoves>,
     /// <https://backscattering.de/chess/uci/#gui-go-ponder>
     pub ponder: bool,
     /// <https://backscattering.de/chess/uci/#gui-go-wtime>
@@ -34,97 +35,75 @@ pub struct Go {
     pub infinite: bool,
 }
 
-impl TryFrom<RawGuiMessage> for Go {
-    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
+message_from_impl!(gui Go);
 
-    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != GuiMessagePointer::Go {
+impl TryFrom<RawMessage> for Go {
+    type Error = MessageParseError;
+
+    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::Go.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
         let search_moves = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::SearchMoves,
-            ))
+            .get(&super::pointers::GoParameterPointer::SearchMoves.into())
             .and_then(|s| s.parse().ok());
 
         let ponder =
             raw_message
                 .void_parameters
-                .contains(&GuiMessageParameterPointer::Go(
-                    GuiMessageGoParameterPointer::Ponder,
-                ));
+                .contains(&super::pointers::GoParameterPointer::Ponder.into());
 
         let white_time = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::WhiteTime,
-            ))
+            .get(&super::pointers::GoParameterPointer::WhiteTime.into())
             .and_then(|s| s.parse().ok());
 
         let black_time = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::BlackTime,
-            ))
+            .get(&super::pointers::GoParameterPointer::BlackTime.into())
             .and_then(|s| s.parse().ok());
 
         let white_increment = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::WhiteIncrement,
-            ))
+            .get(&super::pointers::GoParameterPointer::WhiteIncrement.into())
             .and_then(|s| s.parse().ok());
 
         let black_increment = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::BlackIncrement,
-            ))
+            .get(&super::pointers::GoParameterPointer::BlackIncrement.into())
             .and_then(|s| s.parse().ok());
 
         let moves_to_go = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::MovesToGo,
-            ))
+            .get(&super::pointers::GoParameterPointer::MovesToGo.into())
             .and_then(|s| s.parse().ok());
 
         let depth = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::Depth,
-            ))
+            .get(&super::pointers::GoParameterPointer::Depth.into())
             .and_then(|s| s.parse().ok());
 
         let nodes = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::Nodes,
-            ))
+            .get(&super::pointers::GoParameterPointer::Nodes.into())
             .and_then(|s| s.parse().ok());
 
         let mate = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::Mate,
-            ))
+            .get(&super::pointers::GoParameterPointer::Mate.into())
             .and_then(|s| s.parse().ok());
 
         let move_time = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Go(
-                GuiMessageGoParameterPointer::MoveTime,
-            ))
+            .get(&super::pointers::GoParameterPointer::MoveTime.into())
             .and_then(|s| s.parse().ok());
 
         let infinite =
             raw_message
                 .void_parameters
-                .contains(&GuiMessageParameterPointer::Go(
-                    GuiMessageGoParameterPointer::Infinite,
-                ));
+                .contains(&super::pointers::GoParameterPointer::Infinite.into());
 
         Ok(Self {
             search_moves,
@@ -202,17 +181,17 @@ impl Display for Go {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::messages::{Go, GuiMessage};
-    use crate::auxiliary::UciMoveList;
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
     use std::num::NonZeroUsize;
     use std::str::FromStr;
+    use crate::gui::Go;
+    use crate::{Message, UciMoves};
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::Go(Go {
-            search_moves: Some(UciMoveList(vec![
+        let repr: Message = Go {
+            search_moves: Some(UciMoves(vec![
                 UciMove::from_ascii(b"e2e4").unwrap(),
                 UciMove::from_ascii(b"d2d4").unwrap(),
             ])),
@@ -227,10 +206,10 @@ mod tests {
             mate: None,
             move_time: None,
             infinite: true,
-        });
+        }.into();
         let str_repr = "go searchmoves e2e4 d2d4 ponder wtime 5 binc 45 depth 20 infinite\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }

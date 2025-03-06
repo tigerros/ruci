@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::auxiliary::{MessageTryFromRawMessageError};
-use crate::messages::RawEngineMessage;
-use crate::messages::pointers::engine::{EngineMessageParameterPointer, EngineMessagePointer};
+use crate::errors::MessageParseError;
+use crate::raw_message::RawMessage;
 
 /// <https://backscattering.de/chess/uci/#engine-registration>
 #[allow(clippy::module_name_repetitions)]
@@ -12,23 +11,23 @@ pub enum Registration {
     Error,
 }
 
-impl TryFrom<RawEngineMessage> for Registration {
-    type Error = MessageTryFromRawMessageError<EngineMessageParameterPointer>;
+impl TryFrom<RawMessage> for Registration {
+    type Error = MessageParseError;
     
-    fn try_from(raw_message: RawEngineMessage) -> Result<Self, MessageTryFromRawMessageError<EngineMessageParameterPointer>> {
-        if raw_message.message_pointer != EngineMessagePointer::Registration {
-            return Err(MessageTryFromRawMessageError::InvalidMessage);
+    fn try_from(raw_message: RawMessage) -> Result<Self, MessageParseError> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::Registration.into() {
+            return Err(MessageParseError::InvalidMessage);
         }
         
         let Some(value) = raw_message.value else {
-            return Err(MessageTryFromRawMessageError::MissingValue);
+            return Err(MessageParseError::MissingValue);
         };
 
         match value.as_bytes() {
             b"checking" => Ok(Self::Checking),
             b"ok" => Ok(Self::Ok),
             b"error" => Ok(Self::Error),
-            _ => Err(MessageTryFromRawMessageError::ValueParseError),
+            _ => Err(MessageParseError::ValueParseError),
         }
     }
 }

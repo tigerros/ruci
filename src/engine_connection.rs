@@ -1,7 +1,5 @@
-use crate::auxiliary::MessageParseError;
-use crate::messages::pointers::engine::EngineMessageParameterPointer;
-use crate::messages::{BestMove, EngineMessage, Id, Info, Option as OptionMessage};
-use crate::messages::{Go, GuiMessage};
+use crate::errors::MessageParseError;
+use crate::{engine, gui, Message};
 use std::error::Error;
 use std::fmt::Display;
 use std::process::Stdio;
@@ -43,7 +41,9 @@ impl Error for CreationError {}
 /// Reading the message either resulted in an IO error, or it could not be parsed.
 pub enum ReadMessageError {
     Io(io::Error),
-    MessageParse(MessageParseError<EngineMessageParameterPointer>),
+    MessageParse(MessageParseError),
+    /// Got GUI message when expecting an engine message.
+    GotGuiMessage,
 }
 
 impl Display for ReadMessageError {
@@ -51,6 +51,10 @@ impl Display for ReadMessageError {
         match self {
             Self::Io(e) => write!(f, "failed to read UCI engine message: {e}"),
             Self::MessageParse(e) => write!(f, "failed to parse UCI engine message: {e:?}"),
+            Self::GotGuiMessage => write!(
+                f,
+                "received GUI UCI message but was expecting engine message"
+            ),
         }
     }
 }
@@ -123,7 +127,7 @@ impl EngineConnection {
     ///
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
-    pub async fn send_message(&mut self, message: &GuiMessage) -> io::Result<()> {
+    pub async fn send_message(&mut self, message: &gui::Message) -> io::Result<()> {
         self.stdin.write_all(message.to_string().as_bytes()).await
     }
 
@@ -146,14 +150,20 @@ impl EngineConnection {
     /// # Errors
     /// - Reading resulted in an IO error.
     /// - Parsing the message errors.
-    pub async fn read_message(&mut self) -> Result<EngineMessage, ReadMessageError> {
+    pub async fn read_message(&mut self) -> Result<engine::Message, ReadMessageError> {
         let mut line = String::new();
         self.stdout
             .read_line(&mut line)
             .await
             .map_err(ReadMessageError::Io)?;
 
-        EngineMessage::from_str(&line).map_err(ReadMessageError::MessageParse)
+        if let Message::Engine(engine_message) =
+            Message::from_str(&line).map_err(ReadMessageError::MessageParse)?
+        {
+            Ok(engine_message)
+        } else {
+            Err(ReadMessageError::GotGuiMessage)
+        }
     }
 
     /// Sends the [`GuiMessage::UseUci`] message and returns the engine's ID and a vector of options
@@ -161,11 +171,11 @@ impl EngineConnection {
     ///
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
-    pub async fn use_uci(&mut self) -> io::Result<(Option<Id>, Vec<OptionMessage>)> {
-        self.send_message(&GuiMessage::UseUci).await?;
+    pub async fn use_uci(&mut self) -> io::Result<(Option<engine::Id>, Vec<engine::Option>)> {
+        self.send_message(&gui::Message::UseUci).await?;
 
         let mut options = Vec::with_capacity(40);
-        let mut id = None::<Id>;
+        let mut id = None::<engine::Id>;
 
         loop {
             let Ok(engine_to_gui_message) = self.read_message().await else {
@@ -173,9 +183,9 @@ impl EngineConnection {
             };
 
             match engine_to_gui_message {
-                EngineMessage::Option(option) => options.push(option),
-                EngineMessage::Id(new_id) => update_id(&mut id, new_id),
-                EngineMessage::UciOk => return Ok((id, options)),
+                engine::Message::Option(option) => options.push(option),
+                engine::Message::Id(new_id) => update_id(&mut id, new_id),
+                engine::Message::UciOk => return Ok((id, options)),
                 _ => (),
             }
         }
@@ -195,12 +205,15 @@ impl EngineConnection {
     /// # Errors
     /// - Writing (sending the message) errored.
     /// - Reading (reading back the responses) errored.
-    pub async fn go(&mut self, message: Go) -> io::Result<(Vec<Box<Info>>, BestMove)> {
+    pub async fn go(
+        &mut self,
+        message: gui::Go,
+    ) -> io::Result<(Vec<Box<engine::Info>>, engine::BestMove)> {
         let message_depth = message.depth;
 
-        self.send_message(&GuiMessage::Go(message)).await?;
+        self.send_message(&message.into()).await?;
 
-        let mut info_messages = Vec::<Box<Info>>::with_capacity(
+        let mut info_messages = Vec::<Box<engine::Info>>::with_capacity(
             message_depth.map_or(100, |depth| depth.saturating_add(3)),
         );
 
@@ -212,8 +225,8 @@ impl EngineConnection {
             };
 
             match engine_to_gui_message {
-                EngineMessage::Info(info) => info_messages.push(info),
-                EngineMessage::BestMove(best_move) => return Ok((info_messages, best_move)),
+                engine::Message::Info(info) => info_messages.push(info),
+                engine::Message::BestMove(best_move) => return Ok((info_messages, best_move)),
                 _ => (),
             }
         }
@@ -223,8 +236,11 @@ impl EngineConnection {
     #[allow(clippy::missing_errors_doc)]
     /// Equivalent to the [`Self::go`] function, but doesn't store a vector of info messages,
     /// and returns only the last one instead.
-    pub async fn go_only_last_info(&mut self, message: Go) -> io::Result<(Option<Info>, BestMove)> {
-        self.send_message(&GuiMessage::Go(message)).await?;
+    pub async fn go_only_last_info(
+        &mut self,
+        message: gui::Go,
+    ) -> io::Result<(Option<engine::Info>, engine::BestMove)> {
+        self.send_message(&message.into()).await?;
 
         let mut last_info_message = None;
 
@@ -236,8 +252,8 @@ impl EngineConnection {
             };
 
             match engine_to_gui_message {
-                EngineMessage::Info(info) => last_info_message = Some(*info),
-                EngineMessage::BestMove(best_move) => return Ok((last_info_message, best_move)),
+                engine::Message::Info(info) => last_info_message = Some(*info),
+                engine::Message::BestMove(best_move) => return Ok((last_info_message, best_move)),
                 _ => (),
             }
         }
@@ -254,8 +270,11 @@ impl EngineConnection {
     /// However, the value returned by the handle may be an error, so don't call `unwrap` twice!
     pub fn go_async_info(
         arc_self: Arc<parking_lot::Mutex<Self>>,
-        message: Go,
-    ) -> (mpsc::Receiver<Box<Info>>, JoinHandle<io::Result<BestMove>>) {
+        message: gui::Go,
+    ) -> (
+        mpsc::Receiver<Box<engine::Info>>,
+        JoinHandle<io::Result<engine::BestMove>>,
+    ) {
         let (tx, rx) = mpsc::channel(message.depth.map_or(100, |depth| depth.saturating_add(3)));
 
         (
@@ -264,7 +283,7 @@ impl EngineConnection {
                 let mut channel_closed = false;
                 let mut lock = arc_self.lock_arc();
 
-                lock.send_message(&GuiMessage::Go(message)).await?;
+                lock.send_message(&message.into()).await?;
 
                 loop {
                     let engine_to_gui_message = match lock.read_message().await {
@@ -274,12 +293,12 @@ impl EngineConnection {
                     };
 
                     match engine_to_gui_message {
-                        EngineMessage::Info(info) if !channel_closed => {
+                        engine::Message::Info(info) if !channel_closed => {
                             if tx.send(info).await.is_err() {
                                 channel_closed = true;
                             }
                         }
-                        EngineMessage::BestMove(best_move) => {
+                        engine::Message::BestMove(best_move) => {
                             // Clippy wants this
                             drop(lock);
                             return Ok(best_move);
@@ -297,29 +316,37 @@ impl EngineConnection {
     /// - Writing (sending the message) errored.
     /// - Reading (reading until [`readyok`](https://backscattering.de/chess/uci/#engine-readyok)) errored.
     pub async fn is_ready(&mut self) -> io::Result<()> {
-        self.send_message(&GuiMessage::IsReady).await?;
+        self.send_message(&gui::Message::IsReady).await?;
 
         loop {
             match self.read_message().await {
-                Ok(EngineMessage::ReadyOk) => return Ok(()),
+                Ok(engine::Message::ReadyOk) => return Ok(()),
                 Ok(_) | Err(_) => continue,
             }
         }
     }
 }
 
-fn update_id(old_id: &mut Option<Id>, new_id: Id) {
+fn update_id(old_id: &mut Option<engine::Id>, new_id: engine::Id) {
     let Some(old_id_some) = old_id.take() else {
         *old_id = Some(new_id);
         return;
     };
 
     *old_id = Some(match (old_id_some, new_id) {
-        (Id::Author(author), Id::Author(_)) => Id::Author(author),
-        (Id::Name(name), Id::Name(_)) => Id::Name(name),
-        (Id::Author(author), Id::Name(name) | Id::NameAndAuthor { name, .. })
-        | (Id::Name(name), Id::Author(author) | Id::NameAndAuthor { author, .. })
-        | (Id::NameAndAuthor { name, author }, _) => Id::NameAndAuthor { name, author },
+        (engine::Id::Author(author), engine::Id::Author(_)) => engine::Id::Author(author),
+        (engine::Id::Name(name), engine::Id::Name(_)) => engine::Id::Name(name),
+        (
+            engine::Id::Author(author),
+            engine::Id::Name(name) | engine::Id::NameAndAuthor { name, .. },
+        )
+        | (
+            engine::Id::Name(name),
+            engine::Id::Author(author) | engine::Id::NameAndAuthor { author, .. },
+        )
+        | (engine::Id::NameAndAuthor { name, author }, _) => {
+            engine::Id::NameAndAuthor { name, author }
+        }
     });
 }
 
@@ -340,7 +367,10 @@ mod tests {
             panic!("Unsupported OS");
         };
 
-        engine_conn.send_message(&GuiMessage::UseUci).await.unwrap();
+        engine_conn
+            .send_message(&gui::Message::UseUci)
+            .await
+            .unwrap();
 
         engine_conn.skip_lines(4).await.unwrap();
 

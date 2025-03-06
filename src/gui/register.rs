@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
-use crate::messages::pointers::gui::{GuiMessageParameterPointer, GuiMessagePointer, GuiMessageRegisterParameterPointer};
-use crate::auxiliary::{MessageTryFromRawMessageError};
-use crate::messages::RawGuiMessage;
+use crate::errors::MessageParseError;
+use crate::message_from_impl::message_from_impl;
+use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -13,11 +13,13 @@ pub enum Register {
     NameAndCode { name: String, code: String },
 }
 
-impl TryFrom<RawGuiMessage> for Register {
-    type Error = MessageTryFromRawMessageError<GuiMessageParameterPointer>;
+message_from_impl!(gui Register);
 
-    fn try_from(raw_message: RawGuiMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != GuiMessagePointer::Register {
+impl TryFrom<RawMessage> for Register {
+    type Error = MessageParseError;
+
+    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
+        if raw_message.message_pointer != super::pointers::MessagePointer::Register.into() {
             return Err(Self::Error::InvalidMessage);
         };
 
@@ -29,16 +31,12 @@ impl TryFrom<RawGuiMessage> for Register {
 
         let name = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Register(
-                GuiMessageRegisterParameterPointer::Name,
-            ))
+            .get(&super::pointers::RegisterParameterPointer::Name.into())
             .cloned();
 
         let code = raw_message
             .parameters
-            .get(&GuiMessageParameterPointer::Register(
-                GuiMessageRegisterParameterPointer::Code,
-            ))
+            .get(&super::pointers::RegisterParameterPointer::Code.into())
             .cloned();
 
         #[allow(clippy::option_if_let_else)]
@@ -54,11 +52,7 @@ impl TryFrom<RawGuiMessage> for Register {
         } else if let Some(code) = code {
             Ok(Self::Code(code))
         } else {
-            Err(Self::Error::MissingParameter(
-                GuiMessageParameterPointer::Register(
-                    GuiMessageRegisterParameterPointer::Name,
-                ),
-            ))
+            Err(Self::Error::MissingParameter(super::pointers::RegisterParameterPointer::Name.into()))
         }
     }
 }
@@ -82,18 +76,18 @@ impl Display for Register {
 mod tests {
     use std::str::FromStr;
     use pretty_assertions::assert_eq;
-    
-    use crate::messages::{GuiMessage, Register};
+    use crate::gui::Register;
+    use crate::Message;
 
     #[test]
     fn to_from_str() {
-        let repr = GuiMessage::Register(Register::NameAndCode {
+        let repr: Message = Register::NameAndCode {
             name: "john smith".to_string(),
             code: "31 tango".to_string()
-        });
+        }.into();
         let str_repr = "register name john smith code 31 tango\n";
 
         assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(GuiMessage::from_str(str_repr), Ok(repr));
+        assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
 }
