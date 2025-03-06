@@ -27,12 +27,27 @@
     clippy::print_stdout,
     clippy::print_stderr
 )]
+//! Get started with [`Message`]!
+//!
+//! Most of the docs should be self explanatory,
+//! but there is one thing which you might miss and is very helpful.
+//!
+//! A [`Message`] is an enum around an enum, which contains variants with fields,
+//! which is a lot of layers.
+//! So if you find yourself writing `Message::Gui(gui::Message::Info(gui::Info { .. }))`,
+//! there is an easier way! All messages implement [`From`] for the "higher level".
+//!
+//! That means that an [`Info`](gui::Info) implements [`From`] for [`gui::Message`] and [`Message`].
+//! So just call `gui::Info { .. }.into()` and you're good to go!
+//!
+//! This also applies to pointers (what are those? go to [`MessagePointer`]), although
+//! you shouldn't need to use those very often.
 
 mod define_message;
 pub mod engine;
 #[cfg(feature = "engine-connection")]
 mod engine_connection;
-mod errors;
+pub mod errors;
 pub mod gui;
 mod message_from_impl;
 mod raw_message;
@@ -60,7 +75,7 @@ impl FromStr for Message {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let raw_message = s
             .parse::<RawMessage>()
-            .map_err(|_| MessageParseError::InvalidMessage)?;
+            .map_err(|()| MessageParseError::InvalidMessage)?;
 
         match raw_message.message_pointer {
             MessagePointer::Engine(engine) => match engine {
@@ -130,7 +145,20 @@ impl Display for Message {
     }
 }
 
+/// This is not an actual pointer; it's just a [`Copy`] enum for referencing messages.
+///
+/// There are more of these "pointers", and they're mostly for the library's internals.
+/// However, it may be returned with errors, which is helpful because they will tell you
+/// exactly where the problem is.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum MessagePointer {
+    Engine(engine::pointers::MessagePointer),
+    Gui(gui::pointers::MessagePointer),
+}
+
 impl MessagePointer {
+    /// Whether this message has parameters.
+    /// Some don't, like `uciok`.
     pub const fn has_parameters(&self) -> bool {
         match self {
             Self::Engine(p) => p.has_parameters(),
@@ -139,21 +167,14 @@ impl MessagePointer {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum MessagePointer {
-    Engine(engine::pointers::MessagePointer),
-    Gui(gui::pointers::MessagePointer),
-}
-
 impl FromStr for MessagePointer {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(engine) = s.parse::<engine::pointers::MessagePointer>() {
-            Ok(Self::Engine(engine))
-        } else {
-            s.parse::<gui::pointers::MessagePointer>().map(Self::Gui)
-        }
+        s.parse::<engine::pointers::MessagePointer>().map_or_else(
+            |()| s.parse::<gui::pointers::MessagePointer>().map(Self::Gui),
+            |engine| Ok(Self::Engine(engine)),
+        )
     }
 }
 
@@ -164,6 +185,8 @@ pub enum ParameterPointer {
 }
 
 impl ParameterPointer {
+    /// # Errors
+    /// See [`ParameterPointerParseError`](errors::ParameterPointerParseError).
     pub fn from_message_and_str(
         message_pointer: MessagePointer,
         s: &str,
@@ -179,6 +202,8 @@ impl ParameterPointer {
         }
     }
 
+    /// Some parameters don't have a value, like `ponder`.
+    /// This function is necessary for parsing.
     pub const fn is_void(self) -> bool {
         match self {
             Self::Engine(p) => p.is_void(),

@@ -94,6 +94,8 @@ macro_rules! define_message {
 
             ::paste::paste! {
                 impl ParameterPointer {
+                    /// # Errors
+                    /// See [`ParameterPointerParseError`]($crate::errors::ParameterPointerParseError).
                     pub fn from_message_and_str(message_pointer: MessagePointer, s: &str) -> Result<Self, $crate::errors::ParameterPointerParseError> {
                         match message_pointer {
                             $($(
@@ -117,8 +119,8 @@ macro_rules! define_message {
                             Self::$message_ident(parameter_pointer) => {
                                 $crate::define_message::define_message!(empty=$has_parameters);
                                 parameter_pointer.to_string()
-                            }
-                            )?),+
+                            },
+                            )?)+
                         }
                     }
 
@@ -129,8 +131,8 @@ macro_rules! define_message {
                             Self::$message_ident(parameter_pointer) => {
                                 $crate::define_message::define_message!(empty=$has_parameters);
                                 parameter_pointer.is_void()
-                            }
-                            )?),+
+                            },
+                            )?)+
                         }
                     }
                 }

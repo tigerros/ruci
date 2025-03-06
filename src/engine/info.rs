@@ -22,6 +22,7 @@ pub enum ScoreBound {
     Upperbound,
 }
 
+/// <https://backscattering.de/chess/uci/#engine-info-score>
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Score {
     /// <https://backscattering.de/chess/uci/#engine-info-score-centipawns>
@@ -124,7 +125,7 @@ impl From<Info> for crate::Message {
 
 impl From<Info> for crate::engine::Message {
     fn from(value: Info) -> Self {
-        crate::engine::Message::Info(Box::new(value))
+        Self::Info(Box::new(value))
     }
 }
 

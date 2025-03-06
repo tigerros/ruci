@@ -77,21 +77,12 @@ impl FromStr for RawMessage {
             first_parameter_encountered = true;
 
             if let Some(last_parameter) = last_parameter {
-                if last_parameter
-                    == ParameterPointer::Engine(crate::engine::pointers::ParameterPointer::Option(
-                        crate::engine::pointers::OptionParameterPointer::Var,
-                    ))
-                {
+                if last_parameter == crate::engine::pointers::OptionParameterPointer::Var.into() {
                     option_vars.push(value.trim().to_string());
                 } else {
                     parameters.insert(last_parameter, value.trim().to_string());
                 }
 
-                value = String::with_capacity(30);
-            }
-
-            if let Some(last_parameter) = last_parameter {
-                parameters.insert(last_parameter, value.trim().to_string());
                 value = String::with_capacity(30);
             }
 
@@ -105,11 +96,7 @@ impl FromStr for RawMessage {
         }
 
         if let Some(last_parameter) = last_parameter {
-            if last_parameter
-                == ParameterPointer::Engine(crate::engine::pointers::ParameterPointer::Option(
-                    crate::engine::pointers::OptionParameterPointer::Var,
-                ))
-            {
+            if last_parameter == crate::engine::pointers::OptionParameterPointer::Var.into() {
                 option_vars.push(value.trim().to_string());
             } else {
                 parameters.insert(last_parameter, value.trim().to_string());
