@@ -34,11 +34,11 @@
 //!
 //! A [`Message`] is an enum around an enum, which contains variants with fields,
 //! which is a lot of layers.
-//! So if you find yourself writing `Message::Gui(gui::Message::Info(gui::Info { .. }))`,
+//! So if you find yourself writing `Message::Gui(gui::Message::Go(gui::Go { .. }))`,
 //! there is an easier way! All messages implement [`From`] for the "higher level".
 //!
-//! That means that an [`Info`](gui::Info) implements [`From`] for [`gui::Message`] and [`Message`].
-//! So just call `gui::Info { .. }.into()` and you're good to go!
+//! That means that an [`Info`](gui::Go) implements [`From`] for [`gui::Message`] and [`Message`].
+//! So just call `gui::Go { .. }.into()` and you're good to go!
 //!
 //! This also applies to pointers (what are those? go to [`MessagePointer`]), although
 //! you shouldn't need to use those very often.
@@ -178,6 +178,7 @@ impl FromStr for MessagePointer {
     }
 }
 
+/// Like [`MessagePointer`], but for pointing at specific parameters.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ParameterPointer {
     Engine(engine::pointers::ParameterPointer),
