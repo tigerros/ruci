@@ -24,7 +24,7 @@ impl FromStr for RawMessage {
             s
         };
 
-        let parts = s.trim().split(' ').collect::<Vec<_>>();
+        let mut parts = s.trim().split(' ').collect::<Vec<_>>();
 
         let Some(Ok(message_pointer)) = parts.first().map(|p| MessagePointer::from_str(p)) else {
             return Err(());
@@ -33,9 +33,9 @@ impl FromStr for RawMessage {
         let Some(parts_rest) = parts.get(1..) else {
             return Ok(Self {
                 message_pointer,
-                parameters: HashMap::with_capacity(0),
-                void_parameters: Vec::with_capacity(0),
-                option_vars: Vec::with_capacity(0),
+                parameters: HashMap::new(),
+                void_parameters: Vec::new(),
+                option_vars: Vec::new(),
                 value: None,
             });
         };
@@ -43,9 +43,9 @@ impl FromStr for RawMessage {
         if !message_pointer.has_parameters() {
             return Ok(Self {
                 message_pointer,
-                parameters: HashMap::with_capacity(0),
-                void_parameters: Vec::with_capacity(0),
-                option_vars: Vec::with_capacity(0),
+                parameters: HashMap::new(),
+                void_parameters: Vec::new(),
+                option_vars: Vec::new(),
                 value: Some(parts_rest.join(" ")),
             });
         }
@@ -54,12 +54,10 @@ impl FromStr for RawMessage {
             parts.len().saturating_div(2).saturating_sub(1),
         );
         let mut void_parameters = Vec::with_capacity(2);
-        let mut option_vars = if message_pointer
-            == MessagePointer::Engine(crate::engine::pointers::MessagePointer::Option)
-        {
+        let mut option_vars = if message_pointer == crate::engine::pointers::MessagePointer::Option.into() {
             Vec::with_capacity(10)
         } else {
-            Vec::with_capacity(0)
+            Vec::new()
         };
         let mut value = String::with_capacity(30);
         let mut value_override = None::<String>;
