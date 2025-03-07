@@ -21,25 +21,15 @@ async fn main() -> io::Result<()> {
     println!("== ID: {id:?}");
     println!("== Options: {options:?}");
     println!("== Sending isready message, waiting for readyok");
-    
+
     engine_conn.is_ready().await?;
 
     println!("== Received readyok, starting analysis");
 
     let (infos, best_move) = engine_conn
         .go(gui::Go {
-            search_moves: None,
-            ponder: false,
-            white_time: None,
-            black_time: None,
-            white_increment: None,
-            black_increment: None,
-            moves_to_go: None,
             depth: Some(20),
-            nodes: None,
-            mate: None,
-            move_time: None,
-            infinite: false,
+            ..Default::default()
         })
         .await?;
 

@@ -6,7 +6,7 @@ use crate::raw_message::RawMessage;
 use crate::UciMoves;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 /// <https://backscattering.de/chess/uci/#gui-go>
 pub struct Go {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>

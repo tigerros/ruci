@@ -1,5 +1,5 @@
 //! This example shows how to start a UCI connection, send it some initial commands,
-//! start calculating a position, but interrupt it after 2 seconds.
+//! start calculating a position, but interrupt it after a couple of seconds.
 //!
 //! For an example where calculation is finished (and the `go_async_info` function is not used),
 //! see `go`.
@@ -27,7 +27,7 @@ async fn main() -> io::Result<()> {
     println!("== Sending isready message, waiting for readyok");
 
     engine_conn.is_ready().await?;
-    
+
     println!("== Received readyok, starting analysis");
 
     let engine_conn = Arc::new(Mutex::new(engine_conn));
@@ -35,18 +35,8 @@ async fn main() -> io::Result<()> {
     let (mut info_rx, handle) = EngineConnection::go_async_info(
         engine_conn.clone(),
         gui::Go {
-            search_moves: None,
-            ponder: false,
-            white_time: None,
-            black_time: None,
-            white_increment: None,
-            black_increment: None,
-            moves_to_go: None,
-            depth: None,
-            nodes: None,
-            mate: None,
-            move_time: None,
             infinite: true,
+            ..Default::default()
         },
     );
 
@@ -56,8 +46,8 @@ async fn main() -> io::Result<()> {
         }
     });
 
-    println!("== Waiting 2 secs");
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    println!("== Waiting 5 secs");
+    tokio::time::sleep(Duration::from_secs(5)).await;
     println!("== Aborting task");
     handle.abort();
     println!("== Aborted");

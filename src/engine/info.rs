@@ -81,7 +81,7 @@ pub struct CurrentLine {
 }
 
 /// <https://backscattering.de/chess/uci/#engine-info>
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: Option<Depth>,
