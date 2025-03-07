@@ -5,11 +5,11 @@
 //!
 //! This example requires that you have installed Stockfish.
 #![cfg(feature = "engine-connection")]
-use ruci::{gui, UciMoves};
-use ruci::EngineConnection;
-use std::io;
-use shakmaty::uci::UciMove;
 use ruci::gui::SetPosition;
+use ruci::EngineConnection;
+use ruci::{gui, UciMoves};
+use shakmaty::uci::UciMove;
+use std::io;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -24,11 +24,16 @@ async fn main() -> io::Result<()> {
     println!("== Options: {options:?}");
 
     println!("== Sending custom FEN with an extra move");
-    
-    engine_conn.send_message(&SetPosition::Fen {
-        fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
-        moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()]))
-    }.into()).await?;
+
+    engine_conn
+        .send_message(
+            &SetPosition::Fen {
+                fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
+                moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()])),
+            }
+            .into(),
+        )
+        .await?;
 
     println!("== Sending isready message, waiting for readyok");
 
