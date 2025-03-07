@@ -141,11 +141,12 @@ impl FromStr for Message {
     }
 }
 
+/// Always end with a newline.
 impl Display for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Engine(e) => write!(f, "{e}"),
-            Self::Gui(g) => write!(f, "{g}"),
+            Self::Engine(e) => e.fmt(f),
+            Self::Gui(g) => g.fmt(f),
         }
     }
 }

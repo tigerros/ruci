@@ -3,7 +3,7 @@ dry_mods::mods! {
 }
 
 use crate::define_message::define_message;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Display, Formatter};
 
 define_message! {
     /// A message sent from the GUI to the engine.
@@ -54,11 +54,11 @@ impl Display for Message {
             Self::UseUci => f.write_str("uci\n"),
             Self::Debug(value) => writeln!(f, "debug {}", if *value { "on" } else { "off" }),
             Self::IsReady => f.write_str("isready\n"),
-            Self::SetOption(message) => f.write_str(&message.to_string()),
-            Self::Register(kind) => f.write_str(&kind.to_string()),
+            Self::SetOption(m) => m.fmt(f),
+            Self::Register(m) => m.fmt(f),
             Self::UciNewGame => f.write_str("ucinewgame\n"),
-            Self::SetPosition(kind) => f.write_str(&kind.to_string()),
-            Self::Go(message) => f.write_str(&message.to_string()),
+            Self::SetPosition(m) => m.fmt(f),
+            Self::Go(m) => m.fmt(f),
             Self::Stop => f.write_str("stop\n"),
             Self::PonderHit => f.write_str("ponderhit\n"),
             Self::Quit => f.write_str("quit\n"),

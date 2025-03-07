@@ -43,14 +43,14 @@ impl Display for Message {
     #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Id(kind) => f.write_str(&kind.to_string()),
+            Self::Id(m) => m.fmt(f),
             Self::UciOk => f.write_str("uciok\n"),
             Self::ReadyOk => f.write_str("readyok\n"),
-            Self::BestMove(message) => f.write_str(&message.to_string()),
-            Self::CopyProtection(kind) => f.write_str(&kind.to_string()),
-            Self::Registration(kind) => f.write_str(&kind.to_string()),
-            Self::Info(info) => f.write_str(&info.to_string()),
-            Self::Option(option) => f.write_str(&option.to_string()),
+            Self::BestMove(m) => m.fmt(f),
+            Self::CopyProtection(m) => m.fmt(f),
+            Self::Registration(m) => m.fmt(f),
+            Self::Info(m) => m.fmt(f),
+            Self::Option(m) => m.fmt(f),
         }
     }
 }
