@@ -5,7 +5,7 @@
 //! see `go`.
 //!
 //! This example requires that you have installed Stockfish.
-
+#![cfg(feature = "engine-connection")]
 use parking_lot::Mutex;
 use ruci::gui;
 use ruci::EngineConnection;

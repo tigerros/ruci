@@ -4,7 +4,7 @@
 //! For an example where calculation is interrupted, see `go_async_info`.
 //!
 //! This example requires that you have installed Stockfish.
-
+#![cfg(feature = "engine-connection")]
 use ruci::gui;
 use ruci::EngineConnection;
 use std::io;
