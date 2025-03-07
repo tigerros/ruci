@@ -14,6 +14,8 @@ impl From<Vec<UciMove>> for UciMoves {
 
 impl FromStr for UciMoves {
     type Err = ();
+    
+    /// Splits a string by spaces and keeps parsing the fragments until it encounters an error.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.split(' ').map_while(|part| part.parse().ok()).collect(),
