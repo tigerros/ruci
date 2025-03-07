@@ -58,7 +58,7 @@ impl Error for ParameterPointerParseError {}
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]
 /// Something went wrong with spawning the engine process.
-pub enum CreationError {
+pub enum ConnectionError {
     Spawn(io::Error),
     /// See <https://docs.rs/tokio/1.43.0/tokio/process/struct.Child.html#structfield.stdout>.
     StdoutIsNotCaptured,
@@ -67,7 +67,7 @@ pub enum CreationError {
 }
 
 #[cfg(feature = "engine-connection")]
-impl Display for CreationError {
+impl Display for ConnectionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Spawn(e) => write!(f, "failed to spawn UCI engine connection: {e}"),
@@ -82,7 +82,7 @@ impl Display for CreationError {
 }
 
 #[cfg(feature = "engine-connection")]
-impl Error for CreationError {}
+impl Error for ConnectionError {}
 
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]

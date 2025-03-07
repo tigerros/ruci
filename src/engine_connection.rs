@@ -1,4 +1,5 @@
 use crate::{engine, errors, gui, Message};
+use std::ffi::OsStr;
 use std::process::Stdio;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -20,14 +21,14 @@ pub struct EngineConnection {
 
 impl EngineConnection {
     /// # Errors
-    /// [`errors::CreationError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(mut process: Child) -> Result<Self, errors::CreationError> {
+    /// [`errors::ConnectionError::Spawn`] is guaranteed not to occur here.
+    pub fn from_process(mut process: Child) -> Result<Self, errors::ConnectionError> {
         let Some(stdout) = process.stdout.take() else {
-            return Err(errors::CreationError::StdoutIsNotCaptured);
+            return Err(errors::ConnectionError::StdoutIsNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(errors::CreationError::StdinIsNotCaptured);
+            return Err(errors::ConnectionError::StdinIsNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -42,10 +43,8 @@ impl EngineConnection {
     /// Creates a new connection from the given executable path.
     ///
     /// # Errors
-    /// - Spawning the process errored.
-    /// - Stdout is [`None`].
-    /// - Stdin is [`None`].
-    pub fn from_path(path: &str) -> Result<Self, errors::CreationError> {
+    /// See [`errors::ConnectionError`].
+    pub fn from_path(path: AsRef<OsStr>) -> Result<Self, errors::ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -54,14 +53,14 @@ impl EngineConnection {
         // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
         let cmd = cmd.creation_flags(0x0800_0000);
 
-        let mut process = cmd.spawn().map_err(errors::CreationError::Spawn)?;
+        let mut process = cmd.spawn().map_err(errors::ConnectionError::Spawn)?;
 
         let Some(stdout) = process.stdout.take() else {
-            return Err(errors::CreationError::StdoutIsNotCaptured);
+            return Err(errors::ConnectionError::StdoutIsNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(errors::CreationError::StdinIsNotCaptured);
+            return Err(errors::ConnectionError::StdinIsNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -98,8 +97,7 @@ impl EngineConnection {
     /// Reads a line and attempts to parse it into a message.
     ///
     /// # Errors
-    /// - Reading resulted in an IO error.
-    /// - Parsing the message errors.
+    /// See [`errors::ReadMessageError`].
     pub async fn read_message(&mut self) -> Result<engine::Message, errors::ReadMessageError> {
         let mut line = String::new();
         self.stdout
@@ -116,7 +114,7 @@ impl EngineConnection {
         }
     }
 
-    /// Sends the [`gui::Message::UseUci`] message and returns the engine's ID and a vector of options
+    /// Sends the [`uci`](https://backscattering.de/chess/uci/#gui-uci) message and returns the engine's ID and a vector of options
     /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
     ///
     /// # Errors
@@ -144,9 +142,9 @@ impl EngineConnection {
     /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
     /// returning it, along with a list of [`info`](https://backscattering.de/chess/uci/#engine-info) messages.
     ///
-    /// Note that the engine will only send the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove)
+    /// Note that the engine will only send the `bestmove`
     /// message if you set some constraint to prevent the engine from thinking forever.
-    /// This can be `depth` or `wtime`/`btime`.
+    /// This can be [`depth`](https://backscattering.de/chess/uci/#engine-info-depth) or [`wtime`](https://backscattering.de/chess/uci/#gui-go-wtime)/[`btime`](https://backscattering.de/chess/uci/#gui-go-btime).
     ///
     /// If you don't have that kind of constraint but want to receive scores and best continuations
     /// (without waiting until the engine finishes with `bestmove`),
@@ -184,8 +182,8 @@ impl EngineConnection {
 
     // CLIPPY: Errors doc is in the linked `go` function.
     #[allow(clippy::missing_errors_doc)]
-    /// Equivalent to the [`Self::go`] function, but doesn't store a vector of info messages,
-    /// and returns only the last one instead.
+    /// Same as [`Self::go`], but doesn't store a vector of [`info`](https://backscattering.de/chess/uci/#engine-info)
+    /// messages, instead only returning the last one.
     pub async fn go_only_last_info(
         &mut self,
         message: gui::Go,
@@ -210,11 +208,11 @@ impl EngineConnection {
     }
 
     /// Same as [`Self::go`], but instead of returning the [`info`](https://backscattering.de/chess/uci/#engine-info)
-    /// messages and the best move together (after waiting for the engine), it immediately returns a tuple which contains:
+    /// messages and the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) together (after waiting for the engine), it immediately returns a tuple which contains:
     ///
-    /// - A receiver for the info messages.
-    /// - A handle to a task which will send info messages to the receiver and, once the engine returns a
-    ///   [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message, will return that message.
+    /// - A receiver for the `info` messages.
+    /// - A handle to a task which will send `info` messages to the receiver and, once the engine returns a
+    ///   `bestmove` message, will return that message.
     ///
     /// The spawned task will never panic. It is thus safe to call [`Result::unwrap`] on the handle.
     /// However, the value returned by the handle may be an error, so don't call `unwrap` twice!
@@ -264,7 +262,7 @@ impl EngineConnection {
     ///
     /// # Errors
     /// - Writing (sending the message) errored.
-    /// - Reading (reading until [`readyok`](https://backscattering.de/chess/uci/#engine-readyok)) errored.
+    /// - Reading (reading until `readyok`) errored.
     pub async fn is_ready(&mut self) -> io::Result<()> {
         self.send_message(&gui::Message::IsReady).await?;
 
