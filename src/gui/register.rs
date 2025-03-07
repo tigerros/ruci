@@ -71,6 +71,7 @@ impl Display for Register {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use std::str::FromStr;
     use pretty_assertions::assert_eq;
@@ -79,13 +80,20 @@ mod tests {
 
     #[test]
     fn to_from_str() {
-        let repr: Message = Register::NameAndCode {
+        let m: Message = Register::NameAndCode {
             name: "john smith".to_string(),
             code: "31 tango".to_string()
         }.into();
-        let str_repr = "register name john smith code 31 tango\n";
+        let str = "register name john smith code 31 tango\n";
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_eq!(m.to_string(), str);
+        assert_eq!(Message::from_str(str), Ok(m));
+    }
+
+    #[test]
+    fn invalid_parameter() {
+        let m: Message = Register::Name("a l o t o f s p a c e s".to_string()).into();
+        assert_eq!(m.to_string(), "register name a l o t o f s p a c e s\n");
+        assert_eq!(Message::from_str("register blahblah woo name a l o t o f s p a c e s\n").unwrap(), m);
     }
 }

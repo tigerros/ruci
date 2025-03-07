@@ -43,3 +43,32 @@ impl Display for CopyProtection {
         f.write_char('\n')
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use std::str::FromStr;
+    use crate::Message;
+    use super::*;
+
+    #[test]
+    fn to_from_str_ok() {
+        let m: Message = CopyProtection::Ok.into();
+        let str = "copyprotection ok\n";
+        assert_eq!(m.to_string(), str);
+        assert_eq!(Message::from_str(str).unwrap(), m);
+    }
+
+    #[test]
+    fn to_from_str_error() {
+        let m: Message = CopyProtection::Error.into();
+        let str = "copyprotection error\n";
+        assert_eq!(m.to_string(), str);
+        assert_eq!(Message::from_str(str).unwrap(), m);
+    }
+
+    #[test]
+    fn parse_error() {
+        pretty_assertions::assert_eq!(Message::from_str("copyprotection why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError));
+    }
+}
