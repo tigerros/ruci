@@ -26,6 +26,10 @@ async fn main() -> io::Result<()> {
     println!("== Options: {options:?}");
     println!("== Sending isready message, waiting for readyok");
 
+    engine_conn.is_ready().await?;
+    
+    println!("== Received readyok, starting analysis");
+
     let engine_conn = Arc::new(Mutex::new(engine_conn));
 
     let (mut info_rx, handle) = EngineConnection::go_async_info(

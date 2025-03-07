@@ -21,6 +21,10 @@ async fn main() -> io::Result<()> {
     println!("== ID: {id:?}");
     println!("== Options: {options:?}");
     println!("== Sending isready message, waiting for readyok");
+    
+    engine_conn.is_ready().await?;
+
+    println!("== Received readyok, starting analysis");
 
     let (infos, best_move) = engine_conn
         .go(gui::Go {
