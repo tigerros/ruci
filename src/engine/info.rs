@@ -267,11 +267,10 @@ impl TryFrom<RawMessage> for Info {
                 }
                 
                 let refuted_move = move_list.0.remove(0);
-                let refutation = move_list.0.get(1..)?;
 
                 Some(Refutation {
                     refuted_move,
-                    refutation: UciMoves(refutation.to_vec()),
+                    refutation: move_list,
                 })
             });
 

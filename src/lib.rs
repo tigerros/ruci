@@ -28,7 +28,7 @@
     clippy::unreachable,
     clippy::panic_in_result_fn,
     clippy::indexing_slicing,
-    clippy::string_slice,
+    clippy::string_slice
 )]
 #![doc = include_str!("../README.md")]
 //! Get started with [`Message`]!

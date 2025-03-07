@@ -23,7 +23,7 @@ impl FromStr for RawMessage {
         } else {
             s
         };
-        
+
         let parts = s.trim().split(' ').collect::<Vec<_>>();
 
         let Some(Ok(message_pointer)) = parts.first().map(|p| MessagePointer::from_str(p)) else {

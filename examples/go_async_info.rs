@@ -60,7 +60,10 @@ async fn main() -> io::Result<()> {
     println!("== Task result: {:#?}", handle.await);
     println!("== Sending quit message");
 
-    engine_conn.lock_arc().send_message(&gui::Message::Quit).await?;
+    engine_conn
+        .lock_arc()
+        .send_message(&gui::Message::Quit)
+        .await?;
 
     println!("== Sent. Program terminated");
 

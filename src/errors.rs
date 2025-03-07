@@ -1,11 +1,11 @@
 use crate::ParameterPointer;
-use std::fmt::Debug;
 #[cfg(feature = "engine-connection")]
-use tokio::io;
+use std::error::Error;
+use std::fmt::Debug;
 #[cfg(feature = "engine-connection")]
 use std::fmt::Display;
 #[cfg(feature = "engine-connection")]
-use std::error::Error;
+use tokio::io;
 
 /// Something went wrong with parsing a message.
 ///
