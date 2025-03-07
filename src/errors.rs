@@ -1,9 +1,6 @@
 use crate::ParameterPointer;
-#[cfg(feature = "engine-connection")]
 use std::error::Error;
-#[cfg(feature = "engine-connection")]
-use std::fmt::Display;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "engine-connection")]
 use tokio::io;
 
