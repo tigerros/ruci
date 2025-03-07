@@ -25,7 +25,7 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
   - Maybe a pet peeve, but sometimes uses enum fields instead of separate types. IMHO this is bad because you can't represent just an `id` message, because the fields are baked into the whole enum.
   - Doesn't provide the actual IO communication with an engine.
 - [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci):
-  - This library is based on `vampirc-uci`, so all of the above bullet points apply, except:
+  - This library is based on/inspired by `vampirc-uci`, so all of the above bullet points apply, except:
     - Uses shakmaty.
     - Uses [`nom`](https://crates.io/crates/nom) for parsing.
     - Doesn't have any other dependencies.
