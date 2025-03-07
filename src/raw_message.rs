@@ -2,7 +2,8 @@ use crate::{MessagePointer, ParameterPointer};
 use std::collections::HashMap;
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
+// Private type
+#[allow(missing_debug_implementations)]
 pub struct RawMessage {
     pub message_pointer: MessagePointer,
     pub parameters: HashMap<ParameterPointer, String>,
