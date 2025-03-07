@@ -6,6 +6,7 @@ use crate::raw_message::RawMessage;
 /// <https://backscattering.de/chess/uci/#engine-registration>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Registration {
     Checking,
     Ok,

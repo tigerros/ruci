@@ -6,6 +6,7 @@ use crate::raw_message::RawMessage;
 use crate::UciMoves;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-depth>
 pub struct Depth {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
@@ -15,6 +16,7 @@ pub struct Depth {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ScoreBound {
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
     Lowerbound,
@@ -24,6 +26,7 @@ pub enum ScoreBound {
 
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Score {
     /// <https://backscattering.de/chess/uci/#engine-info-score-centipawns>
     Centipawns(isize),
@@ -39,6 +42,7 @@ pub enum Score {
 ///
 /// **Do not use** this with engines that *do* return a standardized score.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ScoreStandardized(Score);
 
 impl ScoreStandardized {
@@ -58,6 +62,7 @@ impl ScoreStandardized {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 pub struct ScoreWithBound {
     pub kind: Score,
@@ -74,6 +79,7 @@ pub struct Refutation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct CurrentLine {
     pub used_cpu: Option<usize>,

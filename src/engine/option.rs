@@ -6,6 +6,7 @@ use crate::raw_message::RawMessage;
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum OptionType {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check,

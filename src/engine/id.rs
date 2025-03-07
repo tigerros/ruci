@@ -3,8 +3,8 @@ use crate::errors::MessageParseError;
 use crate::message_from_impl::message_from_impl;
 use crate::raw_message::RawMessage;
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-id>
 pub enum Id {
     /// <https://backscattering.de/chess/uci/#engine-id-name>

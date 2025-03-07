@@ -6,6 +6,7 @@ use crate::UciMoves;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#gui-position>
 pub enum SetPosition {
     StartingPosition {
