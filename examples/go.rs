@@ -22,16 +22,17 @@ async fn main() -> io::Result<()> {
     println!("== Received uciok");
     println!("== ID: {id:?}");
     println!("== Options: {options:?}");
-    println!("== Sending isready message, waiting for readyok");
 
-    engine_conn.is_ready().await?;
-
-    println!("== Received readyok, sending custom FEN with an extra move");
+    println!("== Sending custom FEN with an extra move");
     
     engine_conn.send_message(&SetPosition::Fen {
         fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
         moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()]))
     }.into()).await?;
+
+    println!("== Sending isready message, waiting for readyok");
+
+    engine_conn.is_ready().await?;
 
     let (infos, best_move) = engine_conn
         .go(gui::Go {
