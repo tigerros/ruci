@@ -1,9 +1,9 @@
 use crate::ParameterPointer;
 #[cfg(feature = "engine-connection")]
 use std::error::Error;
-use std::fmt::Debug;
 #[cfg(feature = "engine-connection")]
 use std::fmt::Display;
+use std::fmt::{Debug, Formatter};
 #[cfg(feature = "engine-connection")]
 use tokio::io;
 
@@ -25,11 +25,38 @@ pub enum MessageParseError {
     MissingValue,
 }
 
+impl Display for MessageParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidMessage => f.write_str("invalid UCI message"),
+            Self::ParameterParseError(p) => {
+                write!(f, "could not parse this UCI parameter: {}", p.to_string())
+            }
+            Self::MissingParameter(p) => write!(f, "missing UCI parameter: {}", p.to_string()),
+            Self::ValueParseError => f.write_str("invalid UCI value"),
+            Self::MissingValue => f.write_str("missing UCI value"),
+        }
+    }
+}
+
+impl Error for MessageParseError {}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ParameterPointerParseError {
     MessageHasNoParameters,
     StringDoesNotMapToParameterPointer,
 }
+
+impl Display for ParameterPointerParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StringDoesNotMapToParameterPointer => f.write_str("string does not map to parameter pointer"),
+            Self::MessageHasNoParameters => f.write_str("message has no parameters and thus can not convert it and a string to a parameter pointer"),
+        }
+    }
+}
+
+impl Error for ParameterPointerParseError {}
 
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]

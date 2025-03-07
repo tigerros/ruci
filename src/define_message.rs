@@ -31,8 +31,7 @@ macro_rules! define_message {
         }
 
         pub mod pointers {
-            /// This enum is used in parsing and is returned in errors to determine what message
-            /// is being processed, or which one was the source of an error.
+            /// See [`crate::MessagePointer`].
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
             pub enum MessagePointer {
                 $($message_ident),+
@@ -45,7 +44,7 @@ macro_rules! define_message {
                     }
                 }
 
-                pub const fn has_parameters(self) -> bool {
+                pub(crate) const fn has_parameters(self) -> bool {
                     match self {
                         $($(
                         Self::$message_ident => {
@@ -75,7 +74,7 @@ macro_rules! define_message {
                 }
             }
 
-            /// Similar to [`MessagePointer`], but points to individual parameters.
+            /// See [`crate::ParameterPointer`].
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
             pub enum ParameterPointer {
                 $($(
@@ -96,7 +95,7 @@ macro_rules! define_message {
                 impl ParameterPointer {
                     /// # Errors
                     /// See [`ParameterPointerParseError`]($crate::errors::ParameterPointerParseError).
-                    pub fn from_message_and_str(message_pointer: MessagePointer, s: &str) -> Result<Self, $crate::errors::ParameterPointerParseError> {
+                    pub(crate) fn from_message_and_str(message_pointer: MessagePointer, s: &str) -> Result<Self, $crate::errors::ParameterPointerParseError> {
                         match message_pointer {
                             $($(
                             MessagePointer::$message_ident => {
@@ -125,7 +124,7 @@ macro_rules! define_message {
                     }
 
                     #[allow(unreachable_patterns)]
-                    pub const fn is_void(self) -> bool {
+                    pub(crate) const fn is_void(self) -> bool {
                         match self {
                             $($(
                             Self::$message_ident(parameter_pointer) => {
@@ -151,7 +150,7 @@ macro_rules! define_message {
                         }
                     }
 
-                    pub const fn is_void(self) -> bool {
+                    pub(crate) const fn is_void(self) -> bool {
                         match self {
                             $($(
                             Self::$parameter_ident => {

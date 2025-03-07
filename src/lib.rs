@@ -30,13 +30,12 @@
     clippy::indexing_slicing,
     clippy::string_slice
 )]
-#![doc = include_str!("../README.md")]
 //! Get started with [`Message`]!
 //!
 //! Most of the docs should be self explanatory,
 //! but there is one thing which you might miss and is very helpful.
 //!
-//! A [`Message`] is an enum around an enum, which contains variants with fields,
+//! A [`Message`] is an enum around an enum, which contains variants with tuples,
 //! which is a lot of layers.
 //! So if you find yourself writing `Message::Gui(gui::Message::Go(gui::Go { .. }))`,
 //! there is an easier way! All messages implement [`From`] for the "higher level".
@@ -163,9 +162,16 @@ pub enum MessagePointer {
 }
 
 impl MessagePointer {
+    pub const fn to_string(self) -> &'static str {
+        match self {
+            Self::Engine(e) => e.to_string(),
+            Self::Gui(g) => g.to_string(),
+        }
+    }
+
     /// Whether this message has parameters.
     /// Some don't, like `uciok`.
-    pub const fn has_parameters(&self) -> bool {
+    pub(crate) const fn has_parameters(self) -> bool {
         match self {
             Self::Engine(p) => p.has_parameters(),
             Self::Gui(p) => p.has_parameters(),
@@ -192,9 +198,16 @@ pub enum ParameterPointer {
 }
 
 impl ParameterPointer {
+    pub const fn to_string(self) -> &'static str {
+        match self {
+            Self::Engine(e) => e.to_string(),
+            Self::Gui(g) => g.to_string(),
+        }
+    }
+
     /// # Errors
     /// See [`ParameterPointerParseError`](errors::ParameterPointerParseError).
-    pub fn from_message_and_str(
+    pub(crate) fn from_message_and_str(
         message_pointer: MessagePointer,
         s: &str,
     ) -> Result<Self, errors::ParameterPointerParseError> {
@@ -211,7 +224,7 @@ impl ParameterPointer {
 
     /// Some parameters don't have a value, like `ponder`.
     /// This function is necessary for parsing.
-    pub const fn is_void(self) -> bool {
+    pub(crate) const fn is_void(self) -> bool {
         match self {
             Self::Engine(p) => p.is_void(),
             Self::Gui(p) => p.is_void(),

@@ -13,7 +13,7 @@ It follows the [UCI standard](https://backscattering.de/chess/uci) and uses [`sh
 See the examples for a demo on how to send and receive messages.
 
 ## Comparison
-There's two other crates that I'm aware of which serve a similar purpose. Here's a small comparison but keep in mind I haven't looked extensively.
+There's two other crates that I'm aware of which serve a similar purpose. Here's a shallow comparison but keep in mind **I haven't looked extensively and I am not an expert**.
 
 - [`vampirc-uci`](https://crates.io/crates/vampirc-uci):
   - Doesn't use shakmaty, which AFAIK is the go-to chess crate now.
