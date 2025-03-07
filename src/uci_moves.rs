@@ -6,6 +6,12 @@ use std::str::FromStr;
 /// A simple [`Vec<UciMove>`] wrapper that provides [`FromStr`] and [`Display`] implementations.
 pub struct UciMoves(pub Vec<UciMove>);
 
+impl From<Vec<UciMove>> for UciMoves {
+    fn from(moves: Vec<UciMove>) -> Self {
+        Self(moves)
+    }
+}
+
 impl FromStr for UciMoves {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
