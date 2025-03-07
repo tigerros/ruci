@@ -1,13 +1,15 @@
 //! This example shows how to start a UCI connection, send it some initial commands,
-//! start calculating a position, and let it finish.
+//! start calculating a custom position, and let it finish.
 //!
 //! For an example where calculation is interrupted, see `go_async_info`.
 //!
 //! This example requires that you have installed Stockfish.
 #![cfg(feature = "engine-connection")]
-use ruci::gui;
+use ruci::{gui, UciMoves};
 use ruci::EngineConnection;
 use std::io;
+use shakmaty::uci::UciMove;
+use ruci::gui::SetPosition;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -24,7 +26,12 @@ async fn main() -> io::Result<()> {
 
     engine_conn.is_ready().await?;
 
-    println!("== Received readyok, starting analysis");
+    println!("== Received readyok, sending custom FEN with an extra move");
+    
+    engine_conn.send_message(&SetPosition::Fen {
+        fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
+        moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()]))
+    }.into()).await?;
 
     let (infos, best_move) = engine_conn
         .go(gui::Go {
@@ -37,6 +44,7 @@ async fn main() -> io::Result<()> {
         println!("Info: {info:?}");
     }
 
+    // This should probably be e2g8, but might change depending on how stockfish feels.as
     println!("Best move: {best_move:?}");
 
     println!("== Sending quit message");
