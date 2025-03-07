@@ -81,4 +81,14 @@ mod tests {
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
+    
+    #[test]
+    fn invalid_moves() {
+        let m: Message = SetPosition::StartingPosition {
+            moves: Some(UciMoves(vec![UciMove::from_ascii(b"d2d4").unwrap()])),
+        }.into();
+
+        assert_eq!(m.to_string(), "position startpos moves d2d4\n");
+        assert_eq!(Message::from_str("position startpos moves d2d4 this ain't a move buddy pal\n"), Ok(m));
+    }
 }
