@@ -38,8 +38,8 @@ impl Display for MessageParseError {
 
 impl Error for MessageParseError {}
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ParameterPointerParseError {
+#[derive(Debug)]
+pub(crate) enum ParameterPointerParseError {
     MessageHasNoParameters,
     StringDoesNotMapToParameterPointer,
 }
@@ -99,7 +99,7 @@ impl Display for ReadMessageError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(e) => write!(f, "failed to read UCI engine message: {e}"),
-            Self::MessageParse(e) => write!(f, "failed to parse UCI engine message: {e:?}"),
+            Self::MessageParse(e) => write!(f, "failed to parse UCI engine message: {e}"),
             Self::GotGuiMessage => write!(
                 f,
                 "received GUI UCI message but was expecting engine message"

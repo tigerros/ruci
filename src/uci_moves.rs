@@ -14,8 +14,8 @@ impl From<Vec<UciMove>> for UciMoves {
 
 impl FromStr for UciMoves {
     type Err = ();
-    
-    /// Splits a string by spaces and keeps parsing the fragments until it encounters an error.
+
+    /// Splits a string by spaces and keeps parsing the fragments to a [`UciMove`] until it encounters an error.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.split(' ').map_while(|part| part.parse().ok()).collect(),
@@ -24,6 +24,7 @@ impl FromStr for UciMoves {
 }
 
 impl Display for UciMoves {
+    /// Just joins the moves with a space.
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut first_iter = true;
 
@@ -35,7 +36,7 @@ impl Display for UciMoves {
                 f.write_char(' ')?;
             }
 
-            f.write_str(&r#move.to_string())?;
+            r#move.fmt(f)?;
         }
 
         Ok(())

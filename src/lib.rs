@@ -40,7 +40,7 @@
 //! So if you find yourself writing `Message::Gui(gui::Message::Go(gui::Go { .. }))`,
 //! there is an easier way! All messages implement [`From`] for the "higher level".
 //!
-//! That means that a [`Go`](gui::Go) implements [`From`] for [`gui::Message`] and [`Message`].
+//! That means that a [`Go`] implements [`From`] for [`gui::Message`] and [`Message`].
 //! So just call `gui::Go { .. }.into()` and you're good to go!
 //!
 //! This also applies to pointers (what are those? go to [`MessagePointer`]), although
@@ -141,8 +141,8 @@ impl FromStr for Message {
     }
 }
 
-/// Always end with a newline.
 impl Display for Message {
+    /// Always end with a newline.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Engine(e) => e.fmt(f),
