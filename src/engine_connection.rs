@@ -44,7 +44,7 @@ impl EngineConnection {
     ///
     /// # Errors
     /// See [`errors::ConnectionError`].
-    pub fn from_path(path: AsRef<OsStr>) -> Result<Self, errors::ConnectionError> {
+    pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, errors::ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
