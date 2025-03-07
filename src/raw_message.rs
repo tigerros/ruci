@@ -54,11 +54,12 @@ impl FromStr for RawMessage {
             parts.len().saturating_div(2).saturating_sub(1),
         );
         let mut void_parameters = Vec::with_capacity(2);
-        let mut option_vars = if message_pointer == crate::engine::pointers::MessagePointer::Option.into() {
-            Vec::with_capacity(10)
-        } else {
-            Vec::new()
-        };
+        let mut option_vars =
+            if message_pointer == crate::engine::pointers::MessagePointer::Option.into() {
+                Vec::with_capacity(10)
+            } else {
+                Vec::new()
+            };
         let mut value = String::with_capacity(30);
         let mut value_override = None::<String>;
         let mut last_parameter = None::<ParameterPointer>;
