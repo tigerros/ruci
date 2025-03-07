@@ -19,7 +19,7 @@ There's two other crates that I'm aware of which serve a similar purpose. Here's
   - Doesn't use shakmaty, which AFAIK is the go-to chess crate now.
   - Uses [`pest`](https://pest.rs/) for parsing (ruci does it manually).
   - More dependencies; `pest` and `chrono`. Ruci only has shakmaty and two macros which don't get included in the final binary.
-  - Lot more tests than ruci. However, ruci has simpler parsing and less code. But yes, the tests are not ideal.
+  - Lot more tests than ruci. However, ruci has simpler parsing and less code. But yes, I am guilty.
   - Doesn't separate GUI and engine-bound messages.
   - Less direct implementation of the UCI standard.
   - Maybe a pet peeve, but sometimes uses enum fields instead of separate types. IMHO this is bad because you can't represent just an `id` message, because the fields are baked into the whole enum.
