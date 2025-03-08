@@ -5,6 +5,7 @@ use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-copyprotection>
 pub enum CopyProtection {
     Ok,

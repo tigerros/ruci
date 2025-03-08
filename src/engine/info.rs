@@ -19,9 +19,9 @@ pub struct Depth {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ScoreBound {
     /// <https://backscattering.de/chess/uci/#engine-info-score-lowerbound>
-    Lowerbound,
+    LowerBound,
     /// <https://backscattering.de/chess/uci/#engine-info-score-upperbound>
-    Upperbound,
+    UpperBound,
 }
 
 /// <https://backscattering.de/chess/uci/#engine-info-score>
@@ -72,8 +72,10 @@ pub struct ScoreWithBound {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct Refutation {
+    #[cfg_attr(feature = "serde", serde(with = "crate::uci_move_serde"))]
     pub refuted_move: UciMove,
     pub refutation: UciMoves,
 }
@@ -88,6 +90,7 @@ pub struct CurrentLine {
 
 /// <https://backscattering.de/chess/uci/#engine-info>
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: Option<Depth>,
@@ -101,6 +104,7 @@ pub struct Info {
     pub multi_primary_variation: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score>
     pub score: Option<ScoreWithBound>,
+    #[cfg_attr(feature = "serde", serde(with = "crate::uci_move_serde::option"))]
     /// <https://backscattering.de/chess/uci/#engine-info-currmove>
     pub current_move: Option<UciMove>,
     /// <https://backscattering.de/chess/uci/#engine-info-currmovenumber>
@@ -215,9 +219,9 @@ impl TryFrom<RawMessage> for Info {
                     bound: if is_lowerbound && is_upperbound {
                         None
                     } else if is_lowerbound {
-                        Some(ScoreBound::Lowerbound)
+                        Some(ScoreBound::LowerBound)
                     } else if is_upperbound {
-                        Some(ScoreBound::Upperbound)
+                        Some(ScoreBound::UpperBound)
                     } else {
                         None
                     },
@@ -357,10 +361,10 @@ impl Display for Info {
             }
 
             match score.bound {
-                Some(ScoreBound::Upperbound) => {
+                Some(ScoreBound::UpperBound) => {
                     f.write_str(" upperbound")?;
                 }
-                Some(ScoreBound::Lowerbound) => {
+                Some(ScoreBound::LowerBound) => {
                     f.write_str(" lowerbound")?;
                 }
                 None => {}
@@ -464,7 +468,7 @@ mod tests {
             multi_primary_variation: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
-                bound: Some(ScoreBound::Lowerbound),
+                bound: Some(ScoreBound::LowerBound),
             }),
             current_move: Some(UciMove::from_ascii(b"e2e4").unwrap()),
             current_move_number: None,

@@ -16,6 +16,7 @@ macro_rules! define_message {
     ) => {
         $(#[$attr])*
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub enum Message {
             $(
             $(#[$message_attr])*
@@ -33,6 +34,7 @@ macro_rules! define_message {
         pub mod pointers {
             /// See [`crate::MessagePointer`].
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
             pub enum MessagePointer {
                 $($message_ident),+
             }
@@ -76,6 +78,7 @@ macro_rules! define_message {
 
             /// See [`crate::ParameterPointer`].
             #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
             pub enum ParameterPointer {
                 $($(
                     #[allow(unused_doc_comments)]
@@ -139,6 +142,7 @@ macro_rules! define_message {
 
             $($(::paste::paste! {
                 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+                #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
                 pub enum [< $message_ident ParameterPointer >] {
                     $($parameter_ident),+
                 }

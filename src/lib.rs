@@ -54,6 +54,8 @@ pub mod errors;
 pub mod gui;
 mod message_from_impl;
 mod raw_message;
+#[cfg(feature = "serde")]
+mod uci_move_serde;
 mod uci_moves;
 
 use crate::engine::{BestMove, CopyProtection, Id, Info, Registration};
@@ -67,6 +69,7 @@ use std::str::FromStr;
 pub use uci_moves::UciMoves;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Message {
     Engine(engine::Message),
     Gui(gui::Message),
@@ -78,8 +81,7 @@ impl FromStr for Message {
     /// Tries to parse one line to a [`Message`].
     /// If there's a newline character (`\n`) present, only the first line will be processed.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let raw_message = s
-            .parse::<RawMessage>()
+        let raw_message = RawMessage::from_str(s)
             .map_err(|()| MessageParseError::InvalidMessage)?;
 
         match raw_message.message_pointer {
@@ -157,6 +159,7 @@ impl Display for Message {
 /// However, it may be returned with errors, which is helpful because they will tell you
 /// exactly where the problem is.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MessagePointer {
     Engine(engine::pointers::MessagePointer),
     Gui(gui::pointers::MessagePointer),
@@ -171,7 +174,7 @@ impl MessagePointer {
     }
 
     /// Whether this message has parameters.
-    /// Some don't, like `uciok`.
+    /// Some don't, like [`uciok`](https://backscattering.de/chess/uci/#engine-uciok).
     pub(crate) const fn has_parameters(self) -> bool {
         match self {
             Self::Engine(p) => p.has_parameters(),
@@ -193,6 +196,7 @@ impl FromStr for MessagePointer {
 
 /// Like [`MessagePointer`], but for pointing at specific parameters.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ParameterPointer {
     Engine(engine::pointers::ParameterPointer),
     Gui(gui::pointers::ParameterPointer),

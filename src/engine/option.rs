@@ -37,6 +37,7 @@ type StdOption<T> = std::option::Option<T>;
 /// <https://backscattering.de/chess/uci/#engine-option>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Option {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check {

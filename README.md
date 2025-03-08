@@ -32,3 +32,4 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
 
 ## Feature flags
 - `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) and [`parking_lot`](https://crates.io/crates/parking_lot) as dependencies. If you're making an engine, listen to stdin and parse it into a `gui::Message`, then print a string representation of an `engine::Message`.
+- `serde`: enables `Serialize` and `Deserialize` for all types, include one of the errors. All of the implementations are derived with no parameters.

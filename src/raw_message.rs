@@ -17,21 +17,19 @@ pub struct RawMessage {
 impl FromStr for RawMessage {
     type Err = ();
 
-    /// Should only be used with one line.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim();
         let s = if let Some((s1, _)) = s.split_once('\n') {
             s1
         } else {
             s
         };
 
-        let parts = s.trim().split(' ').collect::<Vec<_>>();
-
-        let Some(Ok(message_pointer)) = parts.first().map(|p| MessagePointer::from_str(p)) else {
-            return Err(());
-        };
-
-        let Some(parts_rest) = parts.get(1..) else {
+        let mut parts = s.split(' ');
+        let message_pointer = parts.find_map(|part| MessagePointer::from_str(part).ok()).ok_or(())?;
+        let parts = parts.collect::<Vec<_>>();
+        
+        if parts.is_empty() {
             return Ok(Self {
                 message_pointer,
                 parameters: HashMap::new(),
@@ -39,7 +37,7 @@ impl FromStr for RawMessage {
                 option_vars: Vec::new(),
                 value: None,
             });
-        };
+        }
 
         if !message_pointer.has_parameters() {
             return Ok(Self {
@@ -47,7 +45,7 @@ impl FromStr for RawMessage {
                 parameters: HashMap::new(),
                 void_parameters: Vec::new(),
                 option_vars: Vec::new(),
-                value: Some(parts_rest.join(" ")),
+                value: Some(parts.join(" ")),
             });
         }
 
@@ -66,7 +64,7 @@ impl FromStr for RawMessage {
         let mut last_parameter = None::<ParameterPointer>;
         let mut first_parameter_encountered = false;
 
-        for part in parts_rest {
+        for part in parts {
             let Ok(parameter_pointer) =
                 ParameterPointer::from_message_and_str(message_pointer, part)
             else {

@@ -9,8 +9,9 @@ use tokio::io;
 /// Note that the parsing is pretty liberal and ignores errors unless they're critical.
 /// For example, parsing errors will be ignored for most parameters, because they're optional.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MessageParseError {
-    /// There either is no message or it's not valid.
+    /// No message in the string was found.
     InvalidMessage,
     /// A parameter has an invalid value and could not be parsed (the pointer tells you which one).
     ParameterParseError(ParameterPointer),
