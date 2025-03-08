@@ -50,7 +50,7 @@ async fn main() -> io::Result<()> {
         println!("Info: {info:?}");
     }
 
-    // This should probably be e2g8, but might change depending on how stockfish feels.as
+    // This should probably be e2g8, but might change depending on how stockfish feels
     println!("Best move: {best_move:?}");
 
     println!("== Sending quit message");
