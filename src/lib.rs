@@ -57,6 +57,7 @@ mod raw_message;
 #[cfg(feature = "serde")]
 mod uci_move_serde;
 mod uci_moves;
+mod parsing;
 
 use crate::engine::{BestMove, CopyProtection, Id, Info, Registration};
 use crate::errors::MessageParseError;

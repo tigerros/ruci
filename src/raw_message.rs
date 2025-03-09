@@ -1,6 +1,7 @@
 use crate::{MessagePointer, ParameterPointer};
 use std::collections::HashMap;
 use std::str::FromStr;
+use crate::errors::MessageParseError;
 
 // Private type
 #[allow(missing_debug_implementations)]
@@ -12,6 +13,39 @@ pub struct RawMessage {
     /// The `var` parameter of the `option` message is the only one with multiple values.
     pub option_vars: Vec<String>,
     pub value: Option<String>,
+}
+
+pub enum Config {
+    Go,
+    Option,
+    YesParametersNoValue,
+    NoParametersYesValue,
+}
+
+pub struct Return<P> {
+    pub parameters: HashMap<P, String>,
+    /// If the `ponder` void parameter is present.
+    pub ponder: bool,
+    /// If the `infinite` void parameter is present.
+    pub infinite: bool,
+    pub option_vars: Vec<String>,
+    pub value: String,
+}
+
+impl<P> Return<P> where P: FromStr {
+    pub fn from_str_with_config(parts: Vec<&str>, config: Config) -> Result<Self, MessageParseError> {
+        if parts.is_empty() {
+            return Ok(Self {
+                parameters: HashMap::new(),
+                ponder: false,
+                infinite: false,
+                option_vars: Vec::new(),
+                value: String::new(),
+            });
+        }
+
+        if config.parameters
+    }
 }
 
 impl FromStr for RawMessage {
@@ -76,9 +110,8 @@ impl FromStr for RawMessage {
             if !first_parameter_encountered {
                 value_override = Some(value.trim().to_string());
                 value = String::with_capacity(30);
+                first_parameter_encountered = true;
             }
-
-            first_parameter_encountered = true;
 
             if let Some(last_parameter) = last_parameter {
                 if last_parameter == crate::engine::pointers::OptionParameterPointer::Var.into() {

@@ -148,6 +148,13 @@ macro_rules! define_message {
                 }
 
                 impl [< $message_ident ParameterPointer >] {
+                    pub(crate) fn from_str(s: &str) -> Option<Self> {
+                        match s {
+                            $($parameter_string => Some(Self::$parameter_ident),)+
+                            _ => None
+                        }
+                    }
+                    
                     pub const fn to_string(self) -> &'static str {
                         match self {
                             $(Self::$parameter_ident => $parameter_string),+

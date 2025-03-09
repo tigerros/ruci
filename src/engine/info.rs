@@ -1,9 +1,11 @@
 use std::fmt::{Display, Formatter, Write};
+use std::str::FromStr;
 use shakmaty::Color;
 use shakmaty::uci::UciMove;
 use crate::errors::MessageParseError;
 use crate::raw_message::RawMessage;
-use crate::UciMoves;
+use crate::{engine, parsing, UciMoves};
+use crate::engine::pointers::InfoParameterPointer;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -136,6 +138,29 @@ impl From<Info> for crate::Message {
 impl From<Info> for crate::engine::Message {
     fn from(value: Info) -> Self {
         Self::Info(Box::new(value))
+    }
+}
+
+impl FromStr for Info {
+    type Err = MessageParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let message_pointer = engine::pointers::MessagePointer::Info.into();
+        let parts = parsing::verify_and_get_parts(message_pointer, s)?.collect::<Vec<_>>();
+        let mut parameters = parsing::init_parameters::<InfoParameterPointer>(parts.len());
+        let mut value = String::with_capacity(60);
+        let mut last_parameter = None;
+
+        for part in parts {
+            let Some(parameter_pointer) = parsing::get_parameter_pointer_or_update_value!(InfoParameterPointer: part, &mut value) else {
+                continue;
+            };
+
+            parsing::update_parameters_if_last_parameter_is_some(last_parameter, &mut value, &mut parameters);
+            last_parameter = Some(parameter_pointer);
+        }
+
+        todo!()
     }
 }
 
