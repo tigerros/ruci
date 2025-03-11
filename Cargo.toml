@@ -1,6 +1,6 @@
 [package]
 name = "ruci"
-version = "0.5.5"
+version = "0.5.6"
 edition = "2021"
 authors = ["Leonard D. <tigerros.gh@gmail.com>"]
 description = "A UCI (Universal Chess Interface) crate."
@@ -45,5 +45,5 @@ harness = false
 
 [features]
 default = []
-serde = ["serde/derive", "shakmaty/serde"]
+serde = ["dep:serde", "shakmaty/serde"]
 engine-connection = ["tokio", "parking_lot"]
