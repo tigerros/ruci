@@ -26,9 +26,11 @@ impl FromStr for RawMessage {
         };
 
         let mut parts = s.split(' ');
-        let message_pointer = parts.find_map(|part| MessagePointer::from_str(part).ok()).ok_or(())?;
+        let message_pointer = parts
+            .find_map(|part| MessagePointer::from_str(part).ok())
+            .ok_or(())?;
         let parts = parts.collect::<Vec<_>>();
-        
+
         if parts.is_empty() {
             return Ok(Self {
                 message_pointer,

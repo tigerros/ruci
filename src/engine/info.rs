@@ -75,7 +75,6 @@ pub struct ScoreWithBound {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct Refutation {
-    #[cfg_attr(feature = "serde", serde(with = "crate::uci_move_serde"))]
     pub refuted_move: UciMove,
     pub refutation: UciMoves,
 }
@@ -104,7 +103,6 @@ pub struct Info {
     pub multi_primary_variation: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score>
     pub score: Option<ScoreWithBound>,
-    #[cfg_attr(feature = "serde", serde(with = "crate::uci_move_serde::option"))]
     /// <https://backscattering.de/chess/uci/#engine-info-currmove>
     pub current_move: Option<UciMove>,
     /// <https://backscattering.de/chess/uci/#engine-info-currmovenumber>

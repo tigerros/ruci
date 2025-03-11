@@ -9,9 +9,7 @@ use crate::raw_message::RawMessage;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-bestmove>
 pub struct BestMove {
-    #[cfg_attr(feature = "serde", serde(with = "crate::uci_move_serde"))]
     pub r#move: UciMove,
-    #[cfg_attr(feature = "serde", serde(with = "crate::uci_move_serde::option"))]
     pub ponder: Option<UciMove>,
 }
 

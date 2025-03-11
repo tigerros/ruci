@@ -54,8 +54,6 @@ pub mod errors;
 pub mod gui;
 mod message_from_impl;
 mod raw_message;
-#[cfg(feature = "serde")]
-mod uci_move_serde;
 mod uci_moves;
 
 use crate::engine::{BestMove, CopyProtection, Id, Info, Registration};
@@ -81,8 +79,8 @@ impl FromStr for Message {
     /// Tries to parse one line to a [`Message`].
     /// If there's a newline character (`\n`) present, only the first line will be processed.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let raw_message = RawMessage::from_str(s)
-            .map_err(|()| MessageParseError::InvalidMessage)?;
+        let raw_message =
+            RawMessage::from_str(s).map_err(|()| MessageParseError::InvalidMessage)?;
 
         match raw_message.message_pointer {
             MessagePointer::Engine(engine) => match engine {

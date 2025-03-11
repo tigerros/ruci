@@ -45,4 +45,5 @@ harness = false
 
 [features]
 default = []
+serde = ["serde/derive", "shakmaty/serde"]
 engine-connection = ["tokio", "parking_lot"]
