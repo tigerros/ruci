@@ -61,9 +61,9 @@ impl Error for ParameterPointerParseError {}
 /// Something went wrong with spawning the engine process.
 pub enum ConnectionError {
     Spawn(io::Error),
-    /// See <https://docs.rs/tokio/1.43.0/tokio/process/struct.Child.html#structfield.stdout>.
+    /// See <https://docs.rs/tokio/1.44.1/tokio/process/struct.Child.html#structfield.stdout>.
     StdoutIsNotCaptured,
-    /// See <https://docs.rs/tokio/1.43.0/tokio/process/struct.Child.html#structfield.stdin>.
+    /// See <https://docs.rs/tokio/1.44.1/tokio/process/struct.Child.html#structfield.stdin>.
     StdinIsNotCaptured,
 }
 
