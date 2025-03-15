@@ -80,6 +80,7 @@ impl<T> OptionReplaceIf<T> for Option<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Any message, sent from the engine or GUI.
 pub enum Message {
     Engine(engine::Message),
     Gui(gui::Message),

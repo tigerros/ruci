@@ -29,6 +29,8 @@ pub enum ScoreBound {
     UpperBound,
 }
 
+/// Player advantage/disadvantage from the engine's perspective.
+/// 
 /// <https://backscattering.de/chess/uci/#engine-info-score>
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -147,12 +149,12 @@ impl Refutation {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
-pub struct CurrentLine {
+pub struct CurrLine {
     pub used_cpu: Option<usize>,
     pub line: UciMoves,
 }
 
-impl CurrentLine {
+impl CurrLine {
     fn from_str(s: &str) -> Option<Self> {
         // TODO: This will fail if there's more whitespace in between.
         // Fix in future
@@ -225,7 +227,7 @@ pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-refutation>
     pub refutation: Option<Refutation>,
     /// <https://backscattering.de/chess/uci/#engine-info-currline>
-    pub curr_line: Option<CurrentLine>,
+    pub curr_line: Option<CurrLine>,
 }
 
 impl From<Info> for crate::Message {
@@ -262,7 +264,7 @@ from_str_parts!(impl Info for parts -> Self {
         InfoParameterPointer::CpuLoad => this.cpu_load.replace_if(value.parse().ok()),
         InfoParameterPointer::String => this.string = Some(value.to_string()),
         InfoParameterPointer::Refutation => this.refutation.replace_if(Refutation::from_str(value)),
-        InfoParameterPointer::CurrLine => this.curr_line.replace_if(CurrentLine::from_str(value)),
+        InfoParameterPointer::CurrLine => this.curr_line.replace_if(CurrLine::from_str(value)),
     };
     
     let mut value = String::with_capacity(200);
@@ -388,7 +390,7 @@ mod tests {
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
-    use crate::engine::{CurrentLine, Depth, Refutation, Score, ScoreBound, ScoreStandardized, ScoreWithBound};
+    use crate::engine::{CurrLine, Depth, Refutation, Score, ScoreBound, ScoreStandardized, ScoreWithBound};
     use crate::{Message, UciMoves};
 
     #[test]
@@ -438,7 +440,7 @@ mod tests {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
                 refutation: UciMoves(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
             }),
-            curr_line: Some(CurrentLine {
+            curr_line: Some(CurrLine {
                 used_cpu: Some(1),
                 line: UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
             }),
@@ -476,7 +478,7 @@ mod tests {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
                 refutation: UciMoves(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
             }),
-            curr_line: Some(CurrentLine {
+            curr_line: Some(CurrLine {
                 used_cpu: Some(1),
                 line: UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
             }),
