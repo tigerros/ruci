@@ -18,37 +18,15 @@ pub enum Register {
 
 message_from_impl!(gui Register);
 from_str_parts!(impl Register for parts {
-    let mut value = String::with_capacity(50);
-    let mut last_parameter = None::<RegisterParameterPointer>;
     let mut name = None;
     let mut code = None;
-    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+    let parameter_fn = |parameter, value: &str| match parameter {
         RegisterParameterPointer::Name => name = Some(value.to_owned()),
         RegisterParameterPointer::Code => code = Some(value.to_owned()),
     };
-    let mut first_parameter_encountered = false;
-    
-    for part in parts {
-        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
-            continue;
-        };
 
-        if !first_parameter_encountered {
-            value.clear();
-            first_parameter_encountered = true;
-        }
-
-        if let Some(last_parameter) = last_parameter {
-            parameter_to_closure(last_parameter, value.trim());
-            value.clear();
-        }
-
-        last_parameter = Some(parameter);
-    }
-
-    if let Some(last_parameter) = last_parameter {
-        parameter_to_closure(last_parameter, value.trim());
-    }
+    let mut value = String::with_capacity(200);
+    let value = parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     if let Some(name) = name {
         if let Some(code) = code {
@@ -61,7 +39,7 @@ from_str_parts!(impl Register for parts {
         }
     } else if let Some(code) = code {
         Ok(Self::Code(code))
-    } else if value.trim() == "later" {
+    } else if value == "later" {
         Ok(Self::Later)
     } else {
         Err(MessageParseError::MissingParameter(RegisterParameterPointer::Name.into()))

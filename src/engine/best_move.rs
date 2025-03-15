@@ -23,7 +23,7 @@ from_str_parts!(impl BestMove for parts {
     for part in parts {
         if let Some(ponder) = &mut ponder {
             ponder.push_str(part.trim());
-        } else if let Some(_) = BestMoveParameterPointer::from_str(part.trim()).ok() {
+        } else if BestMoveParameterPointer::from_str(part.trim()).is_ok() {
             ponder = Some(String::with_capacity(50));
         } else {
             move_value.push_str(part.trim());

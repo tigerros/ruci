@@ -219,13 +219,11 @@ impl From<Info> for crate::engine::Message {
 }
 
 from_str_parts!(impl Info for parts {
-    let mut value = String::with_capacity(50);
-    let mut last_parameter = None::<InfoParameterPointer>;
     let mut this = Self::default();
     // Need to handle depth like this in case the seldepth argument comes before the depth argument
     let mut depth = None::<usize>;
     let mut selective_search_depth = None::<usize>;
-    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+    let parameter_fn = |parameter, value: &str| match parameter {
         InfoParameterPointer::Depth => depth = value.parse().ok(),
         InfoParameterPointer::SelectiveSearchDepth => selective_search_depth = value.parse().ok(),
         InfoParameterPointer::Time => this.time = value.parse().ok(),
@@ -245,22 +243,8 @@ from_str_parts!(impl Info for parts {
         InfoParameterPointer::CurrentLine => this.current_line = CurrentLine::from_str(value),
     };
     
-    for part in parts {
-        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
-            continue;
-        };
-        
-        if let Some(last_parameter) = last_parameter {
-            parameter_to_closure(last_parameter, value.trim());
-            value.clear();
-        }
-        
-        last_parameter = Some(parameter);
-    }
-    
-    if let Some(last_parameter) = last_parameter {
-        parameter_to_closure(last_parameter, value.trim());
-    }
+    let mut value = String::with_capacity(200);
+    parsing::apply_parameters(parts, &mut value, parameter_fn);
     
     if let Some(depth) = depth {
         this.depth = Some(Depth {

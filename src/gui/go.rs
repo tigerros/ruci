@@ -39,12 +39,10 @@ pub struct Go {
 
 message_from_impl!(gui Go);
 from_str_parts!(impl Go for parts {
-    let mut value = String::with_capacity(50);
-    let mut last_parameter = None::<GoParameterPointer>;
     let mut this = Self::default();
-    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+    let parameter_fn = |parameter, value: &str| match parameter {
         GoParameterPointer::SearchMoves => this.search_moves = value.parse().ok(),
-        GoParameterPointer::Ponder => (), // Should never happen because we handle it right away
+        GoParameterPointer::Ponder => this.ponder = true,
         GoParameterPointer::WhiteTime => this.white_time = value.parse().ok(),
         GoParameterPointer::BlackTime => this.black_time = value.parse().ok(),
         GoParameterPointer::WhiteIncrement => this.white_increment = value.parse().ok(),
@@ -54,33 +52,11 @@ from_str_parts!(impl Go for parts {
         GoParameterPointer::Nodes => this.nodes = value.parse().ok(),
         GoParameterPointer::Mate => this.mate = value.parse().ok(),
         GoParameterPointer::MoveTime => this.move_time = value.parse().ok(),
-        GoParameterPointer::Infinite => () // Same as ponder
+        GoParameterPointer::Infinite => this.infinite = true
     };
     
-    for part in parts {
-        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
-            continue;
-        };
-        
-        if let Some(last_parameter) = last_parameter {
-            parameter_to_closure(last_parameter, value.trim());
-            value.clear();
-        }
-        
-        if parameter == GoParameterPointer::Ponder {
-            this.ponder = true;
-            last_parameter = None;
-        } else if parameter == GoParameterPointer::Infinite {
-            this.infinite = true;
-            last_parameter = None;
-        } else {
-            last_parameter = Some(parameter);
-        }
-    }
-    
-    if let Some(last_parameter) = last_parameter {
-        parameter_to_closure(last_parameter, value.trim());
-    }
+    let mut value = String::with_capacity(200);
+    parsing::apply_parameters(parts, &mut value, parameter_fn);
     
     Ok(this)
 });

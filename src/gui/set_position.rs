@@ -21,31 +21,15 @@ pub enum SetPosition {
 
 message_from_impl!(gui SetPosition);
 from_str_parts!(impl SetPosition for parts {
-    let mut value = String::with_capacity(50);
-    let mut last_parameter = None::<SetPositionParameterPointer>;
     let mut fen = None;
     let mut moves = None;
-    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+    let parameter_fn = |parameter, value: &str| match parameter {
         SetPositionParameterPointer::Fen => fen = Some(value.to_string()),
         SetPositionParameterPointer::Moves => moves = value.parse().ok(),
     };
 
-    for part in parts {
-        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
-            continue;
-        };
-
-        if let Some(last_parameter) = last_parameter {
-            parameter_to_closure(last_parameter, value.trim());
-            value.clear();
-        }
-
-        last_parameter = Some(parameter);
-    }
-
-    if let Some(last_parameter) = last_parameter {
-        parameter_to_closure(last_parameter, value.trim());
-    }
+    let mut value = String::with_capacity(200);
+    parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     if let Some(fen) = fen {
         Ok(Self::Fen {

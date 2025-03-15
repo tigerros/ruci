@@ -16,34 +16,18 @@ pub struct SetOption {
 
 message_from_impl!(gui SetOption);
 from_str_parts!(impl SetOption for parts {
-    let mut value = String::with_capacity(50);
-    let mut last_parameter = None::<SetOptionParameterPointer>;
     let mut name = None;
     let mut value_parameter = None;
-    let mut parameter_to_closure = |parameter: SetOptionParameterPointer, value: &str| match parameter {
+    let parameter_fn = |parameter: SetOptionParameterPointer, value: &str| match parameter {
         SetOptionParameterPointer::Name => name = Some(value.to_owned()),
         SetOptionParameterPointer::Value => value_parameter = Some(value.to_owned()),
     };
-
-    for part in parts {
-        let Some(parameter) = parsing::get_parameter_or_update_value::<SetOptionParameterPointer>(part, &mut value) else {
-            continue;
-        };
-
-        if let Some(last_parameter) = last_parameter {
-            parameter_to_closure(last_parameter, value.trim());
-            value.clear();
-        }
-
-        last_parameter = Some(parameter);
-    }
-
-    if let Some(last_parameter) = last_parameter {
-        parameter_to_closure(last_parameter, value.trim());
-    }
+    
+    let mut value = String::with_capacity(200);
+    parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     Ok(Self {
-        name: name.ok_or(MessageParseError::MissingParameter(SetOptionParameterPointer::Name.into()))?,
+        name: name.ok_or_else(|| MessageParseError::MissingParameter(SetOptionParameterPointer::Name.into()))?,
         value: value_parameter,
     })
 });

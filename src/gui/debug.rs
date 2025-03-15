@@ -25,10 +25,13 @@ from_str_parts!(impl Debug for parts {
 impl Display for Debug {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("debug ")?;
-        match self.0 {
-            true => f.write_str("on")?,
-            false => f.write_str("off")?,
+        
+        if self.0 {
+            f.write_str("on")?;
+        } else {
+            f.write_str("off")?;
         }
+        
         f.write_char('\n')
     }
 }
@@ -56,9 +59,8 @@ mod tests {
         assert_eq!(Message::from_str(str).unwrap(), m);
 
         let m: Message = Debug(false).into();
-        let str = "debug blah   off asffd\n";
-        assert_eq!(m.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), m);
+        assert_eq!(m.to_string(), "debug off\n");
+        assert_eq!(Message::from_str("debug blah   off asffd\n").unwrap(), m);
     }
 
     #[test]

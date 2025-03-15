@@ -109,9 +109,7 @@ from_str_parts!(impl Option for parts {
     let mut min = None::<i64>;
     let mut max = None::<i64>;
     let mut variations = Vec::new();
-    let mut value = String::with_capacity(50);
-    let mut last_parameter = None::<OptionParameterPointer>;
-    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+    let parameter_fn = |parameter, value: &str| match parameter {
         OptionParameterPointer::Name => name = Some(value.to_string()),
         OptionParameterPointer::Type => r#type = Some(value.to_string()),
         OptionParameterPointer::Default => default = Some(value.to_string()),
@@ -120,22 +118,8 @@ from_str_parts!(impl Option for parts {
         OptionParameterPointer::Var => variations.push(value.to_string()),
     };
 
-    for part in parts {
-        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
-            continue;
-        };
-
-        if let Some(last_parameter) = last_parameter {
-            parameter_to_closure(last_parameter, value.trim());
-            value.clear();
-        }
-
-        last_parameter = Some(parameter);
-    }
-
-    if let Some(last_parameter) = last_parameter {
-        parameter_to_closure(last_parameter, value.trim());
-    }
+    let mut value = String::with_capacity(200);
+    parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     let Some(name) = name else {
         return Err(MessageParseError::MissingParameter(OptionParameterPointer::Name.into()));
