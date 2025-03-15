@@ -1,4 +1,8 @@
-use std::fmt::{Display, Formatter, Write};
+extern crate alloc;
+
+use alloc::borrow::ToOwned;
+use alloc::string::String;
+use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
 use crate::gui::pointers::RegisterParameterPointer;
@@ -17,7 +21,7 @@ pub enum Register {
 }
 
 message_from_impl!(gui Register);
-from_str_parts!(impl Register for parts {
+from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
     let mut name = None;
     let mut code = None;
     let parameter_fn = |parameter, value: &str| match parameter {
@@ -28,6 +32,8 @@ from_str_parts!(impl Register for parts {
     let mut value = String::with_capacity(200);
     let value = parsing::apply_parameters(parts, &mut value, parameter_fn);
 
+    // CLIPPY: It's less readable and also doesn't work
+    #[allow(clippy::option_if_let_else)]
     if let Some(name) = name {
         if let Some(code) = code {
             Ok(Self::NameAndCode {
@@ -42,12 +48,12 @@ from_str_parts!(impl Register for parts {
     } else if value == "later" {
         Ok(Self::Later)
     } else {
-        Err(MessageParseError::MissingParameter(RegisterParameterPointer::Name.into()))
+        Err(MessageParseError::MissingParameters { expected: "name, code, or the \"later\" value" })
     }
 });
 
 impl Display for Register {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Later => f.write_str("register later")?,
             Self::Name(name) => write!(f, "register name {name}")?,
@@ -64,10 +70,11 @@ impl Display for Register {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
-    use pretty_assertions::assert_eq;
+    use core::str::FromStr;
+    use pretty_assertions::{assert_eq};
     use crate::gui::Register;
     use crate::Message;
+    use alloc::string::ToString;
 
     #[test]
     fn to_from_str() {

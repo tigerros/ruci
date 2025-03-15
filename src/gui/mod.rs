@@ -3,7 +3,7 @@ dry_mods::mods! {
 }
 
 use crate::define_message::define_message;
-use std::fmt::{Display, Formatter};
+use core::fmt::{Display, Formatter};
 
 define_message! {
     /// A message sent from the GUI to the engine.
@@ -49,7 +49,7 @@ define_message! {
 }
 
 impl Display for Message {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::UseUci => f.write_str("uci\n"),
             Self::Debug(m) => m.fmt(f),

@@ -1,6 +1,5 @@
-use crate::ParameterPointer;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use core::error::Error;
+use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "engine-connection")]
 use tokio::io;
 
@@ -12,49 +11,52 @@ use tokio::io;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MessageParseError {
     /// No message in the string was found.
-    InvalidMessage,
-    /// A parameter has an invalid value and could not be parsed (the pointer tells you which one).
-    ParameterParseError(ParameterPointer),
-    /// A parameter is missing (the pointer tells you which one).
-    MissingParameter(ParameterPointer),
-    /// The value of the message could not be parsed.
-    ValueParseError,
-    /// The value is missing.
-    MissingValue,
+    NoMessage {
+        expected: &'static str,
+    },
+    /// Required parameter(s) are missing.
+    MissingParameters {
+        expected: &'static str,
+    },
+    /// A required parameter could not be parsed.
+    ParameterParseError {
+        expected: &'static str,
+    },
+    /// The required value of the message could not be parsed.
+    ValueParseError {
+        expected: &'static str,
+    },
+}
+
+impl MessageParseError {
+    pub const fn expected(self) -> &'static str {
+        match self {
+            Self::NoMessage { expected }
+            | Self::MissingParameters { expected }
+            | Self::ParameterParseError { expected }
+            | Self::ValueParseError { expected } => expected,
+        }
+    }
 }
 
 impl Display for MessageParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::InvalidMessage => f.write_str("invalid UCI message"),
-            Self::ParameterParseError(p) => {
-                write!(f, "could not parse this UCI parameter: {}", p.to_string())
+            Self::NoMessage { expected } => write!(f, "invalid UCI message, expected {expected}"),
+            Self::MissingParameters { expected } => {
+                write!(f, "missing UCI parameter, expected {expected}")
             }
-            Self::MissingParameter(p) => write!(f, "missing UCI parameter: {}", p.to_string()),
-            Self::ValueParseError => f.write_str("invalid UCI value"),
-            Self::MissingValue => f.write_str("missing UCI value"),
+            Self::ParameterParseError { expected } => {
+                write!(f, "invalid UCI parameter, expected {expected}")
+            }
+            Self::ValueParseError { expected } => {
+                write!(f, "invalid UCI value, expected {expected}")
+            }
         }
     }
 }
 
 impl Error for MessageParseError {}
-
-#[derive(Debug)]
-pub(crate) enum ParameterPointerParseError {
-    MessageHasNoParameters,
-    StringDoesNotMapToParameterPointer,
-}
-
-impl Display for ParameterPointerParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::StringDoesNotMapToParameterPointer => f.write_str("string does not map to parameter pointer"),
-            Self::MessageHasNoParameters => f.write_str("message has no parameters and thus can not convert it and a string to a parameter pointer"),
-        }
-    }
-}
-
-impl Error for ParameterPointerParseError {}
 
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]
@@ -69,7 +71,7 @@ pub enum ConnectionError {
 
 #[cfg(feature = "engine-connection")]
 impl Display for ConnectionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Spawn(e) => write!(f, "failed to spawn UCI engine connection: {e}"),
             Self::StdoutIsNotCaptured => {
@@ -97,7 +99,7 @@ pub enum ReadMessageError {
 
 #[cfg(feature = "engine-connection")]
 impl Display for ReadMessageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(e) => write!(f, "failed to read UCI engine message: {e}"),
             Self::MessageParse(e) => write!(f, "failed to parse UCI engine message: {e}"),

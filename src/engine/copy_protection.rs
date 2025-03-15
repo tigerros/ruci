@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
@@ -13,7 +13,7 @@ pub enum CopyProtection {
 }
 
 message_from_impl!(engine CopyProtection);
-from_str_parts!(impl CopyProtection for parts {
+from_str_parts!(impl CopyProtection for parts -> Result<Self, MessageParseError> {
     for part in parts {
         match part.trim().to_lowercase().as_str() {
             "ok" => return Ok(Self::Ok),
@@ -22,11 +22,11 @@ from_str_parts!(impl CopyProtection for parts {
         }
     }
 
-    Err(MessageParseError::ValueParseError)
+    Err(MessageParseError::ValueParseError { expected: "ok or error" })
 });
 
 impl Display for CopyProtection {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("copyprotection ")?;
         match self {
             Self::Ok => f.write_str("ok")?,
@@ -39,9 +39,12 @@ impl Display for CopyProtection {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
     use crate::Message;
-    use super::*;
+    use super::CopyProtection;
+    use alloc::string::ToString;
+    use crate::MessageParseError;
+    use pretty_assertions::{assert_eq, assert_matches};
 
     #[test]
     fn to_from_str_ok() {
@@ -61,6 +64,6 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        pretty_assertions::assert_eq!(Message::from_str("copyprotection why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError));
+        assert_matches!(Message::from_str("copyprotection why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError { .. }));
     }
 }

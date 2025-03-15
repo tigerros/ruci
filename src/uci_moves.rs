@@ -1,6 +1,9 @@
+extern crate alloc;
+
+use alloc::vec::Vec;
+use core::fmt::{Display, Formatter, Write};
+use core::str::FromStr;
 use shakmaty::uci::UciMove;
-use std::fmt::{Display, Formatter, Write};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -27,7 +30,7 @@ impl FromStr for UciMoves {
 
 impl Display for UciMoves {
     /// Just joins the moves with a space.
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         let mut first_iter = true;
 
         for r#move in &self.0 {

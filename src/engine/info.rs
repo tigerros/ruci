@@ -1,4 +1,9 @@
-use std::fmt::{Display, Formatter, Write};
+extern crate alloc;
+
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::boxed::Box;
+use core::fmt::{Display, Formatter, Write};
 use shakmaty::Color;
 use shakmaty::uci::UciMove;
 use crate::errors::MessageParseError;
@@ -100,7 +105,7 @@ impl ScoreWithBound {
             |centipawns| Some(Score::Centipawns(centipawns))
         )?;
 
-        Some(ScoreWithBound {
+        Some(Self {
             kind,
             bound: if is_lowerbound && is_upperbound {
                 None
@@ -161,7 +166,7 @@ impl CurrentLine {
             return None;
         };
 
-        Some(CurrentLine {
+        Some(Self {
             used_cpu: Some(used_cpu),
             line,
         })
@@ -218,7 +223,7 @@ impl From<Info> for crate::engine::Message {
     }
 }
 
-from_str_parts!(impl Info for parts {
+from_str_parts!(impl Info for parts -> Self {
     let mut this = Self::default();
     // Need to handle depth like this in case the seldepth argument comes before the depth argument
     let mut depth = None::<usize>;
@@ -253,11 +258,11 @@ from_str_parts!(impl Info for parts {
         });
     }
     
-    Ok(this)
+    this
 });
 
 impl Display for Info {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("info")?;
 
         if let Some(depth) = &self.depth {
@@ -359,7 +364,9 @@ impl Display for Info {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
+    use alloc::string::ToString;
+    use alloc::vec;
+    use core::str::FromStr;
     use super::Info;
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;

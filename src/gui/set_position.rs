@@ -1,4 +1,7 @@
-use std::fmt::{Display, Formatter, Write};
+extern crate alloc;
+
+use core::fmt::{Display, Formatter, Write};
+use alloc::string::{String, ToString};
 use crate::errors::MessageParseError;
 use crate::message_from_impl::message_from_impl;
 use crate::{parsing, UciMoves};
@@ -20,7 +23,7 @@ pub enum SetPosition {
 }
 
 message_from_impl!(gui SetPosition);
-from_str_parts!(impl SetPosition for parts {
+from_str_parts!(impl SetPosition for parts -> Self  {
     let mut fen = None;
     let mut moves = None;
     let parameter_fn = |parameter, value: &str| match parameter {
@@ -32,17 +35,17 @@ from_str_parts!(impl SetPosition for parts {
     parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     if let Some(fen) = fen {
-        Ok(Self::Fen {
+        Self::Fen {
             fen,
             moves,
-        })
+        }
     } else {
-        Ok(Self::StartingPosition { moves })
+        Self::StartingPosition { moves }
     }
 });
 
 impl Display for SetPosition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::StartingPosition { moves: None } => f.write_str("position startpos")?,
             Self::StartingPosition { moves: Some(moves) } => write!(f, "position startpos moves {}", &moves)?,
@@ -57,8 +60,10 @@ impl Display for SetPosition {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
     use shakmaty::uci::UciMove;
+    use alloc::vec;
+    use alloc::string::ToString;
     use crate::gui::SetPosition;
     use crate::{Message, UciMoves};
 

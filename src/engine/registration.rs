@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
@@ -14,7 +14,7 @@ pub enum Registration {
 }
 
 message_from_impl!(engine Registration);
-from_str_parts!(impl Registration for parts {
+from_str_parts!(impl Registration for parts -> Result<Self, MessageParseError>  {
     for part in parts {
         match part.trim().to_lowercase().as_str() {
             "checking" => return Ok(Self::Checking),
@@ -24,11 +24,11 @@ from_str_parts!(impl Registration for parts {
         }
     }
 
-    Err(MessageParseError::ValueParseError)
+    Err(MessageParseError::ValueParseError { expected: "checking, ok or error" })
 });
 
 impl Display for Registration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("registration ")?;
         
         match self {
@@ -44,9 +44,14 @@ impl Display for Registration {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
+    extern crate alloc;
+
+    use alloc::string::ToString;
+    use core::str::FromStr;
     use crate::Message;
-    use super::*;
+    use super::Registration;
+    use crate::MessageParseError;
+    use pretty_assertions::{assert_eq, assert_matches};
 
     #[test]
     fn to_from_str_checking() {
@@ -74,6 +79,6 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        assert_eq!(Message::from_str("registration invalid\n"), Err(MessageParseError::ValueParseError));
+        assert_matches!(Message::from_str("registration invalid\n"), Err(MessageParseError::ValueParseError { .. }));
     }
 }

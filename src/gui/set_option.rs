@@ -1,4 +1,8 @@
-use std::fmt::{Display, Formatter, Write};
+extern crate alloc;
+
+use alloc::borrow::ToOwned;
+use alloc::string::String;
+use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
 use crate::gui::pointers::{SetOptionParameterPointer};
@@ -15,7 +19,7 @@ pub struct SetOption {
 }
 
 message_from_impl!(gui SetOption);
-from_str_parts!(impl SetOption for parts {
+from_str_parts!(impl SetOption for parts -> Result<Self, MessageParseError> {
     let mut name = None;
     let mut value_parameter = None;
     let parameter_fn = |parameter: SetOptionParameterPointer, value: &str| match parameter {
@@ -27,13 +31,13 @@ from_str_parts!(impl SetOption for parts {
     parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     Ok(Self {
-        name: name.ok_or_else(|| MessageParseError::MissingParameter(SetOptionParameterPointer::Name.into()))?,
+        name: name.ok_or(MessageParseError::MissingParameters { expected: "name" })?,
         value: value_parameter,
     })
 });
 
 impl Display for SetOption {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match &self.value {
             Some(value) => write!(f, "setoption name {} value {value}", self.name)?,
             None => write!(f, "setoption name {}", self.name)?,
@@ -46,7 +50,8 @@ impl Display for SetOption {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
+    use alloc::string::ToString;
     use pretty_assertions::assert_eq;
     use crate::gui::SetOption;
     use crate::Message;

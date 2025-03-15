@@ -1,5 +1,8 @@
-use std::fmt::{Display, Formatter, Write};
-use std::num::NonZeroUsize;
+extern crate alloc;
+
+use alloc::string::String;
+use core::fmt::{Display, Formatter, Write};
+use core::num::NonZeroUsize;
 use crate::errors::MessageParseError;
 use crate::message_from_impl::message_from_impl;
 use crate::{parsing, UciMoves};
@@ -38,7 +41,7 @@ pub struct Go {
 }
 
 message_from_impl!(gui Go);
-from_str_parts!(impl Go for parts {
+from_str_parts!(impl Go for parts -> Self {
     let mut this = Self::default();
     let parameter_fn = |parameter, value: &str| match parameter {
         GoParameterPointer::SearchMoves => this.search_moves = value.parse().ok(),
@@ -58,11 +61,11 @@ from_str_parts!(impl Go for parts {
     let mut value = String::with_capacity(200);
     parsing::apply_parameters(parts, &mut value, parameter_fn);
     
-    Ok(this)
+    this
 });
 
 impl Display for Go {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("go")?;
 
         if let Some(search_moves) = &self.search_moves {
@@ -120,10 +123,12 @@ impl Display for Go {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use alloc::vec;
+    use alloc::string::ToString;
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
-    use std::num::NonZeroUsize;
-    use std::str::FromStr;
+    use core::num::NonZeroUsize;
+    use core::str::FromStr;
     use crate::gui::Go;
     use crate::{Message, UciMoves};
 

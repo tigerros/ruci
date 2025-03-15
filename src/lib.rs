@@ -30,6 +30,7 @@
     clippy::indexing_slicing,
     clippy::string_slice
 )]
+#![cfg_attr(not(feature = "engine-connection"), no_std)]
 //! Get started with [`Message`]!
 //!
 //! Most of the docs should be self explanatory,
@@ -42,28 +43,28 @@
 //!
 //! That means that a [`Go`] implements [`From`] for [`gui::Message`] and [`Message`].
 //! So just call `gui::Go { .. }.into()` and you're good to go!
-//!
-//! This also applies to pointers (what are those? go to [`MessagePointer`]), although
-//! you shouldn't need to use those very often.
+
+extern crate alloc;
 
 mod define_message;
 pub mod engine;
 #[cfg(feature = "engine-connection")]
 mod engine_connection;
 pub mod errors;
+mod from_str_parts;
 pub mod gui;
 mod message_from_impl;
 mod parsing;
 mod uci_moves;
-mod from_str_parts;
 
 use crate::engine::{BestMove, CopyProtection, Id, Info, Registration};
 use crate::errors::MessageParseError;
 use crate::gui::{Debug, Go, Register, SetOption, SetPosition};
+use alloc::boxed::Box;
+use core::fmt::{Display, Formatter};
+use core::str::FromStr;
 #[cfg(feature = "engine-connection")]
 pub use engine_connection::*;
-use std::fmt::Display;
-use std::str::FromStr;
 pub use uci_moves::UciMoves;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -90,18 +91,26 @@ impl FromStr for Message {
                 engine::pointers::MessagePointer::Id => {
                     Ok(engine::Message::Id(Id::from_str_parts_message_assumed(parts)?).into())
                 }
-                engine::pointers::MessagePointer::BestMove => {
-                    Ok(engine::Message::BestMove(BestMove::from_str_parts_message_assumed(parts)?).into())
+                engine::pointers::MessagePointer::BestMove => Ok(engine::Message::BestMove(
+                    BestMove::from_str_parts_message_assumed(parts)?,
+                )
+                .into()),
+                engine::pointers::MessagePointer::CopyProtection => {
+                    Ok(engine::Message::CopyProtection(
+                        CopyProtection::from_str_parts_message_assumed(parts)?,
+                    )
+                    .into())
                 }
-                engine::pointers::MessagePointer::CopyProtection => Ok(
-                    engine::Message::CopyProtection(CopyProtection::from_str_parts_message_assumed(parts)?).into(),
+                engine::pointers::MessagePointer::Registration => Ok(
+                    engine::Message::Registration(Registration::from_str_parts_message_assumed(
+                        parts,
+                    )?)
+                    .into(),
                 ),
-                engine::pointers::MessagePointer::Registration => {
-                    Ok(engine::Message::Registration(Registration::from_str_parts_message_assumed(parts)?).into())
-                }
-                engine::pointers::MessagePointer::Info => {
-                    Ok(engine::Message::Info(Box::new(Info::from_str_parts_message_assumed(parts)?)).into())
-                }
+                engine::pointers::MessagePointer::Info => Ok(engine::Message::Info(Box::new(
+                    Info::from_str_parts_message_assumed(parts),
+                ))
+                .into()),
                 engine::pointers::MessagePointer::Option => Ok(engine::Message::Option(
                     engine::Option::from_str_parts_message_assumed(parts)?,
                 )
@@ -119,17 +128,20 @@ impl FromStr for Message {
                 gui::pointers::MessagePointer::Debug => {
                     Ok(gui::Message::Debug(Debug::from_str_parts_message_assumed(parts)?).into())
                 }
-                gui::pointers::MessagePointer::SetOption => {
-                    Ok(gui::Message::SetOption(SetOption::from_str_parts_message_assumed(parts)?).into())
-                }
-                gui::pointers::MessagePointer::Register => {
-                    Ok(gui::Message::Register(Register::from_str_parts_message_assumed(parts)?).into())
-                }
-                gui::pointers::MessagePointer::SetPosition => {
-                    Ok(gui::Message::SetPosition(SetPosition::from_str_parts_message_assumed(parts)?).into())
-                }
+                gui::pointers::MessagePointer::SetOption => Ok(gui::Message::SetOption(
+                    SetOption::from_str_parts_message_assumed(parts)?,
+                )
+                .into()),
+                gui::pointers::MessagePointer::Register => Ok(gui::Message::Register(
+                    Register::from_str_parts_message_assumed(parts)?,
+                )
+                .into()),
+                gui::pointers::MessagePointer::SetPosition => Ok(gui::Message::SetPosition(
+                    SetPosition::from_str_parts_message_assumed(parts),
+                )
+                .into()),
                 gui::pointers::MessagePointer::Go => {
-                    Ok(gui::Message::Go(Go::from_str_parts_message_assumed(parts)?).into())
+                    Ok(gui::Message::Go(Go::from_str_parts_message_assumed(parts)).into())
                 }
             },
         }
@@ -138,7 +150,7 @@ impl FromStr for Message {
 
 impl Display for Message {
     /// Always end with a newline.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Engine(e) => e.fmt(f),
             Self::Gui(g) => g.fmt(f),
@@ -151,29 +163,9 @@ impl Display for Message {
 /// There are more of these "pointers", and they're mostly for the library's internals.
 /// However, it may be returned with errors, which is helpful because they will tell you
 /// exactly where the problem is.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MessagePointer {
+enum MessagePointer {
     Engine(engine::pointers::MessagePointer),
     Gui(gui::pointers::MessagePointer),
-}
-
-impl MessagePointer {
-    pub const fn to_string(self) -> &'static str {
-        match self {
-            Self::Engine(e) => e.to_string(),
-            Self::Gui(g) => g.to_string(),
-        }
-    }
-
-    /// Whether this message has parameters.
-    /// Some don't, like [`uciok`](https://backscattering.de/chess/uci/#engine-uciok).
-    pub(crate) const fn has_parameters(self) -> bool {
-        match self {
-            Self::Engine(p) => p.has_parameters(),
-            Self::Gui(p) => p.has_parameters(),
-        }
-    }
 }
 
 impl FromStr for MessagePointer {
@@ -184,48 +176,5 @@ impl FromStr for MessagePointer {
             |()| s.parse::<gui::pointers::MessagePointer>().map(Self::Gui),
             |engine| Ok(Self::Engine(engine)),
         )
-    }
-}
-
-/// Like [`MessagePointer`], but for pointing at specific parameters.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum ParameterPointer {
-    Engine(engine::pointers::ParameterPointer),
-    Gui(gui::pointers::ParameterPointer),
-}
-
-impl ParameterPointer {
-    pub const fn to_string(self) -> &'static str {
-        match self {
-            Self::Engine(e) => e.to_string(),
-            Self::Gui(g) => g.to_string(),
-        }
-    }
-
-    /// # Errors
-    /// See [`ParameterPointerParseError`](errors::ParameterPointerParseError).
-    pub(crate) fn from_message_and_str(
-        message_pointer: MessagePointer,
-        s: &str,
-    ) -> Result<Self, errors::ParameterPointerParseError> {
-        match message_pointer {
-            MessagePointer::Engine(engine_message) => {
-                engine::pointers::ParameterPointer::from_message_and_str(engine_message, s)
-                    .map(Self::Engine)
-            }
-            MessagePointer::Gui(gui_message) => {
-                gui::pointers::ParameterPointer::from_message_and_str(gui_message, s).map(Self::Gui)
-            }
-        }
-    }
-
-    /// Some parameters don't have a value, like `ponder`.
-    /// This function is necessary for parsing.
-    pub(crate) const fn is_void(self) -> bool {
-        match self {
-            Self::Engine(p) => p.is_void(),
-            Self::Gui(p) => p.is_void(),
-        }
     }
 }

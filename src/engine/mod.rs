@@ -2,8 +2,11 @@ dry_mods::mods! {
     mod pub use id, best_move, copy_protection, registration, info, option;
 }
 
+extern crate alloc;
+
 use crate::define_message::define_message;
-use std::fmt::{Display, Formatter};
+use alloc::boxed::Box;
+use core::fmt::{Display, Formatter};
 
 define_message! {
     /// A message sent from the engine to the GUI.
@@ -41,7 +44,7 @@ define_message! {
 
 impl Display for Message {
     #[allow(clippy::too_many_lines)]
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Id(m) => m.fmt(f),
             Self::UciOk => f.write_str("uciok\n"),

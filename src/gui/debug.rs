@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
@@ -10,7 +10,7 @@ use crate::message_from_impl::message_from_impl;
 pub struct Debug(pub bool);
 
 message_from_impl!(gui Debug);
-from_str_parts!(impl Debug for parts {
+from_str_parts!(impl Debug for parts -> Result<Self, MessageParseError>  {
     for part in parts {
         match part.trim().to_lowercase().as_str() {
             "on" => return Ok(Self(true)),
@@ -19,11 +19,11 @@ from_str_parts!(impl Debug for parts {
         }
     }
 
-    Err(MessageParseError::ValueParseError)
+    Err(MessageParseError::ValueParseError { expected: "on or off" })
 });
 
 impl Display for Debug {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("debug ")?;
         
         if self.0 {
@@ -39,9 +39,14 @@ impl Display for Debug {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
+    extern crate alloc;
+    
+    use alloc::string::ToString;
+    use core::str::FromStr;
     use crate::Message;
-    use super::*;
+    use super::Debug;
+    use crate::MessageParseError;
+    use pretty_assertions::{assert_eq, assert_matches};
 
     #[test]
     fn to_from_str_on() {
@@ -65,6 +70,6 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        pretty_assertions::assert_eq!(Message::from_str("debug why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError));
+        assert_matches!(Message::from_str("debug why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError { .. }));
     }
 }

@@ -1,4 +1,8 @@
-use std::fmt::{Display, Formatter, Write};
+extern crate alloc;
+
+use alloc::string::String;
+use alloc::borrow::ToOwned;
+use core::fmt::{Display, Formatter, Write};
 use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
@@ -17,7 +21,7 @@ pub enum Id {
 }
 
 message_from_impl!(engine Id);
-from_str_parts!(impl Id for parts {
+from_str_parts!(impl Id for parts -> Result<Self, MessageParseError>  {
     let mut name = None::<String>;
     let mut author = None::<String>;
     let parameter_fn = |parameter, value: &str| match parameter {
@@ -41,12 +45,12 @@ from_str_parts!(impl Id for parts {
     } else if let Some(author) = author {
         Ok(Self::Author(author))
     } else {
-        Err(MessageParseError::MissingParameter(IdParameterPointer::Name.into()))
+        Err(MessageParseError::MissingParameters { expected: "name or author" })
     }
 });
 
 impl Display for Id {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("id ")?;
 
         match self {
@@ -63,10 +67,11 @@ impl Display for Id {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
     use pretty_assertions::assert_eq;
     use crate::Message;
     use super::Id;
+    use alloc::string::ToString;
 
     #[test]
     fn to_from_str() {

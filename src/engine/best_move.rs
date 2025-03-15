@@ -1,5 +1,8 @@
-use std::fmt::{Display, Formatter, Write};
-use std::str::FromStr;
+extern crate alloc;
+
+use alloc::string::String;
+use core::fmt::{Display, Formatter, Write};
+use core::str::FromStr;
 use shakmaty::uci::UciMove;
 use crate::engine::pointers::{BestMoveParameterPointer};
 use crate::errors::MessageParseError;
@@ -16,7 +19,7 @@ pub struct BestMove {
 }
 
 message_from_impl!(engine BestMove);
-from_str_parts!(impl BestMove for parts {
+from_str_parts!(impl BestMove for parts -> Result<Self, MessageParseError>  {
     let mut move_value = String::with_capacity(50);
     let mut ponder = None::<String>;
 
@@ -31,13 +34,13 @@ from_str_parts!(impl BestMove for parts {
     }
 
     Ok(Self {
-        r#move: move_value.parse().map_err(|_| MessageParseError::ValueParseError)?,
+        r#move: move_value.parse().map_err(|_| MessageParseError::ValueParseError { expected: "UCI move" })?,
         ponder: ponder.and_then(|p| p.parse().ok())
     })
 });
 
 impl Display for BestMove {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "bestmove {}", self.r#move)?;
 
         if let Some(ponder) = &self.ponder {
@@ -51,8 +54,8 @@ impl Display for BestMove {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use std::str::FromStr;
-    
+    use core::str::FromStr;
+    use alloc::string::ToString;
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use crate::Message;

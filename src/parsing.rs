@@ -1,12 +1,21 @@
-use crate::{MessagePointer};
-use std::str::FromStr;
+extern crate alloc;
+
 use crate::errors::MessageParseError;
+use crate::MessagePointer;
+use alloc::string::String;
+use core::str::FromStr;
 
 /// Finds the target message and returns the rest of the string, as separated by spaces.
 ///
 /// # Errors
 /// No message was found.
-pub fn collect_message<'s>(target: &str, s: &'s str) -> Result<impl Iterator<Item = &'s str>, MessageParseError> where MessagePointer: FromStr {
+pub fn collect_message<'s>(
+    target: &'static str,
+    s: &'s str,
+) -> Result<impl Iterator<Item = &'s str>, MessageParseError>
+where
+    MessagePointer: FromStr,
+{
     let s = s.trim();
     let s = if let Some((s1, _)) = s.split_once('\n') {
         s1
@@ -17,7 +26,7 @@ pub fn collect_message<'s>(target: &str, s: &'s str) -> Result<impl Iterator<Ite
     let mut parts = s.split(' ');
     parts
         .find(|&part| part == target)
-        .ok_or(MessageParseError::InvalidMessage)?;
+        .ok_or(MessageParseError::NoMessage { expected: target })?;
 
     Ok(parts)
 }
@@ -26,7 +35,12 @@ pub fn collect_message<'s>(target: &str, s: &'s str) -> Result<impl Iterator<Ite
 ///
 /// # Errors
 /// No message was found.
-pub fn collect_any_message(s: &str) -> Result<(MessagePointer, impl Iterator<Item = &str>), MessageParseError> where MessagePointer: FromStr {
+pub fn collect_any_message(
+    s: &str,
+) -> Result<(MessagePointer, impl Iterator<Item = &str>), MessageParseError>
+where
+    MessagePointer: FromStr,
+{
     let s = s.trim();
     let s = if let Some((s1, _)) = s.split_once('\n') {
         s1
@@ -37,13 +51,22 @@ pub fn collect_any_message(s: &str) -> Result<(MessagePointer, impl Iterator<Ite
     let mut parts = s.split(' ');
     let message = parts
         .find_map(|part| MessagePointer::from_str(part).ok())
-        .ok_or(MessageParseError::InvalidMessage)?;
+        .ok_or(MessageParseError::NoMessage {
+            expected: "any UCI message",
+        })?;
 
     Ok((message, parts))
 }
 
 /// Applies a closure to all parameters and their values.
-pub fn apply_parameters<'s, ParameterPointer>(parts: impl Iterator<Item = &'s str>, value: &mut String, mut parameter_fn: impl FnMut(ParameterPointer, &str)) -> &str where ParameterPointer: FromStr {
+pub fn apply_parameters<'s, ParameterPointer>(
+    parts: impl Iterator<Item = &'s str>,
+    value: &mut String,
+    mut parameter_fn: impl FnMut(ParameterPointer, &str),
+) -> &str
+where
+    ParameterPointer: FromStr,
+{
     let mut first_parameter_encountered = false;
     let mut last_parameter = None;
 
@@ -73,6 +96,6 @@ pub fn apply_parameters<'s, ParameterPointer>(parts: impl Iterator<Item = &'s st
     if let Some(last_parameter) = last_parameter {
         parameter_fn(last_parameter, value);
     }
-    
+
     value
 }

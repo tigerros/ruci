@@ -1,4 +1,8 @@
-use std::fmt::{Display, Formatter, Write};
+extern crate alloc;
+
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::fmt::{Display, Formatter, Write};
 use crate::engine::pointers::OptionParameterPointer;
 use crate::errors::MessageParseError;
 use crate::from_str_parts::from_str_parts;
@@ -23,7 +27,7 @@ pub enum OptionType {
 }
 
 impl Display for OptionType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str(match self {
             Self::Check => "check",
             Self::Spin => "spin",
@@ -34,7 +38,7 @@ impl Display for OptionType {
     }
 }
 
-type StdOption<T> = std::option::Option<T>;
+type StdOption<T> = core::option::Option<T>;
 
 /// <https://backscattering.de/chess/uci/#engine-option>
 #[allow(clippy::module_name_repetitions)]
@@ -102,7 +106,7 @@ impl Option {
     }
 }
 
-from_str_parts!(impl Option for parts {
+from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
     let mut name = None::<String>;
     let mut r#type = None::<String>;
     let mut default = None::<String>;
@@ -122,11 +126,11 @@ from_str_parts!(impl Option for parts {
     parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     let Some(name) = name else {
-        return Err(MessageParseError::MissingParameter(OptionParameterPointer::Name.into()));
+        return Err(MessageParseError::MissingParameters { expected: "name" });
     };
 
     let Some(r#type) = r#type else {
-        return Err(MessageParseError::MissingParameter(OptionParameterPointer::Type.into()));
+        return Err(MessageParseError::MissingParameters { expected: "type" });
     };
 
     match r#type.as_str() {
@@ -148,12 +152,12 @@ from_str_parts!(impl Option for parts {
         "string" => {
             Ok(Self::String { name, default })
         },
-        _ => Err(MessageParseError::ParameterParseError(OptionParameterPointer::Type.into())),
+        _ => Err(MessageParseError::ParameterParseError { expected: "check, spin, combo, button or string" }),
     }
 });
 
 impl Display for Option {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "option name {} type {}", self.name(), self.r#type())?;
 
         match self {
@@ -194,7 +198,9 @@ impl Display for Option {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use alloc::string::ToString;
+    use alloc::vec;
+    use core::str::FromStr;
     use pretty_assertions::assert_eq;
     use crate::Message;
     use super::Option;
