@@ -21,7 +21,7 @@ macro_rules! define_message {
                 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
                 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
                 $(#[$empty_message_attr])*
-                #[doc = concat!("<https://backscattering.de/chess/uci/#engine-", stringify!([< $empty_message_ident:lower >]), ">")]
+                #[doc = concat!("\n\n<https://backscattering.de/chess/uci/#engine-", stringify!([< $empty_message_ident:lower >]), ">")]
                 pub struct $empty_message_ident;
 
                 $crate::dev_macros::message_from_impl!([< $ident:lower >] $empty_message_ident);
@@ -66,6 +66,7 @@ macro_rules! define_message {
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+        $(#[$attr])*
         pub enum Message {
             $(
             $custom_message_ident

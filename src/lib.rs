@@ -34,13 +34,13 @@
 //! **Note:** [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
 //!
 //! You can get started with [`Message`], but keep in mind that all messages (even those which
-//! are void, like [`UciOk`](UciOk)), implement [`FromStr`] and [`Display`], so you can (and should) use them
+//! are void, like [`UciOk`]), implement [`FromStr`] and [`Display`], so you can (and should) use them
 //! individually.
 //!
 //! But if you do need to use the more general enums like the top-level [`Message`],
 //! you might find yourself writing code like `Message::Gui(gui::Message::Go(gui::Go { .. }))`.
 //! There is an easier way! The "higher level" messages implement [`From`] for the "lower level"
-//! messages, which means that [`Message`] and [`gui::Message`] implement [`From`] for [`Gui`] (or any other message).
+//! messages, which means that [`Message`] and [`gui::Message`] implement [`From`] for [`Go`] (or any other message).
 //!
 //! So just call `gui::Go { .. }.into()` and you're good to go!
 
