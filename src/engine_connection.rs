@@ -77,7 +77,9 @@ impl EngineConnection {
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
     pub async fn send_message(&mut self, message: &gui::Message) -> io::Result<()> {
-        self.stdin.write_all(message.to_string().as_bytes()).await
+        self.stdin
+            .write_all((message.to_string() + "\n").as_bytes())
+            .await
     }
 
     /// Skips some lines.
@@ -114,8 +116,8 @@ impl EngineConnection {
         }
     }
 
-    /// Sends the [`uci`](https://backscattering.de/chess/uci/#gui-uci) message and returns the engine's ID and a vector of options
-    /// once the [`uciok`](https://backscattering.de/chess/uci/#engine-uciok) message is received.
+    /// Sends the [`Uci`](gui::Uci) message and returns the engine's ID messages and a vector of options
+    /// once the [`UciOk`](engine::UciOk) message is received.
     ///
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
@@ -139,15 +141,15 @@ impl EngineConnection {
         }
     }
 
-    /// Sends the [`go`](https://backscattering.de/chess/uci/#gui-go) message to the engine and waits for the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) message response,
-    /// returning it, along with a list of [`info`](https://backscattering.de/chess/uci/#engine-info) messages.
+    /// Sends the [`Go`](gui::Go) message to the engine and waits for the [`BestMove`](engine::BestMove) message response,
+    /// returning it, along with a list of [`Info`](engine::Info) messages.
     ///
-    /// Note that the engine will only send the `bestmove`
+    /// Note that the engine will only send the `BestMove`
     /// message if you set some constraint to prevent the engine from thinking forever.
     /// This can be [`depth`](https://backscattering.de/chess/uci/#engine-info-depth) or [`wtime`](https://backscattering.de/chess/uci/#gui-go-wtime)/[`btime`](https://backscattering.de/chess/uci/#gui-go-btime).
     ///
     /// If you don't have that kind of constraint but want to receive scores and best continuations
-    /// (without waiting until the engine finishes with `bestmove`),
+    /// (without waiting until the engine finishes with `BestMove`),
     /// use the [`Self::go_async_info`] function.
     ///
     /// # Errors
@@ -182,7 +184,7 @@ impl EngineConnection {
 
     // CLIPPY: Errors doc is in the linked `go` function.
     #[allow(clippy::missing_errors_doc)]
-    /// Same as [`Self::go`], but doesn't store a vector of [`info`](https://backscattering.de/chess/uci/#engine-info)
+    /// Same as [`Self::go`], but doesn't store a vector of [`Info`](engine::Info)
     /// messages, instead only returning the last one.
     pub async fn go_only_last_info(
         &mut self,
@@ -207,12 +209,12 @@ impl EngineConnection {
         }
     }
 
-    /// Same as [`Self::go`], but instead of returning the [`info`](https://backscattering.de/chess/uci/#engine-info)
-    /// messages and the [`bestmove`](https://backscattering.de/chess/uci/#engine-bestmove) together (after waiting for the engine), it immediately returns a tuple which contains:
+    /// Same as [`Self::go`], but instead of returning the [`Info`](engine::Info)
+    /// messages and the [`BestMove`](engine::BestMove) together (after waiting for the engine), it immediately returns a tuple which contains:
     ///
-    /// - A receiver for the `info` messages.
-    /// - A handle to a task which will send `info` messages to the receiver and, once the engine returns a
-    ///   `bestmove` message, will return that message.
+    /// - A receiver for the `Info` messages.
+    /// - A handle to a task which will send `Info` messages to the receiver and, once the engine returns a
+    ///   `BestMove` message, will return that message.
     ///
     /// The spawned task will never panic. It is thus safe to call [`Result::unwrap`] on the handle.
     /// However, the value returned by the handle may be an error, so don't call `unwrap` twice!
@@ -299,21 +301,24 @@ fn update_id(old_id: &mut Option<engine::Id>, new_id: engine::Id) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
-    #[tokio::test]
-    async fn skip_lines() {
-        #[allow(clippy::panic)]
-        let mut engine_conn = if cfg!(target_os = "windows") {
+    fn engine_conn() -> EngineConnection {
+        if cfg!(target_os = "windows") {
             EngineConnection::from_path("resources/stockfish-windows-x86-64-avx2.exe").unwrap()
         } else if cfg!(target_os = "linux") {
             EngineConnection::from_path("resources/stockfish-ubuntu-x86-64-avx2").unwrap()
         } else {
             panic!("Unsupported OS");
-        };
+        }
+    }
+
+    #[tokio::test]
+    async fn skip_lines() {
+        let mut engine_conn = engine_conn();
 
         engine_conn.send_message(&gui::Uci.into()).await.unwrap();
 
@@ -325,6 +330,233 @@ mod tests {
         assert_eq!(
             line.trim(),
             "option name Debug Log File type string default <empty>"
+        );
+    }
+
+    #[allow(clippy::too_many_lines)]
+    #[tokio::test]
+    async fn use_uci() {
+        use engine::{Id, Option};
+
+        let mut engine_conn = engine_conn();
+
+        let (id, options) = engine_conn.use_uci().await.unwrap();
+
+        let mut options_str = String::new();
+
+        for option in &options {
+            options_str.push_str(&format!("{option}\n"));
+        }
+
+        assert_eq!(
+            options_str.trim(),
+            r"option name Debug Log File type string default <empty>
+option name NumaPolicy type string default auto
+option name Threads type spin default 1 min 1 max 1024
+option name Hash type spin default 16 min 1 max 33554432
+option name Clear Hash type button
+option name Ponder type check default false
+option name MultiPV type spin default 1 min 1 max 256
+option name Skill Level type spin default 20 min 0 max 20
+option name Move Overhead type spin default 10 min 0 max 5000
+option name nodestime type spin default 0 min 0 max 10000
+option name UCI_Chess960 type check default false
+option name UCI_LimitStrength type check default false
+option name UCI_Elo type spin default 1320 min 1320 max 3190
+option name UCI_ShowWDL type check default false
+option name SyzygyPath type string default <empty>
+option name SyzygyProbeDepth type spin default 1 min 1 max 100
+option name Syzygy50MoveRule type check default true
+option name SyzygyProbeLimit type spin default 7 min 0 max 7
+option name EvalFile type string default nn-1111cefa1111.nnue
+option name EvalFileSmall type string default nn-37f18f62d772.nnue"
+        );
+
+        assert_eq!(
+            id,
+            Some(Id::NameAndAuthor {
+                name: "Stockfish 17".to_string(),
+                author: "the Stockfish developers (see AUTHORS file)".to_string()
+            })
+        );
+
+        let mut options = options.into_iter();
+
+        assert_eq!(
+            options.next(),
+            Some(Option::String {
+                name: "Debug Log File".to_string(),
+                default: Some("<empty>".to_string())
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::String {
+                name: "NumaPolicy".to_string(),
+                default: Some("auto".to_string())
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "Threads".to_string(),
+                default: Some(1),
+                min: Some(1),
+                max: Some(1024)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "Hash".to_string(),
+                default: Some(16),
+                min: Some(1),
+                max: Some(33_554_432)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Button {
+                name: "Clear Hash".to_string(),
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Check {
+                name: "Ponder".to_string(),
+                default: Some(false)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "MultiPV".to_string(),
+                default: Some(1),
+                min: Some(1),
+                max: Some(256)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "Skill Level".to_string(),
+                default: Some(20),
+                min: Some(0),
+                max: Some(20)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "Move Overhead".to_string(),
+                default: Some(10),
+                min: Some(0),
+                max: Some(5000)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "nodestime".to_string(),
+                default: Some(0),
+                min: Some(0),
+                max: Some(10000)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Check {
+                name: "UCI_Chess960".to_string(),
+                default: Some(false)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Check {
+                name: "UCI_LimitStrength".to_string(),
+                default: Some(false)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "UCI_Elo".to_string(),
+                default: Some(1320),
+                min: Some(1320),
+                max: Some(3190)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Check {
+                name: "UCI_ShowWDL".to_string(),
+                default: Some(false)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::String {
+                name: "SyzygyPath".to_string(),
+                default: Some("<empty>".to_string())
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "SyzygyProbeDepth".to_string(),
+                default: Some(1),
+                min: Some(1),
+                max: Some(100)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Check {
+                name: "Syzygy50MoveRule".to_string(),
+                default: Some(true)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::Spin {
+                name: "SyzygyProbeLimit".to_string(),
+                default: Some(7),
+                min: Some(0),
+                max: Some(7)
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::String {
+                name: "EvalFile".to_string(),
+                default: Some("nn-1111cefa1111.nnue".to_string())
+            })
+        );
+
+        assert_eq!(
+            options.next(),
+            Some(Option::String {
+                name: "EvalFileSmall".to_string(),
+                default: Some("nn-37f18f62d772.nnue".to_string())
+            })
         );
     }
 }

@@ -2,7 +2,7 @@ extern crate alloc;
 
 use alloc::borrow::ToOwned;
 use alloc::string::String;
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::RegisterParameterPointer;
 use crate::dev_macros::{from_str_parts, message_from_impl};
@@ -56,15 +56,13 @@ from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
 impl Display for Register {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Later => f.write_str("register later")?,
-            Self::Name(name) => write!(f, "register name {name}")?,
-            Self::Code(code) => write!(f, "register code {code}")?,
+            Self::Later => f.write_str("register later"),
+            Self::Name(name) => write!(f, "register name {name}"),
+            Self::Code(code) => write!(f, "register code {code}"),
             Self::NameAndCode { name, code } => {
-                write!(f, "register name {name} code {code}")?;
+                write!(f, "register name {name} code {code}")
             }
         }
-        
-        f.write_char('\n')
     }
 }
 
@@ -83,7 +81,7 @@ mod tests {
             name: "john smith".to_string(),
             code: "31 tango".to_string()
         }.into();
-        let str = "register name john smith code 31 tango\n";
+        let str = "register name john smith code 31 tango";
 
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str), Ok(m));
@@ -92,7 +90,7 @@ mod tests {
     #[test]
     fn invalid_parameter() {
         let m: Message = Register::Name("a l o t o f s p a c e s".to_string()).into();
-        assert_eq!(m.to_string(), "register name a l o t o f s p a c e s\n");
+        assert_eq!(m.to_string(), "register name a l o t o f s p a c e s");
         assert_eq!(Message::from_str("register blahblah woo name a l o t o f s p a c e s\n").unwrap(), m);
     }
 }

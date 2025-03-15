@@ -58,12 +58,28 @@ fn to_str(c: &mut Criterion) {
         }),
     };
 
-    group.bench_function("ruci_to_str", |b| b.iter(|| black_box(ruci_go.to_string())));
-    group.bench_function("shakmaty_uci_to_str", |b| {
+    group.bench_function("ruci_go_to_str", |b| {
+        b.iter(|| black_box(ruci_go.to_string()))
+    });
+    group.bench_function("shakmaty_uci_go_to_str", |b| {
         b.iter(|| black_box(shakmaty_uci_go.to_string()))
     });
-    group.bench_function("vampirc_uci_to_str", |b| {
+    group.bench_function("vampirc_go_to_str", |b| {
         b.iter(|| black_box(vampirc_go.to_string()))
+    });
+
+    let ruci_uciok = ruci::engine::UciOk;
+    let shakmaty_uci_uciok = shakmaty_uci::UciMessage::UciOk;
+    let vampirc_uciok = vampirc_uci::UciMessage::UciOk;
+
+    group.bench_function("ruci_uciok_to_str", |b| {
+        b.iter(|| black_box(ruci_uciok.to_string()))
+    });
+    group.bench_function("shakmaty_uci_uciok_to_str", |b| {
+        b.iter(|| black_box(shakmaty_uci_uciok.to_string()))
+    });
+    group.bench_function("vampirc_uciok_to_str", |b| {
+        b.iter(|| black_box(vampirc_uciok.to_string()))
     });
 }
 
@@ -72,30 +88,61 @@ fn from_str(c: &mut Criterion) {
     let str = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5";
 
     println!(
-        "ruci back to string: {}",
+        "ruci back to string:\t\t{}",
         ruci::Message::from_str(str).unwrap()
     );
     println!(
-        "shakmaty-uci back to string: {}",
+        "shakmaty-uci back to string:\t\t{}",
         shakmaty_uci::UciMessage::from_str(str).unwrap()
     );
     println!(
-        "vampirc-uci back to string: {}",
+        "vampirc-uci back to string:\t\t{}",
         vampirc_uci::parse(str).first().unwrap()
     );
 
-    group.bench_function("ruci_from_str", |b| {
+    group.bench_function("ruci_info_from_str", |b| {
         b.iter(|| black_box(ruci::Message::from_str(str).unwrap()))
     });
-    group.bench_function("shakmaty_uci_from_str", |b| {
+    group.bench_function("shakmaty_uci_info_from_str", |b| {
         b.iter(|| black_box(shakmaty_uci::UciMessage::from_str(str).unwrap()))
     });
-    group.bench_function("vampirc_uci_from_str", |b| {
+    group.bench_function("vampirc_info_from_str", |b| {
         b.iter(|| {
             // CLIPPY: Intentional!
             #[allow(clippy::unit_arg)]
             black_box(if vampirc_uci::parse(str).is_empty() {
-                panic!("at the disco");
+                panic!("vampirc failed to parse");
+            })
+        })
+    });
+
+    let str = "uciok\n";
+
+    println!(
+        "ruci back to string:\t\t{}",
+        ruci::Message::from_str(str).unwrap()
+    );
+    println!(
+        "shakmaty-uci back to string:\t\t{}",
+        shakmaty_uci::UciMessage::from_str(str).unwrap()
+    );
+    println!(
+        "vampirc-uci back to string:\t\t{}",
+        vampirc_uci::parse(str).first().unwrap()
+    );
+
+    group.bench_function("ruci_uciok_from_str", |b| {
+        b.iter(|| black_box(ruci::Message::from_str(str).unwrap()))
+    });
+    group.bench_function("shakmaty_uci_uciok_from_str", |b| {
+        b.iter(|| black_box(shakmaty_uci::UciMessage::from_str(str).unwrap()))
+    });
+    group.bench_function("vampirc_uciok_from_str", |b| {
+        b.iter(|| {
+            // CLIPPY: Intentional!
+            #[allow(clippy::unit_arg)]
+            black_box(if vampirc_uci::parse(str).is_empty() {
+                panic!("vampirc failed to parse");
             })
         })
     });

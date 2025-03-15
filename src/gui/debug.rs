@@ -1,4 +1,4 @@
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
 
@@ -13,7 +13,7 @@ pub struct Debug(pub bool);
 message_from_impl!(gui Debug);
 from_str_parts!(impl Debug for parts -> Result<Self, MessageParseError>  {
     for part in parts {
-        match part.trim().to_lowercase().as_str() {
+        match part.trim() {
             "on" => return Ok(Self(true)),
             "off" => return Ok(Self(false)),
             _ => ()
@@ -28,12 +28,10 @@ impl Display for Debug {
         f.write_str("debug ")?;
         
         if self.0 {
-            f.write_str("on")?;
+            f.write_str("on")
         } else {
-            f.write_str("off")?;
+            f.write_str("off")
         }
-        
-        f.write_char('\n')
     }
 }
 
@@ -52,7 +50,7 @@ mod tests {
     #[test]
     fn to_from_str_on() {
         let m: Message = Debug(true).into();
-        let str = "debug on\n";
+        let str = "debug on";
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), m);
     }
@@ -60,17 +58,17 @@ mod tests {
     #[test]
     fn to_from_str_off() {
         let m: Message = Debug(false).into();
-        let str = "debug off\n";
+        let str = "debug off";
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), m);
 
         let m: Message = Debug(false).into();
-        assert_eq!(m.to_string(), "debug off\n");
-        assert_eq!(Message::from_str("debug blah   off asffd\n"), Ok(m));
+        assert_eq!(m.to_string(), "debug off");
+        assert_eq!(Message::from_str("debug blah   off asffd"), Ok(m));
     }
 
     #[test]
     fn parse_error() {
-        assert_matches!(Message::from_str("debug why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError { .. }));
+        assert_matches!(Message::from_str("debug why   \t are you here? 🤨"), Err(MessageParseError::ValueParseError { .. }));
     }
 }

@@ -2,11 +2,12 @@ extern crate alloc;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
+use core::str::FromStr;
 use crate::engine::pointers::OptionParameterPointer;
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
-use crate::parsing;
+use crate::{parsing, OptionReplaceIf};
 
 /// Engine option type.
 ///
@@ -25,6 +26,21 @@ pub enum OptionType {
     Button,
     /// <https://backscattering.de/chess/uci/#engine-option-type-string>
     String,
+}
+
+impl FromStr for OptionType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "check" => Ok(Self::Check),
+            "spin" => Ok(Self::Spin),
+            "combo" => Ok(Self::Combo),
+            "button" => Ok(Self::Button),
+            "string" => Ok(Self::String),
+            _ => Err(())
+        }
+    }
 }
 
 impl Display for OptionType {
@@ -113,17 +129,17 @@ impl Option {
 
 from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
     let mut name = None::<String>;
-    let mut r#type = None::<String>;
+    let mut r#type = None::<OptionType>;
     let mut default = None::<String>;
     let mut min = None::<i64>;
     let mut max = None::<i64>;
     let mut variations = Vec::new();
     let parameter_fn = |parameter, value: &str| match parameter {
         OptionParameterPointer::Name => name = Some(value.to_string()),
-        OptionParameterPointer::Type => r#type = Some(value.to_string()),
+        OptionParameterPointer::Type => r#type.replace_if(value.parse().ok()),
         OptionParameterPointer::Default => default = Some(value.to_string()),
-        OptionParameterPointer::Min => min = value.parse().ok(),
-        OptionParameterPointer::Max => max = value.parse().ok(),
+        OptionParameterPointer::Min => min.replace_if(value.parse().ok()),
+        OptionParameterPointer::Max => max.replace_if(value.parse().ok()),
         OptionParameterPointer::Var => variations.push(value.to_string()),
     };
 
@@ -135,14 +151,14 @@ from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
     };
 
     let Some(r#type) = r#type else {
-        return Err(MessageParseError::MissingParameters { expected: "type" });
+        return Err(MessageParseError::MissingParameters { expected: "a type parameter; check, spin, combo, button or string" });
     };
 
-    match r#type.as_str() {
-        "check" => {
+    match r#type {
+        OptionType::Check => {
             Ok(Self::Check { name, default: default.and_then(|d| d.parse().ok()) })
         },
-        "spin" => {
+        OptionType::Spin => {
             Ok(Self::Spin {
                 name,
                 default: default.and_then(|d| d.parse().ok()),
@@ -150,14 +166,13 @@ from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
                 max
             })
         },
-        "combo" => {
+        OptionType::Combo => {
             Ok(Self::Combo { name, default, variations })
         },
-        "button" => Ok(Self::Button { name }),
-        "string" => {
+        OptionType::Button => Ok(Self::Button { name }),
+        OptionType::String => {
             Ok(Self::String { name, default })
         },
-        _ => Err(MessageParseError::ParameterParseError { expected: "check, spin, combo, button or string" }),
     }
 });
 
@@ -197,7 +212,7 @@ impl Display for Option {
             },
         }
 
-        f.write_char('\n')
+        Ok(())
     }
 }
 
@@ -218,10 +233,19 @@ mod tests {
             min: Some(-10),
             max: Some(20),
         }.into();
-        let str_repr = "option name Skill Level type spin default 20 min -10 max 20\n";
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_eq!(repr.to_string(), "option name Skill Level type spin default 20 min -10 max 20");
+        assert_eq!(Message::from_str("option name Skill Level type spin type INVALID default 20 min -10 max 20"), Ok(repr));
+
+        let repr: Message = Option::Spin {
+            name: "Skill Level".to_string(),
+            default: Some(20),
+            min: Some(-10),
+            max: Some(20),
+        }.into();
+
+        assert_eq!(repr.to_string(), "option name Skill Level type spin default 20 min -10 max 20");
+        assert_eq!(Message::from_str("option name Skill Level type spin default lol default 20 min -10 max 20 max usetheonebefore"), Ok(repr));
     }
 
     #[test]
@@ -231,9 +255,9 @@ mod tests {
             default: Some("Default p".to_string()),
             variations: vec!["Foo bar fighter".to_string(), "Aggressive p".to_string(), "Defensive p".to_string(), "Positional".to_string(), "Endgame".to_string()],
         }.into();
-        let str_in = "option var Foo bar fighter name K Personality type combo default Default p var Aggressive p var Defensive p var Positional var Endgame\n";
+        let str_in = "option var Foo bar fighter name K Personality type combo default Default p var Aggressive p var Defensive p var Positional var Endgame";
         // Output has a different order which is fine but can't use the same string
-        let str_out = "option name K Personality type combo default Default p var Foo bar fighter var Aggressive p var Defensive p var Positional var Endgame\n";
+        let str_out = "option name K Personality type combo default Default p var Foo bar fighter var Aggressive p var Defensive p var Positional var Endgame";
         assert_eq!(repr.to_string(), str_out);
         assert_eq!(Message::from_str(str_in), Ok(repr));
     }

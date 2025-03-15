@@ -31,6 +31,8 @@
     clippy::string_slice
 )]
 #![cfg_attr(not(feature = "engine-connection"), no_std)]
+//! **Note:** [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
+//!
 //! You can get started with [`Message`], but keep in mind that all messages (even those which
 //! are void, like [`UciOk`](UciOk)), implement [`FromStr`] and [`Display`], so you can (and should) use them
 //! individually.
@@ -63,6 +65,18 @@ use core::str::FromStr;
 #[cfg(feature = "engine-connection")]
 pub use engine_connection::*;
 pub use uci_moves::UciMoves;
+
+pub(crate) trait OptionReplaceIf<T> {
+    fn replace_if(&mut self, other: Option<T>);
+}
+
+impl<T> OptionReplaceIf<T> for Option<T> {
+    fn replace_if(&mut self, other: Self) {
+        if let Some(other) = other {
+            *self = Some(other);
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

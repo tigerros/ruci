@@ -13,7 +13,6 @@ define_message! {
         =[custom]
         %[parameters = [Name, Author]]
         Id(Id),
-        %[parameters = [Ponder]]
         BestMove(BestMove),
         CopyProtection(CopyProtection),
         Registration(Registration),

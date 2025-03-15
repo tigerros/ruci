@@ -31,7 +31,31 @@ macro_rules! define_message {
 
                 impl ::core::fmt::Display for $empty_message_ident {
                     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> core::fmt::Result {
-                        f.write_str(concat!(stringify!([< $empty_message_ident:lower >]), "\n"))
+                        f.write_str(stringify!([< $empty_message_ident:lower >]))
+                    }
+                }
+
+                #[cfg(test)]
+                mod tests {
+                    extern crate alloc;
+
+                    use alloc::string::ToString;
+                    use super::$empty_message_ident;
+                    use crate::{Message, errors::MessageParseError};
+                    use pretty_assertions::{assert_eq, assert_matches};
+                    use core::str::FromStr;
+
+                    #[test]
+                    fn to_from_str() {
+                        let repr: Message = $empty_message_ident.into();
+
+                        assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
+                        assert_eq!(Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), " ddd")), Ok(repr));
+                    }
+
+                    #[test]
+                    fn parse_error() {
+                        assert_matches!($empty_message_ident::from_str("nope"), Err(MessageParseError::NoMessage { .. }))
                     }
                 }
             }

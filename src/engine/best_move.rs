@@ -1,20 +1,18 @@
 extern crate alloc;
 
-use alloc::string::String;
-use core::fmt::{Display, Formatter, Write};
-use core::str::FromStr;
+use core::fmt::{Display, Formatter};
 use shakmaty::uci::UciMove;
-use crate::engine::pointers::{BestMoveParameterPointer};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::OptionReplaceIf;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// The engine's best move, with an optional pondering move.
-/// 
+///
 /// Sent after [`Go`](crate::gui::Go) is received and calculation is finished.
-/// 
+///
 /// <https://backscattering.de/chess/uci/#engine-bestmove>
 pub struct BestMove {
     pub r#move: UciMove,
@@ -23,22 +21,27 @@ pub struct BestMove {
 
 message_from_impl!(engine BestMove);
 from_str_parts!(impl BestMove for parts -> Result<Self, MessageParseError>  {
-    let mut move_value = String::with_capacity(50);
-    let mut ponder = None::<String>;
+    let mut r#move = None;
+    let mut ponder_encountered = false;
+    let mut ponder = None;
 
     for part in parts {
-        if let Some(ponder) = &mut ponder {
-            ponder.push_str(part.trim());
-        } else if BestMoveParameterPointer::from_str(part.trim()).is_ok() {
-            ponder = Some(String::with_capacity(50));
+        if ponder_encountered {
+            ponder.replace_if(part.parse().ok());
+        } else if part.trim() == "ponder" {
+            ponder_encountered = true;
         } else {
-            move_value.push_str(part.trim());
+            r#move.replace_if(part.parse().ok());
         }
     }
+    
+    let Some(r#move) = r#move else {
+        return Err(MessageParseError::ValueParseError { expected: "UCI move" });
+    };
 
     Ok(Self {
-        r#move: move_value.parse().map_err(|_| MessageParseError::ValueParseError { expected: "UCI move" })?,
-        ponder: ponder.and_then(|p| p.parse().ok())
+        r#move,
+        ponder
     })
 });
 
@@ -49,8 +52,8 @@ impl Display for BestMove {
         if let Some(ponder) = &self.ponder {
             write!(f, " ponder {ponder}")?;
         }
-        
-        f.write_char('\n')
+
+        Ok(())
     }
 }
 
@@ -60,8 +63,7 @@ mod tests {
     use core::str::FromStr;
     use alloc::string::ToString;
     use shakmaty::uci::UciMove;
-    use pretty_assertions::{assert_eq, assert_matches};
-    use crate::errors::MessageParseError;
+    use pretty_assertions::{assert_eq};
     use crate::Message;
     use super::BestMove;
 
@@ -71,7 +73,7 @@ mod tests {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
-        let str_repr = "bestmove e2e4 ponder c7c5\n";
+        let str_repr = "bestmove e2e4 ponder c7c5";
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
@@ -80,14 +82,19 @@ mod tests {
             r#move: UciMove::from_ascii(b"d2d4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
-        let str_repr = "bestmove d2d4 ponder c7c5 ignore this\n";
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_eq!(repr.to_string(), "bestmove d2d4 ponder c7c5");
+        assert_eq!(Message::from_str("bestmove oops d2d4 ponder c7c5 ignorthis"), Ok(repr));
     }
 
     #[test]
-    fn parse_error() {
-        assert_matches!(Message::from_str("bestmove notvalid e2e4 ponder c7c5\n"), Err(MessageParseError::ValueParseError { .. }));
+    fn to_from_str_bad_value() {
+        let repr: Message = BestMove {
+            r#move: UciMove::from_ascii(b"e2e4").unwrap(),
+            ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
+        }.into();
+        
+        assert_eq!(repr.to_string(), "bestmove e2e4 ponder c7c5");
+        assert_eq!(Message::from_str("bestmove junk e2e4 ponder c7c5\n"), Ok(repr));
     }
 }

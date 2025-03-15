@@ -1,4 +1,4 @@
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
 
@@ -19,7 +19,7 @@ pub enum Registration {
 message_from_impl!(engine Registration);
 from_str_parts!(impl Registration for parts -> Result<Self, MessageParseError>  {
     for part in parts {
-        match part.trim().to_lowercase().as_str() {
+        match part.trim() {
             "checking" => return Ok(Self::Checking),
             "ok" => return Ok(Self::Ok),
             "error" => return Ok(Self::Error),
@@ -40,7 +40,7 @@ impl Display for Registration {
             Self::Error => f.write_str("error")?,
         }
 
-        f.write_char('\n')
+        Ok(())
     }
 }
 
@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn to_from_str_checking() {
         let repr: Message = Registration::Checking.into();
-        let str = "registration checking\n";
+        let str = "registration checking";
         assert_eq!(repr.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), repr);
     }
@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn to_from_str_ok() {
         let repr: Message = Registration::Ok.into();
-        let str = "registration ok\n";
+        let str = "registration ok";
         assert_eq!(repr.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), repr);
     }
@@ -75,13 +75,12 @@ mod tests {
     #[test]
     fn to_from_str_error() {
         let repr: Message = Registration::Error.into();
-        let str = "registration error\n";
-        assert_eq!(repr.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), repr);
+        assert_eq!(repr.to_string(), "registration error");
+        assert_eq!(Message::from_str("registration tes error\n").unwrap(), repr);
     }
 
     #[test]
     fn parse_error() {
-        assert_matches!(Message::from_str("registration invalid\n"), Err(MessageParseError::ValueParseError { .. }));
+        assert_matches!(Message::from_str("registration invalid"), Err(MessageParseError::ValueParseError { .. }));
     }
 }

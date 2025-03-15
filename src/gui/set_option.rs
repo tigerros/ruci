@@ -2,7 +2,7 @@ extern crate alloc;
 
 use alloc::borrow::ToOwned;
 use alloc::string::String;
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::{SetOptionParameterPointer};
 use crate::dev_macros::{from_str_parts, message_from_impl};
@@ -41,11 +41,9 @@ from_str_parts!(impl SetOption for parts -> Result<Self, MessageParseError> {
 impl Display for SetOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match &self.value {
-            Some(value) => write!(f, "setoption name {} value {value}", self.name)?,
-            None => write!(f, "setoption name {}", self.name)?,
+            Some(value) => write!(f, "setoption name {} value {value}", self.name),
+            None => write!(f, "setoption name {}", self.name),
         }
-        
-        f.write_char('\n')
     }
 }
 
@@ -64,7 +62,7 @@ mod tests {
             name: "Skill Level".to_string(),
             value: Some("1".to_string()),
         }.into();
-        let str_repr = "setoption name Skill Level value 1\n";
+        let str_repr = "setoption name Skill Level value 1";
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));

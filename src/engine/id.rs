@@ -2,7 +2,7 @@ extern crate alloc;
 
 use alloc::string::String;
 use alloc::borrow::ToOwned;
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
 use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
@@ -64,7 +64,7 @@ impl Display for Id {
             }
         }
 
-        f.write_char('\n')
+        Ok(())
     }
 }
 
@@ -82,7 +82,7 @@ mod tests {
             name: "Stockfish 16.1".to_string(),
             author: "The stockfish developers".to_string(),
         }.into();
-        let str_repr = "id name Stockfish 16.1 author The stockfish developers\n";
+        let str_repr = "id name Stockfish 16.1 author The stockfish developers";
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));

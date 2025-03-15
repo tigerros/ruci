@@ -1,4 +1,4 @@
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
 
@@ -17,7 +17,8 @@ pub enum CopyProtection {
 message_from_impl!(engine CopyProtection);
 from_str_parts!(impl CopyProtection for parts -> Result<Self, MessageParseError> {
     for part in parts {
-        match part.trim().to_lowercase().as_str() {
+        // TODO: Should it be lowercased (case insensitive)?
+        match part.trim() {
             "ok" => return Ok(Self::Ok),
             "error" => return Ok(Self::Error),
             _ => ()
@@ -30,11 +31,13 @@ from_str_parts!(impl CopyProtection for parts -> Result<Self, MessageParseError>
 impl Display for CopyProtection {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("copyprotection ")?;
+        
         match self {
             Self::Ok => f.write_str("ok")?,
             Self::Error => f.write_str("error")?,
         }
-        f.write_char('\n')
+        
+        Ok(())
     }
 }
 
@@ -51,7 +54,7 @@ mod tests {
     #[test]
     fn to_from_str_ok() {
         let m: Message = CopyProtection::Ok.into();
-        let str = "copyprotection ok\n";
+        let str = "copyprotection ok";
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), m);
     }
@@ -59,7 +62,7 @@ mod tests {
     #[test]
     fn to_from_str_error() {
         let m: Message = CopyProtection::Error.into();
-        let str = "copyprotection error\n";
+        let str = "copyprotection error";
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), m);
     }
