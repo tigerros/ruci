@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
-use crate::UciMoves;
+use crate::{parsing, UciMoves};
+use crate::from_str_parts::from_str_parts;
+use crate::gui::pointers::{SetPositionParameterPointer};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -19,45 +20,50 @@ pub enum SetPosition {
 }
 
 message_from_impl!(gui SetPosition);
+from_str_parts!(impl SetPosition for parts {
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<SetPositionParameterPointer>;
+    let mut fen = None;
+    let mut moves = None;
+    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+        SetPositionParameterPointer::Fen => fen = Some(value.to_string()),
+        SetPositionParameterPointer::Moves => moves = value.parse().ok(),
+    };
 
-impl TryFrom<RawMessage> for SetPosition {
-    type Error = MessageParseError;
-
-    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::SetPosition.into() {
-            return Err(Self::Error::InvalidMessage);
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
+            continue;
         };
 
-        let fen = raw_message
-            .parameters
-            .remove(&super::pointers::SetPositionParameterPointer::Fen.into());
-
-        let moves = raw_message
-            .parameters
-            .get(&super::pointers::SetPositionParameterPointer::Moves.into())
-            .and_then(|s| s.parse().ok());
-
-        if let Some(fen) = fen {
-            Ok(Self::Fen {
-                fen,
-                moves,
-            })
-        } else {
-            Ok(Self::StartingPosition { moves })
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
         }
+
+        last_parameter = Some(parameter);
     }
-}
+
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+
+    if let Some(fen) = fen {
+        Ok(Self::Fen {
+            fen,
+            moves,
+        })
+    } else {
+        Ok(Self::StartingPosition { moves })
+    }
+});
 
 impl Display for SetPosition {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::StartingPosition { moves: None } => f.write_str("position startpos")?,
             Self::StartingPosition { moves: Some(moves) } => write!(f, "position startpos moves {}", &moves)?,
-            Self::Fen {
-                fen,
-                moves: None,
-            } => write!(f, "position fen {fen}")?,
             Self::Fen { fen, moves: Some(moves ) } => write!(f, "position fen {fen} moves {}", &moves)?,
+            Self::Fen { fen, .. } => write!(f, "position fen {fen}")?,
         }
         
         f.write_char('\n')

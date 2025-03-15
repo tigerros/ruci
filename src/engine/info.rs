@@ -2,8 +2,9 @@ use std::fmt::{Display, Formatter, Write};
 use shakmaty::Color;
 use shakmaty::uci::UciMove;
 use crate::errors::MessageParseError;
-use crate::raw_message::RawMessage;
-use crate::UciMoves;
+use crate::{parsing, UciMoves};
+use crate::engine::pointers::InfoParameterPointer;
+use crate::from_str_parts::from_str_parts;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -71,6 +72,49 @@ pub struct ScoreWithBound {
     pub bound: Option<ScoreBound>,
 }
 
+impl ScoreWithBound {
+    fn from_str(s: &str) -> Option<Self> {
+        fn isize_at_plus1_position(split: &[&str], position: Option<usize>) -> Option<isize> {
+            position.and_then(|position| {
+                if position == usize::MAX {
+                    None
+                } else {
+                    // CLIPPY: Potential overflow handled in this if statement
+                    #[allow(clippy::arithmetic_side_effects)]
+                    split
+                        .get(position + 1)
+                        .and_then(|s| s.parse().ok())
+                }
+            })
+        }
+
+        let split = s.split(' ').collect::<Vec<_>>();
+        let centipawns_position = split.iter().position(|&part| part == "cp");
+        let mate_in_position = split.iter().position(|&part| part == "mate");
+        let is_lowerbound = split.iter().any(|&part| part == "lowerbound");
+        let is_upperbound = split.iter().any(|&part| part == "upperbound");
+        let centipawns = isize_at_plus1_position(&split, centipawns_position);
+        let mate_in = isize_at_plus1_position(&split, mate_in_position);
+        let kind = centipawns.map_or(
+            mate_in.map(Score::MateIn),
+            |centipawns| Some(Score::Centipawns(centipawns))
+        )?;
+
+        Some(ScoreWithBound {
+            kind,
+            bound: if is_lowerbound && is_upperbound {
+                None
+            } else if is_lowerbound {
+                Some(ScoreBound::LowerBound)
+            } else if is_upperbound {
+                Some(ScoreBound::UpperBound)
+            } else {
+                None
+            },
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
@@ -79,12 +123,49 @@ pub struct Refutation {
     pub refutation: UciMoves,
 }
 
+impl Refutation {
+    fn from_str(s: &str) -> Option<Self> {
+        let mut moves: UciMoves = s.parse().ok()?;
+
+        if moves.0.is_empty() {
+            return None;
+        }
+
+        let first = moves.0.remove(0);
+
+        Some(Self {
+            refuted_move: first,
+            refutation: moves,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct CurrentLine {
     pub used_cpu: Option<usize>,
     pub line: UciMoves,
+}
+
+impl CurrentLine {
+    fn from_str(s: &str) -> Option<Self> {
+        // TODO: This will fail if there's more whitespace in between.
+        // Fix in future
+        let (used_cpu, line) = s.split_once(' ')?;
+        let Ok(used_cpu) = used_cpu.parse() else {
+            return None;
+        };
+
+        let Ok(line) = line.parse() else {
+            return None;
+        };
+
+        Some(CurrentLine {
+            used_cpu: Some(used_cpu),
+            line,
+        })
+    }
 }
 
 /// <https://backscattering.de/chess/uci/#engine-info>
@@ -137,190 +218,59 @@ impl From<Info> for crate::engine::Message {
     }
 }
 
-impl TryFrom<RawMessage> for Info {
-    type Error = MessageParseError;
-
-    #[allow(clippy::too_many_lines)]
-    fn try_from(
-        mut raw_message: RawMessage,
-    ) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::Info.into() {
-            return Err(Self::Error::InvalidMessage);
+from_str_parts!(impl Info for parts {
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<InfoParameterPointer>;
+    let mut this = Self::default();
+    // Need to handle depth like this in case the seldepth argument comes before the depth argument
+    let mut depth = None::<usize>;
+    let mut selective_search_depth = None::<usize>;
+    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+        InfoParameterPointer::Depth => depth = value.parse().ok(),
+        InfoParameterPointer::SelectiveSearchDepth => selective_search_depth = value.parse().ok(),
+        InfoParameterPointer::Time => this.time = value.parse().ok(),
+        InfoParameterPointer::Nodes => this.nodes = value.parse().ok(),
+        InfoParameterPointer::PrimaryVariation => this.primary_variation = value.parse().ok(),
+        InfoParameterPointer::MultiPrimaryVariation => this.multi_primary_variation = value.parse().ok(),
+        InfoParameterPointer::Score => this.score = ScoreWithBound::from_str(value),
+        InfoParameterPointer::CurrentMove => this.current_move = value.parse().ok(),
+        InfoParameterPointer::CurrentMoveNumber => this.current_move_number = value.parse().ok(),
+        InfoParameterPointer::HashFull => this.hash_full = value.parse().ok(),
+        InfoParameterPointer::NodesPerSecond => this.nodes_per_second = value.parse().ok(),
+        InfoParameterPointer::TableBaseHits => this.table_base_hits = value.parse().ok(),
+        InfoParameterPointer::ShredderBaseHits => this.shredder_base_hits = value.parse().ok(),
+        InfoParameterPointer::CpuLoad => this.cpu_load = value.parse().ok(),
+        InfoParameterPointer::String => this.string = Some(value.to_string()),
+        InfoParameterPointer::Refutation => this.refutation = Refutation::from_str(value),
+        InfoParameterPointer::CurrentLine => this.current_line = CurrentLine::from_str(value),
+    };
+    
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
+            continue;
         };
-
-        let depth = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::Depth.into())
-            .and_then(|s| {
-                s.parse().ok().map(|depth| Depth {
-                    depth,
-                    selective_search_depth: raw_message
-                        .parameters
-                        .get(&super::pointers::InfoParameterPointer::SelectiveSearchDepth.into())
-                        .and_then(|s| s.parse().ok()),
-                })
-            });
-
-        let time = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::Time.into())
-            .and_then(|s| s.parse().ok());
-
-        let nodes = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::Nodes.into())
-            .and_then(|s| s.parse().ok());
-
-        let primary_variation = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::PrimaryVariation.into())
-            .and_then(|s| s.parse().ok());
-
-        let multi_primary_variation = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::MultiPrimaryVariation.into())
-            .and_then(|s| s.parse().ok());
-
-        let score = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::Score.into())
-            .and_then(|s| {
-                fn isize_at_plus1_position(split: &[&str], position: Option<usize>) -> Option<isize> {
-                    position.and_then(|position| {
-                        if position == usize::MAX {
-                            None
-                        } else {
-                            // CLIPPY: Potential overflow handled in this if statement
-                            #[allow(clippy::arithmetic_side_effects)]
-                            split
-                                .get(position + 1)
-                                .and_then(|s| s.parse().ok())
-                        }
-                    })
-                }
-                let split = s.split(' ').collect::<Vec<_>>();
-                let centipawns_position = split.iter().position(|&part| part == "cp");
-                let mate_in_position = split.iter().position(|&part| part == "mate");
-                let is_lowerbound = split.iter().any(|&part| part == "lowerbound");
-                let is_upperbound = split.iter().any(|&part| part == "upperbound");
-                let centipawns = isize_at_plus1_position(&split, centipawns_position);
-                let mate_in = isize_at_plus1_position(&split, mate_in_position);
-                let kind = centipawns.map_or(
-                    mate_in.map(Score::MateIn),
-                    |centipawns| Some(Score::Centipawns(centipawns))
-                );
-
-                let kind = kind?;
-
-                Some(ScoreWithBound {
-                    kind,
-                    bound: if is_lowerbound && is_upperbound {
-                        None
-                    } else if is_lowerbound {
-                        Some(ScoreBound::LowerBound)
-                    } else if is_upperbound {
-                        Some(ScoreBound::UpperBound)
-                    } else {
-                        None
-                    },
-                })
-            });
-
-        let current_move = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::CurrentMove.into())
-            .and_then(|s| s.parse().ok());
-
-        let current_move_number = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::CurrentMoveNumber.into())
-            .and_then(|s| s.parse().ok());
-
-        let hash_full = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::HashFull.into())
-            .and_then(|s| s.parse().ok());
-
-        let nodes_per_second = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::NodesPerSecond.into())
-            .and_then(|s| s.parse().ok());
-
-        let table_base_hits = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::TableBaseHits.into())
-            .and_then(|s| s.parse().ok());
-
-        let shredder_base_hits = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::ShredderBaseHits.into())
-            .and_then(|s| s.parse().ok());
-
-        let cpu_load = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::CpuLoad.into())
-            .and_then(|s| s.parse().ok());
-
-        let string = raw_message
-            .parameters
-            .remove(&super::pointers::InfoParameterPointer::String.into());
-
-        let refutation = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::Refutation.into())
-            .and_then(|s| s.parse::<UciMoves>().ok())
-            .and_then(|mut move_list| {
-                if move_list.0.is_empty() {
-                    return None;
-                }
-                
-                let refuted_move = move_list.0.remove(0);
-
-                Some(Refutation {
-                    refuted_move,
-                    refutation: move_list,
-                })
-            });
-
-        let current_line = raw_message
-            .parameters
-            .get(&super::pointers::InfoParameterPointer::CurrentLine.into())
-            .and_then(|s| s.split_once(' '))
-            .and_then(|(used_cpu, line)| {
-                let Ok(used_cpu) = used_cpu.parse() else {
-                    return None;
-                };
-
-                let Ok(line) = line.parse() else {
-                    return None;
-                };
-
-                Some(CurrentLine {
-                    used_cpu: Some(used_cpu),
-                    line,
-                })
-            });
-
-        Ok(Self {
-            depth,
-            time,
-            nodes,
-            primary_variation,
-            multi_primary_variation,
-            score,
-            current_move,
-            current_move_number,
-            hash_full,
-            nodes_per_second,
-            table_base_hits,
-            shredder_base_hits,
-            cpu_load,
-            string,
-            refutation,
-            current_line,
-        })
+        
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
+        }
+        
+        last_parameter = Some(parameter);
     }
-}
+    
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+    
+    if let Some(depth) = depth {
+        this.depth = Some(Depth {
+            depth,
+            selective_search_depth
+        });
+    }
+    
+    Ok(this)
+});
 
 impl Display for Info {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

@@ -1,5 +1,5 @@
 dry_mods::mods! {
-    mod pub use go, register, set_option, set_position;
+    mod pub use go, register, set_option, set_position, debug;
 }
 
 use crate::define_message::define_message;
@@ -13,7 +13,7 @@ define_message! {
         UseUci,
         /// <https://backscattering.de/chess/uci/#gui-debug>
         %["debug"]
-        Debug(%bool),
+        Debug(%Debug),
         /// <https://backscattering.de/chess/uci/#gui-isready>
         %["isready"]
         IsReady,
@@ -52,7 +52,7 @@ impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UseUci => f.write_str("uci\n"),
-            Self::Debug(value) => writeln!(f, "debug {}", if *value { "on" } else { "off" }),
+            Self::Debug(m) => m.fmt(f),
             Self::IsReady => f.write_str("isready\n"),
             Self::SetOption(m) => m.fmt(f),
             Self::Register(m) => m.fmt(f),

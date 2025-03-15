@@ -167,6 +167,16 @@ macro_rules! define_message {
                     }
                 }
 
+                impl ::std::str::FromStr for [< $message_ident ParameterPointer >] {
+                    type Err = ();
+                    fn from_str(s: &str) -> Result<Self, Self::Err> {
+                        match s {
+                            $($parameter_string => Ok(Self::$parameter_ident),)+
+                            _ => Err(())
+                        }
+                    }
+                }
+
                 impl From<[< $message_ident ParameterPointer >]> for ParameterPointer {
                     fn from(value: [< $message_ident ParameterPointer >]) -> Self {
                         Self::$message_ident(value)

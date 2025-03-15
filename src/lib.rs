@@ -53,13 +53,13 @@ mod engine_connection;
 pub mod errors;
 pub mod gui;
 mod message_from_impl;
-mod raw_message;
+mod parsing;
 mod uci_moves;
+mod from_str_parts;
 
 use crate::engine::{BestMove, CopyProtection, Id, Info, Registration};
 use crate::errors::MessageParseError;
-use crate::gui::{Go, Register, SetOption, SetPosition};
-use crate::raw_message::RawMessage;
+use crate::gui::{Debug, Go, Register, SetOption, SetPosition};
 #[cfg(feature = "engine-connection")]
 pub use engine_connection::*;
 use std::fmt::Display;
@@ -79,32 +79,31 @@ impl FromStr for Message {
     /// Tries to parse one line to a [`Message`].
     /// If there's a newline character (`\n`) present, only the first line will be processed.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let raw_message =
-            RawMessage::from_str(s).map_err(|()| MessageParseError::InvalidMessage)?;
+        let (message_pointer, parts) = parsing::collect_any_message(s)?;
 
-        match raw_message.message_pointer {
+        match message_pointer {
             MessagePointer::Engine(engine) => match engine {
                 // Value-less, parameter-less messages
                 engine::pointers::MessagePointer::UciOk => Ok(engine::Message::UciOk.into()),
                 engine::pointers::MessagePointer::ReadyOk => Ok(engine::Message::ReadyOk.into()),
                 // Messages with values/parameters
                 engine::pointers::MessagePointer::Id => {
-                    Ok(engine::Message::Id(Id::try_from(raw_message)?).into())
+                    Ok(engine::Message::Id(Id::from_str_parts_message_assumed(parts)?).into())
                 }
                 engine::pointers::MessagePointer::BestMove => {
-                    Ok(engine::Message::BestMove(BestMove::try_from(raw_message)?).into())
+                    Ok(engine::Message::BestMove(BestMove::from_str_parts_message_assumed(parts)?).into())
                 }
                 engine::pointers::MessagePointer::CopyProtection => Ok(
-                    engine::Message::CopyProtection(CopyProtection::try_from(raw_message)?).into(),
+                    engine::Message::CopyProtection(CopyProtection::from_str_parts_message_assumed(parts)?).into(),
                 ),
                 engine::pointers::MessagePointer::Registration => {
-                    Ok(engine::Message::Registration(Registration::try_from(raw_message)?).into())
+                    Ok(engine::Message::Registration(Registration::from_str_parts_message_assumed(parts)?).into())
                 }
                 engine::pointers::MessagePointer::Info => {
-                    Ok(engine::Message::Info(Box::new(Info::try_from(raw_message)?)).into())
+                    Ok(engine::Message::Info(Box::new(Info::from_str_parts_message_assumed(parts)?)).into())
                 }
                 engine::pointers::MessagePointer::Option => Ok(engine::Message::Option(
-                    crate::engine::Option::try_from(raw_message)?,
+                    engine::Option::from_str_parts_message_assumed(parts)?,
                 )
                 .into()),
             },
@@ -118,23 +117,19 @@ impl FromStr for Message {
                 gui::pointers::MessagePointer::Quit => Ok(gui::Message::Quit.into()),
                 // Messages with values/parameters
                 gui::pointers::MessagePointer::Debug => {
-                    match raw_message.value.ok_or(Self::Err::MissingValue)?.as_bytes() {
-                        b"on" => Ok(gui::Message::Debug(true).into()),
-                        b"off" => Ok(gui::Message::Debug(false).into()),
-                        _ => Err(Self::Err::ValueParseError),
-                    }
+                    Ok(gui::Message::Debug(Debug::from_str_parts_message_assumed(parts)?).into())
                 }
                 gui::pointers::MessagePointer::SetOption => {
-                    Ok(gui::Message::SetOption(SetOption::try_from(raw_message)?).into())
+                    Ok(gui::Message::SetOption(SetOption::from_str_parts_message_assumed(parts)?).into())
                 }
                 gui::pointers::MessagePointer::Register => {
-                    Ok(gui::Message::Register(Register::try_from(raw_message)?).into())
+                    Ok(gui::Message::Register(Register::from_str_parts_message_assumed(parts)?).into())
                 }
                 gui::pointers::MessagePointer::SetPosition => {
-                    Ok(gui::Message::SetPosition(SetPosition::try_from(raw_message)?).into())
+                    Ok(gui::Message::SetPosition(SetPosition::from_str_parts_message_assumed(parts)?).into())
                 }
                 gui::pointers::MessagePointer::Go => {
-                    Ok(gui::Message::Go(Go::try_from(raw_message)?).into())
+                    Ok(gui::Message::Go(Go::from_str_parts_message_assumed(parts)?).into())
                 }
             },
         }

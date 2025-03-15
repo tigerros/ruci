@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
+use crate::from_str_parts::from_str_parts;
+use crate::gui::pointers::{SetOptionParameterPointer};
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
+use crate::parsing;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -13,29 +15,38 @@ pub struct SetOption {
 }
 
 message_from_impl!(gui SetOption);
+from_str_parts!(impl SetOption for parts {
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<SetOptionParameterPointer>;
+    let mut name = None;
+    let mut value_parameter = None;
+    let mut parameter_to_closure = |parameter: SetOptionParameterPointer, value: &str| match parameter {
+        SetOptionParameterPointer::Name => name = Some(value.to_owned()),
+        SetOptionParameterPointer::Value => value_parameter = Some(value.to_owned()),
+    };
 
-impl TryFrom<RawMessage> for SetOption {
-    type Error = MessageParseError;
-
-    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::SetOption.into() {
-            return Err(Self::Error::InvalidMessage);
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value::<SetOptionParameterPointer>(part, &mut value) else {
+            continue;
         };
 
-        let Some(name) = raw_message
-            .parameters
-            .remove(&super::pointers::SetOptionParameterPointer::Name.into())
-            else {
-                return Err(Self::Error::MissingParameter(super::pointers::SetOptionParameterPointer::Name.into()));
-            };
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
+        }
 
-        let value = raw_message
-            .parameters
-            .remove(&super::pointers::SetOptionParameterPointer::Value.into());
-
-        Ok(Self { name, value })
+        last_parameter = Some(parameter);
     }
-}
+
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+
+    Ok(Self {
+        name: name.ok_or(MessageParseError::MissingParameter(SetOptionParameterPointer::Name.into()))?,
+        value: value_parameter,
+    })
+});
 
 impl Display for SetOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

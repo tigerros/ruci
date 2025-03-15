@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
+use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
 
 /// <https://backscattering.de/chess/uci/#engine-registration>
 #[allow(clippy::module_name_repetitions)]
@@ -14,27 +14,18 @@ pub enum Registration {
 }
 
 message_from_impl!(engine Registration);
-
-impl TryFrom<RawMessage> for Registration {
-    type Error = MessageParseError;
-    
-    fn try_from(raw_message: RawMessage) -> Result<Self, MessageParseError> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::Registration.into() {
-            return Err(MessageParseError::InvalidMessage);
-        }
-        
-        let Some(value) = raw_message.value else {
-            return Err(MessageParseError::MissingValue);
-        };
-
-        match value.as_bytes() {
-            b"checking" => Ok(Self::Checking),
-            b"ok" => Ok(Self::Ok),
-            b"error" => Ok(Self::Error),
-            _ => Err(MessageParseError::ValueParseError),
+from_str_parts!(impl Registration for parts {
+    for part in parts {
+        match part.trim().to_lowercase().as_str() {
+            "checking" => return Ok(Self::Checking),
+            "ok" => return Ok(Self::Ok),
+            "error" => return Ok(Self::Error),
+            _ => ()
         }
     }
-}
+
+    Err(MessageParseError::ValueParseError)
+});
 
 impl Display for Registration {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

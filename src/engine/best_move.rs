@@ -1,8 +1,10 @@
 use std::fmt::{Display, Formatter, Write};
+use std::str::FromStr;
 use shakmaty::uci::UciMove;
+use crate::engine::pointers::{BestMoveParameterPointer};
 use crate::errors::MessageParseError;
+use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -14,31 +16,25 @@ pub struct BestMove {
 }
 
 message_from_impl!(engine BestMove);
+from_str_parts!(impl BestMove for parts {
+    let mut move_value = String::with_capacity(50);
+    let mut ponder = None::<String>;
 
-impl TryFrom<RawMessage> for BestMove {
-    type Error = MessageParseError;
-
-    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::BestMove.into() {
-            return Err(Self::Error::InvalidMessage);
-        };
-
-        let Ok(r#move) = raw_message
-            .value
-            .ok_or(Self::Error::MissingValue)?
-            .parse()
-            else {
-                return Err(Self::Error::ValueParseError);
-            };
-
-        let ponder = raw_message
-            .parameters
-            .get(&super::pointers::BestMoveParameterPointer::Ponder.into())
-            .and_then(|s| s.parse().ok());
-
-        Ok(Self { r#move, ponder })
+    for part in parts {
+        if let Some(ponder) = &mut ponder {
+            ponder.push_str(part.trim());
+        } else if let Some(_) = BestMoveParameterPointer::from_str(part.trim()).ok() {
+            ponder = Some(String::with_capacity(50));
+        } else {
+            move_value.push_str(part.trim());
+        }
     }
-}
+
+    Ok(Self {
+        r#move: move_value.parse().map_err(|_| MessageParseError::ValueParseError)?,
+        ponder: ponder.and_then(|p| p.parse().ok())
+    })
+});
 
 impl Display for BestMove {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

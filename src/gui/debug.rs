@@ -7,17 +7,14 @@ use crate::message_from_impl::message_from_impl;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-copyprotection>
-pub enum CopyProtection {
-    Ok,
-    Error,
-}
+pub struct Debug(pub bool);
 
-message_from_impl!(engine CopyProtection);
-from_str_parts!(impl CopyProtection for parts {
+message_from_impl!(gui Debug);
+from_str_parts!(impl Debug for parts {
     for part in parts {
         match part.trim().to_lowercase().as_str() {
-            "ok" => return Ok(Self::Ok),
-            "error" => return Ok(Self::Error),
+            "on" => return Ok(Self(true)),
+            "off" => return Ok(Self(false)),
             _ => ()
         }
     }
@@ -25,12 +22,12 @@ from_str_parts!(impl CopyProtection for parts {
     Err(MessageParseError::ValueParseError)
 });
 
-impl Display for CopyProtection {
+impl Display for Debug {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("copyprotection ")?;
-        match self {
-            Self::Ok => f.write_str("ok")?,
-            Self::Error => f.write_str("error")?,
+        f.write_str("debug ")?;
+        match self.0 {
+            true => f.write_str("on")?,
+            false => f.write_str("off")?,
         }
         f.write_char('\n')
     }
@@ -44,23 +41,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn to_from_str_ok() {
-        let m: Message = CopyProtection::Ok.into();
-        let str = "copyprotection ok\n";
+    fn to_from_str_on() {
+        let m: Message = Debug(true).into();
+        let str = "debug on\n";
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), m);
     }
 
     #[test]
-    fn to_from_str_error() {
-        let m: Message = CopyProtection::Error.into();
-        let str = "copyprotection error\n";
+    fn to_from_str_off() {
+        let m: Message = Debug(false).into();
+        let str = "debug off\n";
+        assert_eq!(m.to_string(), str);
+        assert_eq!(Message::from_str(str).unwrap(), m);
+
+        let m: Message = Debug(false).into();
+        let str = "debug blah   off asffd\n";
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str).unwrap(), m);
     }
 
     #[test]
     fn parse_error() {
-        pretty_assertions::assert_eq!(Message::from_str("copyprotection why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError));
+        pretty_assertions::assert_eq!(Message::from_str("debug why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError));
     }
 }

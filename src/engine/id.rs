@@ -1,7 +1,10 @@
 use std::fmt::{Display, Formatter, Write};
+use std::str::FromStr;
+use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
+use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
+use crate::parsing;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,40 +18,47 @@ pub enum Id {
 }
 
 message_from_impl!(engine Id);
-
-impl TryFrom<RawMessage> for Id {
-    type Error = MessageParseError;
-
-    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::Id.into() {
-            return Err(Self::Error::InvalidMessage);
+from_str_parts!(impl Id for parts {
+    let mut name = None::<String>;
+    let mut author = None::<String>;
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<IdParameterPointer>;
+    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+        IdParameterPointer::Name => name = Some(value.to_owned()),
+        IdParameterPointer::Author => author = Some(value.to_owned()),
+    };
+    
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
+            continue;
         };
-
-        let name = raw_message
-            .parameters
-            .remove(&super::pointers::IdParameterPointer::Name.into());
-
-        let author = raw_message
-            .parameters
-            .remove(&super::pointers::IdParameterPointer::Author.into());
-
-        #[allow(clippy::option_if_let_else)]
-        if let Some(name) = name {
-            if let Some(author) = author {
-                Ok(Self::NameAndAuthor {
-                    name,
-                    author,
-                })
-            } else {
-                Ok(Self::Name(name))
-            }
-        } else if let Some(author) = author {
-            Ok(Self::Author(author))
-        } else {
-            Err(Self::Error::MissingParameter(super::pointers::IdParameterPointer::Name.into()))
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
         }
+        last_parameter = Some(parameter);
     }
-}
+
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+
+    #[allow(clippy::option_if_let_else)]
+    if let Some(name) = name {
+        if let Some(author) = author {
+            Ok(Self::NameAndAuthor {
+                name,
+                author,
+            })
+        } else {
+            Ok(Self::Name(name))
+        }
+    } else if let Some(author) = author {
+        Ok(Self::Author(author))
+    } else {
+        Err(MessageParseError::MissingParameter(IdParameterPointer::Name.into()))
+    }
+});
 
 impl Display for Id {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

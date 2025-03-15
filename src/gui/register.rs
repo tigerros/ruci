@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
+use crate::from_str_parts::from_str_parts;
+use crate::gui::pointers::RegisterParameterPointer;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
+use crate::parsing;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -15,46 +17,56 @@ pub enum Register {
 }
 
 message_from_impl!(gui Register);
-
-impl TryFrom<RawMessage> for Register {
-    type Error = MessageParseError;
-
-    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::Register.into() {
-            return Err(Self::Error::InvalidMessage);
+from_str_parts!(impl Register for parts {
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<RegisterParameterPointer>;
+    let mut name = None;
+    let mut code = None;
+    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+        RegisterParameterPointer::Name => name = Some(value.to_owned()),
+        RegisterParameterPointer::Code => code = Some(value.to_owned()),
+    };
+    let mut first_parameter_encountered = false;
+    
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
+            continue;
         };
 
-        if let Some(value) = raw_message.value {
-            if value == "later" {
-                return Ok(Self::Later);
-            }
+        if !first_parameter_encountered {
+            value.clear();
+            first_parameter_encountered = true;
         }
 
-        let name = raw_message
-            .parameters
-            .remove(&super::pointers::RegisterParameterPointer::Name.into());
-
-        let code = raw_message
-            .parameters
-            .remove(&super::pointers::RegisterParameterPointer::Code.into());
-
-        #[allow(clippy::option_if_let_else)]
-        if let Some(name) = name {
-            if let Some(code) = code {
-                Ok(Self::NameAndCode {
-                    name,
-                    code,
-                })
-            } else {
-                Ok(Self::Name(name))
-            }
-        } else if let Some(code) = code {
-            Ok(Self::Code(code))
-        } else {
-            Err(Self::Error::MissingParameter(super::pointers::RegisterParameterPointer::Name.into()))
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
         }
+
+        last_parameter = Some(parameter);
     }
-}
+
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+
+    if let Some(name) = name {
+        if let Some(code) = code {
+            Ok(Self::NameAndCode {
+                name,
+                code,
+            })
+        } else {
+            Ok(Self::Name(name))
+        }
+    } else if let Some(code) = code {
+        Ok(Self::Code(code))
+    } else if value.trim() == "later" {
+        Ok(Self::Later)
+    } else {
+        Err(MessageParseError::MissingParameter(RegisterParameterPointer::Name.into()))
+    }
+});
 
 impl Display for Register {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

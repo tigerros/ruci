@@ -2,8 +2,9 @@ use std::fmt::{Display, Formatter, Write};
 use std::num::NonZeroUsize;
 use crate::errors::MessageParseError;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
-use crate::UciMoves;
+use crate::{parsing, UciMoves};
+use crate::from_str_parts::from_str_parts;
+use crate::gui::pointers::GoParameterPointer;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -37,91 +38,52 @@ pub struct Go {
 }
 
 message_from_impl!(gui Go);
-
-impl TryFrom<RawMessage> for Go {
-    type Error = MessageParseError;
-
-    fn try_from(raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::Go.into() {
-            return Err(Self::Error::InvalidMessage);
+from_str_parts!(impl Go for parts {
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<GoParameterPointer>;
+    let mut this = Self::default();
+    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+        GoParameterPointer::SearchMoves => this.search_moves = value.parse().ok(),
+        GoParameterPointer::Ponder => (), // Should never happen because we handle it right away
+        GoParameterPointer::WhiteTime => this.white_time = value.parse().ok(),
+        GoParameterPointer::BlackTime => this.black_time = value.parse().ok(),
+        GoParameterPointer::WhiteIncrement => this.white_increment = value.parse().ok(),
+        GoParameterPointer::BlackIncrement => this.black_increment = value.parse().ok(),
+        GoParameterPointer::MovesToGo => this.moves_to_go = value.parse().ok(),
+        GoParameterPointer::Depth => this.depth = value.parse().ok(),
+        GoParameterPointer::Nodes => this.nodes = value.parse().ok(),
+        GoParameterPointer::Mate => this.mate = value.parse().ok(),
+        GoParameterPointer::MoveTime => this.move_time = value.parse().ok(),
+        GoParameterPointer::Infinite => () // Same as ponder
+    };
+    
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
+            continue;
         };
-
-        let search_moves = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::SearchMoves.into())
-            .and_then(|s| s.parse().ok());
-
-        let ponder =
-            raw_message
-                .void_parameters
-                .contains(&super::pointers::GoParameterPointer::Ponder.into());
-
-        let white_time = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::WhiteTime.into())
-            .and_then(|s| s.parse().ok());
-
-        let black_time = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::BlackTime.into())
-            .and_then(|s| s.parse().ok());
-
-        let white_increment = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::WhiteIncrement.into())
-            .and_then(|s| s.parse().ok());
-
-        let black_increment = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::BlackIncrement.into())
-            .and_then(|s| s.parse().ok());
-
-        let moves_to_go = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::MovesToGo.into())
-            .and_then(|s| s.parse().ok());
-
-        let depth = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::Depth.into())
-            .and_then(|s| s.parse().ok());
-
-        let nodes = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::Nodes.into())
-            .and_then(|s| s.parse().ok());
-
-        let mate = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::Mate.into())
-            .and_then(|s| s.parse().ok());
-
-        let move_time = raw_message
-            .parameters
-            .get(&super::pointers::GoParameterPointer::MoveTime.into())
-            .and_then(|s| s.parse().ok());
-
-        let infinite =
-            raw_message
-                .void_parameters
-                .contains(&super::pointers::GoParameterPointer::Infinite.into());
-
-        Ok(Self {
-            search_moves,
-            ponder,
-            white_time,
-            black_time,
-            white_increment,
-            black_increment,
-            moves_to_go,
-            depth,
-            nodes,
-            mate,
-            move_time,
-            infinite,
-        })
+        
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
+        }
+        
+        if parameter == GoParameterPointer::Ponder {
+            this.ponder = true;
+            last_parameter = None;
+        } else if parameter == GoParameterPointer::Infinite {
+            this.infinite = true;
+            last_parameter = None;
+        } else {
+            last_parameter = Some(parameter);
+        }
     }
-}
+    
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+    
+    Ok(this)
+});
 
 impl Display for Go {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

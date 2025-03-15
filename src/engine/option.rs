@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter, Write};
+use crate::engine::pointers::OptionParameterPointer;
 use crate::errors::MessageParseError;
+use crate::from_str_parts::from_str_parts;
 use crate::message_from_impl::message_from_impl;
-use crate::raw_message::RawMessage;
+use crate::parsing;
 
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]
@@ -100,79 +102,71 @@ impl Option {
     }
 }
 
-impl TryFrom<RawMessage> for Option {
-    type Error = MessageParseError;
+from_str_parts!(impl Option for parts {
+    let mut name = None::<String>;
+    let mut r#type = None::<String>;
+    let mut default = None::<String>;
+    let mut min = None::<i64>;
+    let mut max = None::<i64>;
+    let mut variations = Vec::new();
+    let mut value = String::with_capacity(50);
+    let mut last_parameter = None::<OptionParameterPointer>;
+    let mut parameter_to_closure = |parameter, value: &str| match parameter {
+        OptionParameterPointer::Name => name = Some(value.to_string()),
+        OptionParameterPointer::Type => r#type = Some(value.to_string()),
+        OptionParameterPointer::Default => default = Some(value.to_string()),
+        OptionParameterPointer::Min => min = value.parse().ok(),
+        OptionParameterPointer::Max => max = value.parse().ok(),
+        OptionParameterPointer::Var => variations.push(value.to_string()),
+    };
 
-    fn try_from(mut raw_message: RawMessage) -> Result<Self, Self::Error> {
-        if raw_message.message_pointer != super::pointers::MessagePointer::Option.into() {
-            return Err(Self::Error::InvalidMessage);
+    for part in parts {
+        let Some(parameter) = parsing::get_parameter_or_update_value(part, &mut value) else {
+            continue;
         };
 
-        let Some(name) = raw_message
-            .parameters
-            .remove(&super::pointers::OptionParameterPointer::Name.into())
-            else {
-                return Err(Self::Error::MissingParameter(super::pointers::OptionParameterPointer::Name.into()));
-            };
-
-        let Some(r#type) = raw_message
-            .parameters
-            .get(&super::pointers::OptionParameterPointer::Type.into())
-            else {
-                return Err(Self::Error::MissingParameter(super::pointers::OptionParameterPointer::Type.into()));
-            };
-
-        match r#type.as_bytes() {
-            b"check" => {
-                let default = raw_message
-                    .parameters
-                    .get(&super::pointers::OptionParameterPointer::Default.into())
-                    .and_then(|s| s.parse().ok());
-
-                Ok(Self::Check { name, default })
-            },
-            b"spin" => {
-                let default = raw_message
-                    .parameters
-                    .get(&super::pointers::OptionParameterPointer::Default.into())
-                    .and_then(|s| s.parse().ok());
-
-                let min = raw_message
-                    .parameters
-                    .get(&super::pointers::OptionParameterPointer::Min.into())
-                    .and_then(|s| s.parse().ok());
-
-                let max = raw_message
-                    .parameters
-                    .get(&super::pointers::OptionParameterPointer::Max.into())
-                    .and_then(|s| s.parse().ok());
-
-                Ok(Self::Spin {
-                    name,
-                    default,
-                    min,
-                    max
-                })
-            },
-            b"combo" => {
-                let default = raw_message
-                    .parameters
-                    .remove(&super::pointers::OptionParameterPointer::Default.into());
-
-                Ok(Self::Combo { name, default, variations: raw_message.option_vars })
-            },
-            b"button" => Ok(Self::Button { name }),
-            b"string" => {
-                let default = raw_message
-                    .parameters
-                    .remove(&super::pointers::OptionParameterPointer::Default.into());
-
-                Ok(Self::String { name, default })
-            },
-            _ => Err(MessageParseError::ParameterParseError(super::pointers::OptionParameterPointer::Type.into())),
+        if let Some(last_parameter) = last_parameter {
+            parameter_to_closure(last_parameter, value.trim());
+            value.clear();
         }
+
+        last_parameter = Some(parameter);
     }
-}
+
+    if let Some(last_parameter) = last_parameter {
+        parameter_to_closure(last_parameter, value.trim());
+    }
+
+    let Some(name) = name else {
+        return Err(MessageParseError::MissingParameter(OptionParameterPointer::Name.into()));
+    };
+
+    let Some(r#type) = r#type else {
+        return Err(MessageParseError::MissingParameter(OptionParameterPointer::Type.into()));
+    };
+
+    match r#type.as_str() {
+        "check" => {
+            Ok(Self::Check { name, default: default.and_then(|d| d.parse().ok()) })
+        },
+        "spin" => {
+            Ok(Self::Spin {
+                name,
+                default: default.and_then(|d| d.parse().ok()),
+                min,
+                max
+            })
+        },
+        "combo" => {
+            Ok(Self::Combo { name, default, variations })
+        },
+        "button" => Ok(Self::Button { name }),
+        "string" => {
+            Ok(Self::String { name, default })
+        },
+        _ => Err(MessageParseError::ParameterParseError(OptionParameterPointer::Type.into())),
+    }
+});
 
 impl Display for Option {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
