@@ -10,6 +10,8 @@
 This crate parses and creates UCI messages.
 It follows the [UCI standard](https://backscattering.de/chess/uci) and uses [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
 
+`#![no_std]` compatible, unless you enable the `engine-connection` feature.
+
 See the examples for a demo on how to send and receive messages.
 
 ## Comparison
@@ -19,6 +21,7 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
   - Doesn't use shakmaty, which AFAIK is the go-to chess crate now.
   - Uses [`pest`](https://pest.rs/) for parsing (RUCI does it manually).
   - More dependencies; `pest` and `chrono`. RUCI only has shakmaty and two macros which don't get included in the final binary.
+  - Not `#![no_std]` compatible.
   - Lot more tests than RUCI. However, RUCI has simpler parsing and less code. But yes, I am guilty.
   - Doesn't separate GUI and engine messages. This is bad if you want to communicate with an engine/GUI, because you're going to need functions like `send_message` and `read_message`, where you want to specify which message you are sending and receiving.
   - Less direct implementation of the UCI standard.
@@ -29,6 +32,7 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
     - Uses shakmaty.
     - Uses [`nom`](https://crates.io/crates/nom) for parsing.
     - Doesn't have any other dependencies.
+    - Is `#![no_std]` compatible.
 
 ## Feature flags
 - `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) and [`parking_lot`](https://crates.io/crates/parking_lot) as dependencies. If you're making an engine, listen to stdin and parse it into a `gui::Message`, then print a string representation of an `engine::Message`.

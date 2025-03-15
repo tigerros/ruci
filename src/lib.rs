@@ -31,36 +31,33 @@
     clippy::string_slice
 )]
 #![cfg_attr(not(feature = "engine-connection"), no_std)]
-//! Get started with [`Message`]!
+//! You can get started with [`Message`], but keep in mind that all messages (even those which
+//! are void, like [`UciOk`](UciOk)), implement [`FromStr`] and [`Display`], so you can (and should) use them
+//! individually.
 //!
-//! Most of the docs should be self explanatory,
-//! but there is one thing which you might miss and is very helpful.
+//! But if you do need to use the more general enums like the top-level [`Message`],
+//! you might find yourself writing code like `Message::Gui(gui::Message::Go(gui::Go { .. }))`.
+//! There is an easier way! The "higher level" messages implement [`From`] for the "lower level"
+//! messages, which means that [`Message`] and [`gui::Message`] implement [`From`] for [`Gui`] (or any other message).
 //!
-//! A [`Message`] is an enum around an enum, which contains variants with tuples,
-//! which is a lot of layers.
-//! So if you find yourself writing `Message::Gui(gui::Message::Go(gui::Go { .. }))`,
-//! there is an easier way! All messages implement [`From`] for the "higher level".
-//!
-//! That means that a [`Go`] implements [`From`] for [`gui::Message`] and [`Message`].
 //! So just call `gui::Go { .. }.into()` and you're good to go!
 
 extern crate alloc;
 
-mod define_message;
+mod dev_macros;
 pub mod engine;
 #[cfg(feature = "engine-connection")]
 mod engine_connection;
 pub mod errors;
-mod from_str_parts;
 pub mod gui;
-mod message_from_impl;
 mod parsing;
 mod uci_moves;
 
-use crate::engine::{BestMove, CopyProtection, Id, Info, Registration};
+use crate::engine::{BestMove, CopyProtection, Id, Info, ReadyOk, Registration, UciOk};
 use crate::errors::MessageParseError;
-use crate::gui::{Debug, Go, Register, SetOption, SetPosition};
-use alloc::boxed::Box;
+use crate::gui::{
+    Debug, Go, IsReady, PonderHit, Position, Quit, Register, SetOption, Stop, Uci, UciNewGame,
+};
 use core::fmt::{Display, Formatter};
 use core::str::FromStr;
 #[cfg(feature = "engine-connection")]
@@ -85,63 +82,51 @@ impl FromStr for Message {
         match message_pointer {
             MessagePointer::Engine(engine) => match engine {
                 // Value-less, parameter-less messages
-                engine::pointers::MessagePointer::UciOk => Ok(engine::Message::UciOk.into()),
-                engine::pointers::MessagePointer::ReadyOk => Ok(engine::Message::ReadyOk.into()),
+                engine::pointers::MessagePointer::UciOk => Ok(UciOk.into()),
+                engine::pointers::MessagePointer::ReadyOk => Ok(ReadyOk.into()),
                 // Messages with values/parameters
                 engine::pointers::MessagePointer::Id => {
-                    Ok(engine::Message::Id(Id::from_str_parts_message_assumed(parts)?).into())
+                    Ok(Id::from_str_parts_message_assumed(parts)?.into())
                 }
-                engine::pointers::MessagePointer::BestMove => Ok(engine::Message::BestMove(
-                    BestMove::from_str_parts_message_assumed(parts)?,
-                )
-                .into()),
+                engine::pointers::MessagePointer::BestMove => {
+                    Ok(BestMove::from_str_parts_message_assumed(parts)?.into())
+                }
                 engine::pointers::MessagePointer::CopyProtection => {
-                    Ok(engine::Message::CopyProtection(
-                        CopyProtection::from_str_parts_message_assumed(parts)?,
-                    )
-                    .into())
+                    Ok(CopyProtection::from_str_parts_message_assumed(parts)?.into())
                 }
-                engine::pointers::MessagePointer::Registration => Ok(
-                    engine::Message::Registration(Registration::from_str_parts_message_assumed(
-                        parts,
-                    )?)
-                    .into(),
-                ),
-                engine::pointers::MessagePointer::Info => Ok(engine::Message::Info(Box::new(
-                    Info::from_str_parts_message_assumed(parts),
-                ))
-                .into()),
-                engine::pointers::MessagePointer::Option => Ok(engine::Message::Option(
-                    engine::Option::from_str_parts_message_assumed(parts)?,
-                )
-                .into()),
+                engine::pointers::MessagePointer::Registration => {
+                    Ok(Registration::from_str_parts_message_assumed(parts)?.into())
+                }
+                engine::pointers::MessagePointer::Info => {
+                    Ok(Info::from_str_parts_message_assumed(parts).into())
+                }
+                engine::pointers::MessagePointer::Option => {
+                    Ok(engine::Option::from_str_parts_message_assumed(parts)?.into())
+                }
             },
             MessagePointer::Gui(gui) => match gui {
                 // Value-less, parameter-less messages
-                gui::pointers::MessagePointer::UseUci => Ok(gui::Message::UseUci.into()),
-                gui::pointers::MessagePointer::IsReady => Ok(gui::Message::IsReady.into()),
-                gui::pointers::MessagePointer::UciNewGame => Ok(gui::Message::UciNewGame.into()),
-                gui::pointers::MessagePointer::Stop => Ok(gui::Message::Stop.into()),
-                gui::pointers::MessagePointer::PonderHit => Ok(gui::Message::PonderHit.into()),
-                gui::pointers::MessagePointer::Quit => Ok(gui::Message::Quit.into()),
+                gui::pointers::MessagePointer::Uci => Ok(Uci.into()),
+                gui::pointers::MessagePointer::IsReady => Ok(IsReady.into()),
+                gui::pointers::MessagePointer::UciNewGame => Ok(UciNewGame.into()),
+                gui::pointers::MessagePointer::Stop => Ok(Stop.into()),
+                gui::pointers::MessagePointer::PonderHit => Ok(PonderHit.into()),
+                gui::pointers::MessagePointer::Quit => Ok(Quit.into()),
                 // Messages with values/parameters
                 gui::pointers::MessagePointer::Debug => {
-                    Ok(gui::Message::Debug(Debug::from_str_parts_message_assumed(parts)?).into())
+                    Ok(Debug::from_str_parts_message_assumed(parts)?.into())
                 }
-                gui::pointers::MessagePointer::SetOption => Ok(gui::Message::SetOption(
-                    SetOption::from_str_parts_message_assumed(parts)?,
-                )
-                .into()),
-                gui::pointers::MessagePointer::Register => Ok(gui::Message::Register(
-                    Register::from_str_parts_message_assumed(parts)?,
-                )
-                .into()),
-                gui::pointers::MessagePointer::SetPosition => Ok(gui::Message::SetPosition(
-                    SetPosition::from_str_parts_message_assumed(parts),
-                )
-                .into()),
+                gui::pointers::MessagePointer::SetOption => {
+                    Ok(SetOption::from_str_parts_message_assumed(parts)?.into())
+                }
+                gui::pointers::MessagePointer::Register => {
+                    Ok(Register::from_str_parts_message_assumed(parts)?.into())
+                }
+                gui::pointers::MessagePointer::Position => {
+                    Ok(Position::from_str_parts_message_assumed(parts).into())
+                }
                 gui::pointers::MessagePointer::Go => {
-                    Ok(gui::Message::Go(Go::from_str_parts_message_assumed(parts)).into())
+                    Ok(Go::from_str_parts_message_assumed(parts).into())
                 }
             },
         }

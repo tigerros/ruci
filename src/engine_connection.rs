@@ -120,7 +120,7 @@ impl EngineConnection {
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
     pub async fn use_uci(&mut self) -> io::Result<(Option<engine::Id>, Vec<engine::Option>)> {
-        self.send_message(&gui::Message::UseUci).await?;
+        self.send_message(&gui::Uci.into()).await?;
 
         let mut options = Vec::with_capacity(40);
         let mut id = None::<engine::Id>;
@@ -133,7 +133,7 @@ impl EngineConnection {
             match engine_to_gui_message {
                 engine::Message::Option(option) => options.push(option),
                 engine::Message::Id(new_id) => update_id(&mut id, new_id),
-                engine::Message::UciOk => return Ok((id, options)),
+                engine::Message::UciOk(_) => return Ok((id, options)),
                 _ => (),
             }
         }
@@ -264,11 +264,11 @@ impl EngineConnection {
     /// - Writing (sending the message) errored.
     /// - Reading (reading until `readyok`) errored.
     pub async fn is_ready(&mut self) -> io::Result<()> {
-        self.send_message(&gui::Message::IsReady).await?;
+        self.send_message(&gui::IsReady.into()).await?;
 
         loop {
             match self.read_message().await {
-                Ok(engine::Message::ReadyOk) => return Ok(()),
+                Ok(engine::Message::ReadyOk(_)) => return Ok(()),
                 Ok(_) | Err(_) => continue,
             }
         }
@@ -315,10 +315,7 @@ mod tests {
             panic!("Unsupported OS");
         };
 
-        engine_conn
-            .send_message(&gui::Message::UseUci)
-            .await
-            .unwrap();
+        engine_conn.send_message(&gui::Uci.into()).await.unwrap();
 
         engine_conn.skip_lines(4).await.unwrap();
 

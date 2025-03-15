@@ -5,12 +5,15 @@ use alloc::borrow::ToOwned;
 use core::fmt::{Display, Formatter, Write};
 use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
-use crate::from_str_parts::from_str_parts;
-use crate::message_from_impl::message_from_impl;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 use crate::parsing;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Engine's identification information.
+/// 
+/// Sent after [`Uci`](crate::gui::Uci).
+///
 /// <https://backscattering.de/chess/uci/#engine-id>
 pub enum Id {
     /// <https://backscattering.de/chess/uci/#engine-id-name>

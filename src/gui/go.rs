@@ -3,29 +3,37 @@ extern crate alloc;
 use alloc::string::String;
 use core::fmt::{Display, Formatter, Write};
 use core::num::NonZeroUsize;
-use crate::errors::MessageParseError;
-use crate::message_from_impl::message_from_impl;
 use crate::{parsing, UciMoves};
-use crate::from_str_parts::from_str_parts;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 use crate::gui::pointers::GoParameterPointer;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Tells the engine to start calculating.
+///
 /// <https://backscattering.de/chess/uci/#gui-go>
 pub struct Go {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
     pub search_moves: Option<UciMoves>,
     /// <https://backscattering.de/chess/uci/#gui-go-ponder>
     pub ponder: bool,
+    /// White's time.
+    /// 
     /// <https://backscattering.de/chess/uci/#gui-go-wtime>
-    pub white_time: Option<usize>,
+    pub w_time: Option<usize>,
+    /// Black's time.
+    /// 
     /// <https://backscattering.de/chess/uci/#gui-go-btime>
-    pub black_time: Option<usize>,
+    pub b_time: Option<usize>,
+    /// White's increment.
+    /// 
     /// <https://backscattering.de/chess/uci/#gui-go-winc>
-    pub white_increment: Option<NonZeroUsize>,
+    pub w_inc: Option<NonZeroUsize>,
+    /// Black's increment.
+    /// 
     /// <https://backscattering.de/chess/uci/#gui-go-binc>
-    pub black_increment: Option<NonZeroUsize>,
+    pub b_inc: Option<NonZeroUsize>,
     /// <https://backscattering.de/chess/uci/#gui-go-movestogo>
     pub moves_to_go: Option<NonZeroUsize>,
     /// <https://backscattering.de/chess/uci/#gui-go-depth>
@@ -46,10 +54,10 @@ from_str_parts!(impl Go for parts -> Self {
     let parameter_fn = |parameter, value: &str| match parameter {
         GoParameterPointer::SearchMoves => this.search_moves = value.parse().ok(),
         GoParameterPointer::Ponder => this.ponder = true,
-        GoParameterPointer::WhiteTime => this.white_time = value.parse().ok(),
-        GoParameterPointer::BlackTime => this.black_time = value.parse().ok(),
-        GoParameterPointer::WhiteIncrement => this.white_increment = value.parse().ok(),
-        GoParameterPointer::BlackIncrement => this.black_increment = value.parse().ok(),
+        GoParameterPointer::WTime => this.w_time = value.parse().ok(),
+        GoParameterPointer::BTime => this.b_time = value.parse().ok(),
+        GoParameterPointer::WInc => this.w_inc = value.parse().ok(),
+        GoParameterPointer::BInc => this.b_inc = value.parse().ok(),
         GoParameterPointer::MovesToGo => this.moves_to_go = value.parse().ok(),
         GoParameterPointer::Depth => this.depth = value.parse().ok(),
         GoParameterPointer::Nodes => this.nodes = value.parse().ok(),
@@ -76,19 +84,19 @@ impl Display for Go {
             f.write_str(" ponder")?;
         }
 
-        if let Some(white_time) = self.white_time {
+        if let Some(white_time) = self.w_time {
             write!(f, " wtime {white_time}")?;
         }
 
-        if let Some(black_time) = self.black_time {
+        if let Some(black_time) = self.b_time {
             write!(f, " btime {black_time}")?;
         }
 
-        if let Some(white_increment) = self.white_increment {
+        if let Some(white_increment) = self.w_inc {
             write!(f, " winc {white_increment}")?;
         }
 
-        if let Some(black_increment) = self.black_increment {
+        if let Some(black_increment) = self.b_inc {
             write!(f, " binc {black_increment}")?;
         }
 
@@ -140,10 +148,10 @@ mod tests {
                 UciMove::from_ascii(b"d2d4").unwrap(),
             ])),
             ponder: true,
-            white_time: Some(5),
-            black_time: None,
-            white_increment: None,
-            black_increment: Some(NonZeroUsize::new(45).unwrap()),
+            w_time: Some(5),
+            b_time: None,
+            w_inc: None,
+            b_inc: Some(NonZeroUsize::new(45).unwrap()),
             moves_to_go: None,
             depth: Some(20),
             nodes: None,
@@ -155,5 +163,13 @@ mod tests {
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
+    }
+
+    #[test]
+    fn to_from_str_empty() {
+        let repr: Message = Go::default().into();
+
+        assert_eq!(repr.to_string(), "go\n");
+        assert_eq!(Message::from_str("     go      THIS IS NOT A GO MESSAGE AT ALL!!! (but it doesnt matter)"), Ok(repr));
     }
 }

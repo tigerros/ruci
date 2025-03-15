@@ -1,8 +1,11 @@
 use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
-use crate::from_str_parts::from_str_parts;
-use crate::message_from_impl::message_from_impl;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 
+/// Engine's registration status.
+///
+/// Sent after [`Uci`](crate::gui::Uci) or [`Register`](crate::gui::Register).
+///
 /// <https://backscattering.de/chess/uci/#engine-registration>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

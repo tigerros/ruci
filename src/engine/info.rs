@@ -6,10 +6,9 @@ use alloc::boxed::Box;
 use core::fmt::{Display, Formatter, Write};
 use shakmaty::Color;
 use shakmaty::uci::UciMove;
-use crate::errors::MessageParseError;
 use crate::{parsing, UciMoves};
 use crate::engine::pointers::InfoParameterPointer;
-use crate::from_str_parts::from_str_parts;
+use crate::dev_macros::from_str_parts;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -173,6 +172,10 @@ impl CurrentLine {
     }
 }
 
+/// Information about the engine's calculation.
+/// 
+/// Sent (probably multiple times) after [`Go`](crate::gui::Go).
+/// 
 /// <https://backscattering.de/chess/uci/#engine-info>
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -183,24 +186,38 @@ pub struct Info {
     pub time: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-nodes>
     pub nodes: Option<usize>,
+    /// Primary variation.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-pv>
-    pub primary_variation: Option<UciMoves>,
+    pub pv: Option<UciMoves>,
+    /// Multi primary variation.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-multipv>
-    pub multi_primary_variation: Option<usize>,
+    pub multi_pv: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-score>
     pub score: Option<ScoreWithBound>,
+    /// Current move.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-currmove>
-    pub current_move: Option<UciMove>,
+    pub curr_move: Option<UciMove>,
+    /// Current move number.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-currmovenumber>
-    pub current_move_number: Option<usize>,
+    pub curr_move_number: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-hashfull>
     pub hash_full: Option<usize>,
+    /// Nodes per second.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-nps>
-    pub nodes_per_second: Option<usize>,
+    pub nps: Option<usize>,
+    /// Tablebase hits.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-tbhits>
-    pub table_base_hits: Option<usize>,
+    pub tb_hits: Option<usize>,
+    /// Shredderbase hits.
+    /// 
     /// <https://backscattering.de/chess/uci/#engine-info-sbhits>
-    pub shredder_base_hits: Option<usize>,
+    pub sb_hits: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-cpuload>
     pub cpu_load: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-string>
@@ -208,7 +225,7 @@ pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-refutation>
     pub refutation: Option<Refutation>,
     /// <https://backscattering.de/chess/uci/#engine-info-currline>
-    pub current_line: Option<CurrentLine>,
+    pub curr_line: Option<CurrentLine>,
 }
 
 impl From<Info> for crate::Message {
@@ -230,22 +247,22 @@ from_str_parts!(impl Info for parts -> Self {
     let mut selective_search_depth = None::<usize>;
     let parameter_fn = |parameter, value: &str| match parameter {
         InfoParameterPointer::Depth => depth = value.parse().ok(),
-        InfoParameterPointer::SelectiveSearchDepth => selective_search_depth = value.parse().ok(),
+        InfoParameterPointer::SelDepth => selective_search_depth = value.parse().ok(),
         InfoParameterPointer::Time => this.time = value.parse().ok(),
         InfoParameterPointer::Nodes => this.nodes = value.parse().ok(),
-        InfoParameterPointer::PrimaryVariation => this.primary_variation = value.parse().ok(),
-        InfoParameterPointer::MultiPrimaryVariation => this.multi_primary_variation = value.parse().ok(),
+        InfoParameterPointer::PV => this.pv = value.parse().ok(),
+        InfoParameterPointer::MultiPV => this.multi_pv = value.parse().ok(),
         InfoParameterPointer::Score => this.score = ScoreWithBound::from_str(value),
-        InfoParameterPointer::CurrentMove => this.current_move = value.parse().ok(),
-        InfoParameterPointer::CurrentMoveNumber => this.current_move_number = value.parse().ok(),
+        InfoParameterPointer::CurrMove => this.curr_move = value.parse().ok(),
+        InfoParameterPointer::CurrMoveNumber => this.curr_move_number = value.parse().ok(),
         InfoParameterPointer::HashFull => this.hash_full = value.parse().ok(),
-        InfoParameterPointer::NodesPerSecond => this.nodes_per_second = value.parse().ok(),
-        InfoParameterPointer::TableBaseHits => this.table_base_hits = value.parse().ok(),
-        InfoParameterPointer::ShredderBaseHits => this.shredder_base_hits = value.parse().ok(),
+        InfoParameterPointer::Nps => this.nps = value.parse().ok(),
+        InfoParameterPointer::TbHits => this.tb_hits = value.parse().ok(),
+        InfoParameterPointer::SbHits => this.sb_hits = value.parse().ok(),
         InfoParameterPointer::CpuLoad => this.cpu_load = value.parse().ok(),
         InfoParameterPointer::String => this.string = Some(value.to_string()),
         InfoParameterPointer::Refutation => this.refutation = Refutation::from_str(value),
-        InfoParameterPointer::CurrentLine => this.current_line = CurrentLine::from_str(value),
+        InfoParameterPointer::CurrLine => this.curr_line = CurrentLine::from_str(value),
     };
     
     let mut value = String::with_capacity(200);
@@ -281,11 +298,11 @@ impl Display for Info {
             write!(f, " nodes {nodes}")?;
         }
 
-        if let Some(primary_variation) = &self.primary_variation {
+        if let Some(primary_variation) = &self.pv {
             write!(f, " pv {primary_variation}")?;
         }
 
-        if let Some(multi_primary_variation) = self.multi_primary_variation {
+        if let Some(multi_primary_variation) = self.multi_pv {
             write!(f, " multipv {multi_primary_variation}")?;
         }
 
@@ -308,11 +325,11 @@ impl Display for Info {
             }
         }
 
-        if let Some(current_move) = &self.current_move {
+        if let Some(current_move) = &self.curr_move {
             write!(f, " currmove {current_move}")?;
         }
 
-        if let Some(current_move_number) = self.current_move_number {
+        if let Some(current_move_number) = self.curr_move_number {
             write!(f, " currmovenumber {current_move_number}")?;
         }
 
@@ -320,15 +337,15 @@ impl Display for Info {
             write!(f, " hashfull {hash_full}")?;
         }
 
-        if let Some(nodes_per_second) = self.nodes_per_second {
+        if let Some(nodes_per_second) = self.nps {
             write!(f, " nps {nodes_per_second}")?;
         }
 
-        if let Some(table_base_hits) = self.table_base_hits {
+        if let Some(table_base_hits) = self.tb_hits {
             write!(f, " tbhits {table_base_hits}")?;
         }
 
-        if let Some(shredder_base_hits) = self.shredder_base_hits {
+        if let Some(shredder_base_hits) = self.sb_hits {
             write!(f, " sbhits {shredder_base_hits}")?;
         }
 
@@ -345,7 +362,7 @@ impl Display for Info {
             f.write_str(&refutation.refutation.to_string())?;
         }
 
-        if let Some(current_line) = &self.current_line {
+        if let Some(current_line) = &self.curr_line {
             f.write_str(" currline")?;
 
             if let Some(used_cpu) = current_line.used_cpu {
@@ -403,25 +420,25 @@ mod tests {
             }),
             time: Some(12),
             nodes: Some(4),
-            primary_variation: Some(UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
-            multi_primary_variation: Some(1),
+            pv: Some(UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
+            multi_pv: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
                 bound: Some(ScoreBound::LowerBound),
             }),
-            current_move: Some(UciMove::from_ascii(b"e2e4").unwrap()),
-            current_move_number: None,
+            curr_move: Some(UciMove::from_ascii(b"e2e4").unwrap()),
+            curr_move_number: None,
             hash_full: None,
-            nodes_per_second: None,
-            table_base_hits: Some(2),
-            shredder_base_hits: None,
+            nps: None,
+            tb_hits: Some(2),
+            sb_hits: None,
             cpu_load: None,
             string: Some("blabla".to_string()),
             refutation: Some(Refutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
                 refutation: UciMoves(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
             }),
-            current_line: Some(CurrentLine {
+            curr_line: Some(CurrentLine {
                 used_cpu: Some(1),
                 line: UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
             }),

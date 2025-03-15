@@ -39,7 +39,7 @@ macro_rules! from_str_parts {
 
             /// # Errors
             /// Guaranteed to only be [`MessageParseError::NoMessage`](crate::errors::MessageParseError::NoMessage), parsing after that cannot fail.
-            fn from_str(s: &str) -> Result<Self, MessageParseError> {
+            fn from_str(s: &str) -> Result<Self, $crate::errors::MessageParseError> {
                 let parts = $crate::parsing::collect_message(
                     super::pointers::MessagePointer::$message.to_string(),
                     s,

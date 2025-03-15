@@ -5,10 +5,11 @@ use alloc::vec::Vec;
 use core::fmt::{Display, Formatter, Write};
 use crate::engine::pointers::OptionParameterPointer;
 use crate::errors::MessageParseError;
-use crate::from_str_parts::from_str_parts;
-use crate::message_from_impl::message_from_impl;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 use crate::parsing;
 
+/// Engine option type.
+///
 /// <https://backscattering.de/chess/uci/#engine-option-type>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -40,6 +41,10 @@ impl Display for OptionType {
 
 type StdOption<T> = core::option::Option<T>;
 
+/// Engine configuration option.
+///
+/// Sent after [`Uci`](crate::gui::Uci).
+///
 /// <https://backscattering.de/chess/uci/#engine-option>
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -1,12 +1,13 @@
 use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
-use crate::from_str_parts::from_str_parts;
-use crate::message_from_impl::message_from_impl;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-/// <https://backscattering.de/chess/uci/#engine-copyprotection>
+/// Tells the engine to be in debug mode.
+///
+/// <https://backscattering.de/chess/uci/#gui-debug>
 pub struct Debug(pub bool);
 
 message_from_impl!(gui Debug);
@@ -40,7 +41,7 @@ impl Display for Debug {
 #[allow(clippy::unwrap_used)]
 mod tests {
     extern crate alloc;
-    
+
     use alloc::string::ToString;
     use core::str::FromStr;
     use crate::Message;
@@ -65,7 +66,7 @@ mod tests {
 
         let m: Message = Debug(false).into();
         assert_eq!(m.to_string(), "debug off\n");
-        assert_eq!(Message::from_str("debug blah   off asffd\n").unwrap(), m);
+        assert_eq!(Message::from_str("debug blah   off asffd\n"), Ok(m));
     }
 
     #[test]

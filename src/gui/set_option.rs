@@ -4,14 +4,16 @@ use alloc::borrow::ToOwned;
 use alloc::string::String;
 use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
-use crate::from_str_parts::from_str_parts;
 use crate::gui::pointers::{SetOptionParameterPointer};
-use crate::message_from_impl::message_from_impl;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 use crate::parsing;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Sets a configuration option ([`Option`](crate::engine::Option)) of the engine.
+/// They are retrieved with [`Uci`](super::Uci).
+/// 
 /// <https://backscattering.de/chess/uci/#gui-setoption>
 pub struct SetOption {
     pub name: String,

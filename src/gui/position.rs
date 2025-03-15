@@ -2,17 +2,17 @@ extern crate alloc;
 
 use core::fmt::{Display, Formatter, Write};
 use alloc::string::{String, ToString};
-use crate::errors::MessageParseError;
-use crate::message_from_impl::message_from_impl;
 use crate::{parsing, UciMoves};
-use crate::from_str_parts::from_str_parts;
-use crate::gui::pointers::{SetPositionParameterPointer};
+use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::gui::pointers::{PositionParameterPointer};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Changes the position to analyze.
+/// 
 /// <https://backscattering.de/chess/uci/#gui-position>
-pub enum SetPosition {
+pub enum Position {
     StartingPosition {
         moves: Option<UciMoves>,
     },
@@ -22,13 +22,13 @@ pub enum SetPosition {
     },
 }
 
-message_from_impl!(gui SetPosition);
-from_str_parts!(impl SetPosition for parts -> Self  {
+message_from_impl!(gui Position);
+from_str_parts!(impl Position for parts -> Self  {
     let mut fen = None;
     let mut moves = None;
     let parameter_fn = |parameter, value: &str| match parameter {
-        SetPositionParameterPointer::Fen => fen = Some(value.to_string()),
-        SetPositionParameterPointer::Moves => moves = value.parse().ok(),
+        PositionParameterPointer::Fen => fen = Some(value.to_string()),
+        PositionParameterPointer::Moves => moves = value.parse().ok(),
     };
 
     let mut value = String::with_capacity(200);
@@ -44,7 +44,7 @@ from_str_parts!(impl SetPosition for parts -> Self  {
     }
 });
 
-impl Display for SetPosition {
+impl Display for Position {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::StartingPosition { moves: None } => f.write_str("position startpos")?,
@@ -64,12 +64,13 @@ mod tests {
     use shakmaty::uci::UciMove;
     use alloc::vec;
     use alloc::string::ToString;
-    use crate::gui::SetPosition;
+    use crate::gui::Position;
     use crate::{Message, UciMoves};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn to_from_str() {
-        let repr: Message = SetPosition::StartingPosition {
+        let repr: Message = Position::StartingPosition {
             moves: Some(UciMoves(vec![UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()])),
         }.into();
 
@@ -80,7 +81,7 @@ mod tests {
     
     #[test]
     fn invalid_moves() {
-        let m: Message = SetPosition::StartingPosition {
+        let m: Message = Position::StartingPosition {
             moves: Some(UciMoves(vec![UciMove::from_ascii(b"d2d4").unwrap()])),
         }.into();
 

@@ -5,7 +5,7 @@
 //!
 //! This example requires that you have installed Stockfish.
 #![cfg(feature = "engine-connection")]
-use ruci::gui::SetPosition;
+use ruci::gui::Position;
 use ruci::EngineConnection;
 use ruci::{gui, UciMoves};
 use shakmaty::uci::UciMove;
@@ -27,7 +27,7 @@ async fn main() -> io::Result<()> {
 
     engine_conn
         .send_message(
-            &SetPosition::Fen {
+            &Position::Fen {
                 fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
                 moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()])),
             }
@@ -54,7 +54,7 @@ async fn main() -> io::Result<()> {
     println!("Best move: {best_move:?}");
 
     println!("== Sending quit message");
-    engine_conn.send_message(&gui::Message::Quit).await?;
+    engine_conn.send_message(&gui::Quit.into()).await?;
     println!("== Sent. Program terminated");
 
     Ok(())

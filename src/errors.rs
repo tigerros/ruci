@@ -5,27 +5,18 @@ use tokio::io;
 
 /// Something went wrong with parsing a message.
 ///
-/// Note that the parsing is pretty liberal and ignores errors unless they're critical.
-/// For example, parsing errors will be ignored for most parameters, because they're optional.
+/// Note that the parsing is very liberal and ignores errors unless they're critical.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MessageParseError {
     /// No message in the string was found.
-    NoMessage {
-        expected: &'static str,
-    },
+    NoMessage { expected: &'static str },
     /// Required parameter(s) are missing.
-    MissingParameters {
-        expected: &'static str,
-    },
+    MissingParameters { expected: &'static str },
     /// A required parameter could not be parsed.
-    ParameterParseError {
-        expected: &'static str,
-    },
+    ParameterParseError { expected: &'static str },
     /// The required value of the message could not be parsed.
-    ValueParseError {
-        expected: &'static str,
-    },
+    ValueParseError { expected: &'static str },
 }
 
 impl MessageParseError {

@@ -1,67 +1,35 @@
 dry_mods::mods! {
-    mod pub use go, register, set_option, set_position, debug;
+    mod pub use go, register, set_option, position, debug;
 }
 
-use crate::define_message::define_message;
-use core::fmt::{Display, Formatter};
+use crate::dev_macros::define_message;
 
 define_message! {
     /// A message sent from the GUI to the engine.
     enum Gui {
-        /// <https://backscattering.de/chess/uci/#gui-uci>
-        %["uci"]
-        UseUci,
-        /// <https://backscattering.de/chess/uci/#gui-debug>
-        %["debug"]
-        Debug(%Debug),
-        /// <https://backscattering.de/chess/uci/#gui-isready>
-        %["isready"]
+        =[custom]
+        Debug(Debug),
+        %[parameters = [Name, Value]]
+        SetOption(SetOption),
+        %[parameters = [Name, Code]]
+        Register(Register),
+        %[parameters = [Fen, Moves]]
+        Position(Position),
+        %[parameters = [SearchMoves, Ponder, WTime, BTime, WInc, BInc, MovesToGo, Depth, Nodes, Mate, MoveTime, Infinite]]
+        Go(Go)
+        =[empty]
+        /// Tells the engine to use UCI.
+        Uci,
+        /// Asks the engine if it's ready.
+        ///
+        /// Once ready, engine replies with [`ReadyOk`](crate::engine::ReadyOk).
         IsReady,
-        /// <https://backscattering.de/chess/uci/#gui-setoption>
-        %["setoption"]
-        %[parameters = [Name: "name", Value: "value"]]
-        SetOption(%SetOption),
-        /// <https://backscattering.de/chess/uci/#gui-register>
-        %["register"]
-        %[parameters = [Name: "name", Code: "code"]]
-        Register(%Register),
-        /// <https://backscattering.de/chess/uci/#gui-ucinewgame>
-        %["ucinewgame"]
+        /// Tells the engine to start a new game with the next [`Position`](super::Position) or [`Go`](super::Go).
         UciNewGame,
-        /// <https://backscattering.de/chess/uci/#gui-position>
-        %["position"]
-        %[parameters = [Fen: "fen", Moves: "moves"]]
-        SetPosition(%SetPosition),
-        /// <https://backscattering.de/chess/uci/#gui-go>
-        %["go"]
-        %[parameters = [SearchMoves: "searchmoves", **Ponder: "ponder", WhiteTime: "wtime", BlackTime: "btime", WhiteIncrement: "winc", BlackIncrement: "binc", MovesToGo: "movestogo", Depth: "depth", Nodes: "nodes", Mate: "mate", MoveTime: "movetime", **Infinite: "infinite"]]
-        Go(%Go),
-        /// <https://backscattering.de/chess/uci/#gui-stop>
-        %["stop"]
+        /// Tells the engine to stop calculating.
         Stop,
-        /// <https://backscattering.de/chess/uci/#gui-ponderhit>
-        %["ponderhit"]
         PonderHit,
-        /// <https://backscattering.de/chess/uci/#gui-quit>
-        %["quit"]
+        /// Tells the engine to stop everything.
         Quit
-    }
-}
-
-impl Display for Message {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::UseUci => f.write_str("uci\n"),
-            Self::Debug(m) => m.fmt(f),
-            Self::IsReady => f.write_str("isready\n"),
-            Self::SetOption(m) => m.fmt(f),
-            Self::Register(m) => m.fmt(f),
-            Self::UciNewGame => f.write_str("ucinewgame\n"),
-            Self::SetPosition(m) => m.fmt(f),
-            Self::Go(m) => m.fmt(f),
-            Self::Stop => f.write_str("stop\n"),
-            Self::PonderHit => f.write_str("ponderhit\n"),
-            Self::Quit => f.write_str("quit\n"),
-        }
     }
 }

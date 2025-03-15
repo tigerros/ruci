@@ -1,11 +1,13 @@
 use core::fmt::{Display, Formatter, Write};
 use crate::errors::MessageParseError;
-use crate::from_str_parts::from_str_parts;
-use crate::message_from_impl::message_from_impl;
+use crate::dev_macros::{from_str_parts, message_from_impl};
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Engine's copy protection. GUIs should respect this.
+///
+/// Sent after [`UciOk`](super::UciOk).
+///
 /// <https://backscattering.de/chess/uci/#engine-copyprotection>
 pub enum CopyProtection {
     Ok,

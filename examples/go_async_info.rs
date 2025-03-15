@@ -56,7 +56,7 @@ async fn main() -> io::Result<()> {
 
     engine_conn
         .lock_arc()
-        .send_message(&gui::Message::Quit)
+        .send_message(&gui::Quit.into())
         .await?;
 
     println!("== Sent. Program terminated");

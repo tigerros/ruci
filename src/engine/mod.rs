@@ -4,56 +4,29 @@ dry_mods::mods! {
 
 extern crate alloc;
 
-use crate::define_message::define_message;
+use crate::dev_macros::define_message;
 use alloc::boxed::Box;
-use core::fmt::{Display, Formatter};
 
 define_message! {
     /// A message sent from the engine to the GUI.
     enum Engine {
-        /// <https://backscattering.de/chess/uci/#engine-id>
-        %["id"]
-        %[parameters = [Name: "name", Author: "author"]]
-        Id(%Id),
-        /// <https://backscattering.de/chess/uci/#engine-uciok>
-        %["uciok"]
+        =[custom]
+        %[parameters = [Name, Author]]
+        Id(Id),
+        %[parameters = [Ponder]]
+        BestMove(BestMove),
+        CopyProtection(CopyProtection),
+        Registration(Registration),
+        %[parameters = [Depth, SelDepth, Time, Nodes, PV, MultiPV, Score, CurrMove, CurrMoveNumber, HashFull, Nps, TbHits, SbHits, CpuLoad, String, Refutation, CurrLine]]
+        Info(Box<Info>),
+        %[parameters = [Name, Type, Default, Min, Max, Var]]
+        Option(Option)
+        =[empty]
+        /// The engine is ready for UCI.
+        ///
+        /// Sent after [`Uci`](crate::gui::Uci).
         UciOk,
-        /// <https://backscattering.de/chess/uci/#engine-readyok>
-        %["readyok"]
-        ReadyOk,
-        /// <https://backscattering.de/chess/uci/#engine-bestmove>
-        %["bestmove"]
-        %[parameters = [Ponder: "ponder"]]
-        BestMove(%BestMove),
-        /// <https://backscattering.de/chess/uci/#engine-copyprotection>
-        %["copyprotection"]
-        CopyProtection(%CopyProtection),
-        /// <https://backscattering.de/chess/uci/#engine-registration>
-        %["registration"]
-        Registration(%Registration),
-        /// <https://backscattering.de/chess/uci/#engine-info>
-        %["info"]
-        %[parameters = [Depth: "depth", SelectiveSearchDepth: "seldepth", Time: "time", Nodes: "nodes", PrimaryVariation: "pv", MultiPrimaryVariation: "multipv", Score: "score", CurrentMove: "currmove", CurrentMoveNumber: "currmovenumber", HashFull: "hashfull", NodesPerSecond: "nps", TableBaseHits: "tbhits", ShredderBaseHits: "sbhits", CpuLoad: "cpuload", String: "string", Refutation: "refutation", CurrentLine: "currline"]]
-        Info(%Box<Info>),
-        /// <https://backscattering.de/chess/uci/#engine-option>
-        %["option"]
-        %[parameters = [Name: "name", Type: "type", Default: "default", Min: "min", Max: "max", Var: "var"]]
-        Option(%Option)
-    }
-}
-
-impl Display for Message {
-    #[allow(clippy::too_many_lines)]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Id(m) => m.fmt(f),
-            Self::UciOk => f.write_str("uciok\n"),
-            Self::ReadyOk => f.write_str("readyok\n"),
-            Self::BestMove(m) => m.fmt(f),
-            Self::CopyProtection(m) => m.fmt(f),
-            Self::Registration(m) => m.fmt(f),
-            Self::Info(m) => m.fmt(f),
-            Self::Option(m) => m.fmt(f),
-        }
+        /// The engine is ready to accept new commands.
+        ReadyOk
     }
 }
