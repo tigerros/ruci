@@ -45,6 +45,7 @@
 //! So just call `gui::Go { .. }.into()` and you're good to go!
 
 extern crate alloc;
+extern crate core;
 
 mod dev_macros;
 pub mod engine;
@@ -104,7 +105,7 @@ impl FromStr for Message {
                     Ok(Id::from_str_parts_message_assumed(parts)?.into())
                 }
                 engine::pointers::MessagePointer::BestMove => {
-                    Ok(BestMove::from_str_parts_message_assumed(parts)?.into())
+                    Ok(BestMove::from_str_parts_message_assumed(parts).into())
                 }
                 engine::pointers::MessagePointer::CopyProtection => {
                     Ok(CopyProtection::from_str_parts_message_assumed(parts)?.into())

@@ -141,7 +141,9 @@ impl EngineConnection {
         }
     }
 
-    /// Sends the [`Go`](gui::Go) message to the engine and waits for the [`BestMove`](engine::BestMove) message response,
+    /// **⚠️ Important:** see the [`BestMove::Other`](engine::BestMove::Other) docs for a detail about what the engine may return.
+    ///
+    /// Sends the [`Go`](gui::Go) message to the engine and waits for the `BestMove` message response,
     /// returning it, along with a list of [`Info`](engine::Info) messages.
     ///
     /// Note that the engine will only send the `BestMove`
@@ -331,6 +333,36 @@ mod tests {
             line.trim(),
             "option name Debug Log File type string default <empty>"
         );
+    }
+
+    /// See the [`BestMove::Other`](engine::BestMove::Other) docs for what this tests.
+    #[tokio::test]
+    async fn analyze_checkmate() {
+        let mut engine_conn = engine_conn();
+
+        engine_conn.send_message(&gui::Uci.into()).await.unwrap();
+
+        engine_conn
+            .send_message(
+                &gui::Position::Fen {
+                    moves: None,
+                    fen: "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
+                        .to_string(),
+                }
+                .into(),
+            )
+            .await
+            .unwrap();
+
+        let (_, best_move) = engine_conn
+            .go_only_last_info(gui::Go {
+                depth: Some(5),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(best_move, engine::BestMove::Other);
     }
 
     #[allow(clippy::too_many_lines)]

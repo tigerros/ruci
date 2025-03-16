@@ -2,11 +2,26 @@ extern crate alloc;
 
 use core::fmt::{Display, Formatter};
 use shakmaty::uci::UciMove;
-use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, message_from_impl};
 use crate::OptionReplaceIf;
 
-#[allow(clippy::module_name_repetitions)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum BestMove {
+    /// This variant exists exists because engines can send "valid" [`BestMove`] messages which will fail to parse.
+    ///
+    /// For example, this happens with Stockfish when trying to analyze a checkmate position, it will send back `bestmove (none)`.
+    /// However, Komodo Dragon sends back a null move; `bestmove 0000`.
+    ///
+    /// This variant just means that the `bestmove` string
+    /// was encountered, but the rest of the message was not understood.
+    ///
+    /// This case is not covered by the protocol description which is why this solution
+    /// is improvised and isn't great.
+    Other,
+    Normal(NormalBestMove),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// The engine's best move, with an optional pondering move.
@@ -14,13 +29,31 @@ use crate::OptionReplaceIf;
 /// Sent after [`Go`](crate::gui::Go) is received and calculation is finished.
 ///
 /// <https://backscattering.de/chess/uci/#engine-bestmove>
-pub struct BestMove {
+pub struct NormalBestMove {
     pub r#move: UciMove,
     pub ponder: Option<UciMove>,
 }
 
+impl From<NormalBestMove> for BestMove {
+    fn from(value: NormalBestMove) -> Self {
+        Self::Normal(value)
+    }
+}
+
+impl From<NormalBestMove> for crate::Message {
+    fn from(value: NormalBestMove) -> Self {
+        Self::Engine(super::Message::BestMove(value.into()))
+    }
+}
+
+impl From<NormalBestMove> for super::Message {
+    fn from(value: NormalBestMove) -> Self {
+        Self::BestMove(value.into())
+    }
+}
+
 message_from_impl!(engine BestMove);
-from_str_parts!(impl BestMove for parts -> Result<Self, MessageParseError>  {
+from_str_parts!(impl BestMove for parts -> Self  {
     let mut r#move = None;
     let mut ponder_encountered = false;
     let mut ponder = None;
@@ -34,26 +67,22 @@ from_str_parts!(impl BestMove for parts -> Result<Self, MessageParseError>  {
             r#move.replace_if(part.parse().ok());
         }
     }
-    
-    let Some(r#move) = r#move else {
-        return Err(MessageParseError::ValueParseError { expected: "UCI move" });
-    };
 
-    Ok(Self {
-        r#move,
-        ponder
-    })
+    r#move.map_or(Self::Other, |r#move| Self::Normal(NormalBestMove { r#move, ponder }))
 });
 
 impl Display for BestMove {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "bestmove {}", self.r#move)?;
+        f.write_str("bestmove")?;
 
-        if let Some(ponder) = &self.ponder {
-            write!(f, " ponder {ponder}")?;
+        match &self {
+            Self::Other => f.write_str("bestmove (none)\n"),
+            Self::Normal(best_move) => {
+                write!(f, "bestmove {}", best_move.r#move)?;
+
+                best_move.ponder.as_ref().map_or(Ok(()), |ponder| write!(f, " ponder {ponder}"))
+            }
         }
-
-        Ok(())
     }
 }
 
@@ -64,12 +93,12 @@ mod tests {
     use alloc::string::ToString;
     use shakmaty::uci::UciMove;
     use pretty_assertions::{assert_eq};
+    use crate::engine::NormalBestMove;
     use crate::Message;
-    use super::BestMove;
 
     #[test]
     fn to_from_str() {
-        let repr: Message = BestMove {
+        let repr: Message = NormalBestMove {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
@@ -78,7 +107,7 @@ mod tests {
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
 
-        let repr: Message = BestMove {
+        let repr: Message = NormalBestMove {
             r#move: UciMove::from_ascii(b"d2d4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
@@ -89,7 +118,7 @@ mod tests {
 
     #[test]
     fn to_from_str_bad_value() {
-        let repr: Message = BestMove {
+        let repr: Message = NormalBestMove {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
