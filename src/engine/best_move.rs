@@ -10,7 +10,7 @@ use crate::OptionReplaceIf;
 pub enum BestMove {
     /// This variant exists exists because engines can send "valid" [`BestMove`] messages which will fail to parse.
     ///
-    /// For example, this happens with Stockfish when trying to analyze a checkmate position, it will send back `bestmove (none)`.
+    /// For example, this happens with Stockfish when trying to analyze a game over position, it will send back `bestmove (none)`.
     /// However, Komodo Dragon sends back a null move; `bestmove 0000`.
     ///
     /// This variant just means that the `bestmove` string
