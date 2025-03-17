@@ -5,7 +5,7 @@ use core::fmt::{Display, Formatter, Write};
 use core::str::FromStr;
 use shakmaty::uci::UciMove;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 /// A simple [`Vec<UciMove>`] wrapper that provides [`FromStr`] and [`Display`] implementations.
 pub struct UciMoves(pub Vec<UciMove>);
