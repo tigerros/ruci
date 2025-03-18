@@ -175,10 +175,6 @@ impl Display for Message {
 }
 
 /// This is not an actual pointer; it's just a [`Copy`] enum for referencing messages.
-///
-/// There are more of these "pointers", and they're mostly for the library's internals.
-/// However, it may be returned with errors, which is helpful because they will tell you
-/// exactly where the problem is.
 enum MessagePointer {
     Engine(engine::pointers::MessagePointer),
     Gui(gui::pointers::MessagePointer),
