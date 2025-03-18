@@ -51,17 +51,17 @@ mod tests {
 
     use alloc::string::ToString;
     use core::str::FromStr;
-    use crate::Message;
+    use crate::{engine, Message};
     use super::Registration;
     use crate::MessageParseError;
     use pretty_assertions::{assert_eq, assert_matches};
 
     #[test]
     fn to_from_str_checking() {
-        let repr: Message = Registration::Checking.into();
+        let repr: engine::Message = Registration::Checking.into();
         let str = "registration checking";
         assert_eq!(repr.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), repr);
+        assert_eq!(engine::Message::from_str(str).unwrap(), repr);
     }
 
     #[test]

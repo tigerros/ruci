@@ -63,7 +63,7 @@ mod tests {
     use alloc::vec;
     use alloc::string::ToString;
     use crate::gui::Position;
-    use crate::{Message, UciMoves};
+    use crate::{gui, Message, UciMoves};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -79,11 +79,11 @@ mod tests {
     
     #[test]
     fn invalid_moves() {
-        let m: Message = Position::StartingPosition {
+        let m: gui::Message = Position::StartingPosition {
             moves: Some(UciMoves(vec![UciMove::from_ascii(b"d2d4").unwrap()])),
         }.into();
 
         assert_eq!(m.to_string(), "position startpos moves d2d4");
-        assert_eq!(Message::from_str("position startpos moves d2d4 this ain't a move buddy pal"), Ok(m));
+        assert_eq!(gui::Message::from_str("position startpos moves d2d4 this ain't a move buddy pal"), Ok(m));
     }
 }

@@ -391,7 +391,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
     use crate::engine::{CurrLine, Depth, Refutation, Score, ScoreBound, ScoreStandardized, ScoreWithBound};
-    use crate::{Message, UciMoves};
+    use crate::{engine, Message, UciMoves};
 
     #[test]
     fn score_kind_standardize() {
@@ -453,7 +453,7 @@ mod tests {
 
     #[test]
     fn to_from_str_bad_parameters() {
-        let repr: Message = Info {
+        let repr: engine::Message = Info {
             depth: Some(Depth {
                 depth: 20,
                 seldepth: Some(31)
@@ -485,6 +485,6 @@ mod tests {
         }.into();
 
         assert_eq!(repr.to_string(), "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5");
-        assert_eq!(Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4"), Ok(repr));
+        assert_eq!(engine::Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4"), Ok(repr));
     }
 }

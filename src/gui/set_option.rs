@@ -54,7 +54,7 @@ mod tests {
     use alloc::string::ToString;
     use pretty_assertions::assert_eq;
     use crate::gui::SetOption;
-    use crate::Message;
+    use crate::{gui, Message};
 
     #[test]
     fn to_from_str() {
@@ -66,5 +66,13 @@ mod tests {
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
+
+        let repr: gui::Message = SetOption {
+            name: "Skill     Level".to_string(),
+            value: Some("test   \tfoo".to_string()),
+        }.into();
+
+        assert_eq!(repr.to_string(), "setoption name Skill     Level value test   \tfoo");
+        assert_eq!(gui::Message::from_str("setoption value test   \tfoo   \t name     Skill     Level    "), Ok(repr));
     }
 }

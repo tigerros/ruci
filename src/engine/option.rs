@@ -222,7 +222,7 @@ mod tests {
     use alloc::vec;
     use core::str::FromStr;
     use pretty_assertions::assert_eq;
-    use crate::Message;
+    use crate::{engine, Message};
     use super::Option;
 
     #[test]
@@ -250,7 +250,7 @@ mod tests {
 
     #[test]
     fn to_from_str_var() {
-        let repr: Message = Option::Combo {
+        let repr: engine::Message = Option::Combo {
             name: "K Personality".to_string(),
             default: Some("Default p".to_string()),
             variations: vec!["Foo bar fighter".to_string(), "Aggressive p".to_string(), "Defensive p".to_string(), "Positional".to_string(), "Endgame".to_string()],
@@ -259,6 +259,6 @@ mod tests {
         // Output has a different order which is fine but can't use the same string
         let str_out = "option name K Personality type combo default Default p var Foo bar fighter var Aggressive p var Defensive p var Positional var Endgame";
         assert_eq!(repr.to_string(), str_out);
-        assert_eq!(Message::from_str(str_in), Ok(repr));
+        assert_eq!(engine::Message::from_str(str_in), Ok(repr));
     }
 }

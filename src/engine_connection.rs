@@ -24,7 +24,7 @@ pub struct Engine {
 
 impl Engine {
     /// Creates a new [`Engine`] from an existing process.
-    /// 
+    ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
     pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, ConnectionError> {

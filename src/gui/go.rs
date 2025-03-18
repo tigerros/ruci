@@ -138,7 +138,7 @@ mod tests {
     use core::num::NonZeroUsize;
     use core::str::FromStr;
     use crate::gui::Go;
-    use crate::{Message, UciMoves};
+    use crate::{gui, Message, UciMoves};
 
     #[test]
     fn to_from_str() {
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn to_from_str_bad_parameters() {
-        let repr: Message = Go {
+        let repr: gui::Message = Go {
             search_moves: Some(UciMoves(vec![
                 UciMove::from_ascii(b"e2e4").unwrap(),
                 UciMove::from_ascii(b"d2d4").unwrap(),
@@ -186,7 +186,7 @@ mod tests {
         }.into();
         
         assert_eq!(repr.to_string(), "go searchmoves e2e4 d2d4 ponder depth 20 nodes 2 mate 0");
-        assert_eq!(Message::from_str("go mate 7 searchmoves e2e4 d2d4 ponder depth 20 depth bad nodes nope nope nodes 2 mate 0"), Ok(repr));
+        assert_eq!(gui::Message::from_str("go mate 7 searchmoves e2e4 d2d4 ponder depth 20 depth bad nodes nope nope nodes 2 mate 0"), Ok(repr));
     }
 
     #[test]

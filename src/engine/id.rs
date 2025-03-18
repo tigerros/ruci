@@ -72,7 +72,7 @@ impl Display for Id {
 mod tests {
     use core::str::FromStr;
     use pretty_assertions::assert_eq;
-    use crate::Message;
+    use crate::{engine, Message};
     use super::Id;
     use alloc::string::ToString;
 
@@ -86,5 +86,11 @@ mod tests {
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
+
+        let repr: engine::Message = Id::Name("Stockfish 16.1".to_string()).into();
+        let str_repr = "id name Stockfish 16.1";
+
+        assert_eq!(repr.to_string(), str_repr);
+        assert_eq!(engine::Message::from_str(str_repr), Ok(repr));
     }
 }

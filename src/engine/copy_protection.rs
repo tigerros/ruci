@@ -45,7 +45,7 @@ impl Display for CopyProtection {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use core::str::FromStr;
-    use crate::Message;
+    use crate::{engine, Message};
     use super::CopyProtection;
     use alloc::string::ToString;
     use crate::MessageParseError;
@@ -61,10 +61,10 @@ mod tests {
 
     #[test]
     fn to_from_str_error() {
-        let m: Message = CopyProtection::Error.into();
+        let m: engine::Message = CopyProtection::Error.into();
         let str = "copyprotection error";
         assert_eq!(m.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), m);
+        assert_eq!(engine::Message::from_str(str).unwrap(), m);
     }
 
     #[test]

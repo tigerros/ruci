@@ -72,7 +72,7 @@ mod tests {
     use core::str::FromStr;
     use pretty_assertions::{assert_eq};
     use crate::gui::Register;
-    use crate::Message;
+    use crate::{gui, Message};
     use alloc::string::ToString;
 
     #[test]
@@ -89,8 +89,8 @@ mod tests {
 
     #[test]
     fn invalid_parameter() {
-        let m: Message = Register::Name("a l o t o f s p a c e s".to_string()).into();
+        let m: gui::Message = Register::Name("a l o t o f s p a c e s".to_string()).into();
         assert_eq!(m.to_string(), "register name a l o t o f s p a c e s");
-        assert_eq!(Message::from_str("register blahblah woo name a l o t o f s p a c e s\n").unwrap(), m);
+        assert_eq!(gui::Message::from_str("register blahblah woo name a l o t o f s p a c e s\n").unwrap(), m);
     }
 }
