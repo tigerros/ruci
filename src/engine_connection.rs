@@ -1,4 +1,4 @@
-use crate::engine::{BestMove, Info};
+use crate::engine::{BestMove, Id, Info};
 use crate::errors::{ConnectionError, ReadError, ReadWriteError};
 use crate::gui::Go;
 use crate::{engine, gui};
@@ -221,25 +221,22 @@ impl Engine {
     }
 }
 
-fn update_id(old_id: &mut Option<engine::Id>, new_id: engine::Id) {
+fn update_id(old_id: &mut Option<Id>, new_id: Id) {
     let Some(old_id_some) = old_id.take() else {
         *old_id = Some(new_id);
         return;
     };
 
     *old_id = Some(match (old_id_some, new_id) {
-        (engine::Id::Author(author), engine::Id::Author(_)) => engine::Id::Author(author),
-        (engine::Id::Name(name), engine::Id::Name(_)) => engine::Id::Name(name),
+        (Id::Author(_), Id::Author(author)) => Id::Author(author),
+        (Id::Name(_), Id::Name(name)) => Id::Name(name),
         (
-            engine::Id::Author(author),
-            engine::Id::Name(name) | engine::Id::NameAndAuthor { name, .. },
+            Id::NameAndAuthor { .. } | Id::Author(_) | Id::Name(_),
+            Id::NameAndAuthor { name, author },
         )
-        | (
-            engine::Id::Name(name),
-            engine::Id::Author(author) | engine::Id::NameAndAuthor { author, .. },
-        )
-        | (engine::Id::NameAndAuthor { name, author }, _) => {
-            engine::Id::NameAndAuthor { name, author }
+        | (Id::NameAndAuthor { author: _, name } | Id::Name(name), Id::Author(author))
+        | (Id::NameAndAuthor { author, name: _ } | Id::Author(author), Id::Name(name)) => {
+            Id::NameAndAuthor { name, author }
         }
     });
 }
@@ -248,8 +245,10 @@ fn update_id(old_id: &mut Option<engine::Id>, new_id: engine::Id) {
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use crate::engine::{Id, NormalBestMove};
+    use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
+    use shakmaty::uci::UciMove;
 
     const ENGINE_EXE: &str = if cfg!(target_os = "windows") {
         "resources/stockfish-windows-x86-64-avx2.exe"
@@ -261,6 +260,35 @@ mod tests {
 
     fn engine_conn() -> Engine {
         Engine::from_path(ENGINE_EXE, false).unwrap()
+    }
+
+    #[test]
+    fn update_id() {
+        let mut id = None;
+
+        super::update_id(&mut id, Id::Name("John".to_string()));
+        assert_eq!(id, Some(Id::Name("John".to_string())));
+
+        super::update_id(&mut id, Id::Name("Jane".to_string()));
+        assert_eq!(id, Some(Id::Name("Jane".to_string())));
+
+        super::update_id(&mut id, Id::Author("Doe".to_string()));
+        assert_eq!(
+            id,
+            Some(Id::NameAndAuthor {
+                name: "Jane".to_string(),
+                author: "Doe".to_string()
+            })
+        );
+
+        super::update_id(&mut id, Id::Name("John".to_string()));
+        assert_eq!(
+            id,
+            Some(Id::NameAndAuthor {
+                name: "John".to_string(),
+                author: "Doe".to_string()
+            })
+        );
     }
 
     #[tokio::test]
@@ -320,6 +348,68 @@ mod tests {
             .unwrap();
 
         assert_eq!(best_move, BestMove::Other);
+    }
+
+    #[tokio::test]
+    async fn go() {
+        let mut engine_conn = engine_conn();
+
+        let best_move = engine_conn
+            .go(
+                Go {
+                    depth: Some(15),
+                    ..Default::default()
+                },
+                |_| {},
+            )
+            .await
+            .unwrap();
+
+        assert_matches!(best_move, BestMove::Normal(_));
+
+        let best_move = best_move.take_normal().unwrap();
+
+        assert_eq!(
+            best_move,
+            NormalBestMove {
+                r#move: UciMove::from_ascii(b"e2e4").unwrap(),
+                ponder: Some(UciMove::from_ascii(b"c7c5").unwrap())
+            }
+        );
+
+        engine_conn.send(&gui::UciNewGame.into()).await.unwrap();
+        engine_conn
+            .send(
+                &gui::Position::StartPos {
+                    moves: vec![UciMove::from_ascii(b"d2d4").unwrap()],
+                }
+                .into(),
+            )
+            .await
+            .unwrap();
+
+        let best_move = engine_conn
+            .go_async(
+                Go {
+                    depth: Some(25),
+                    ..Default::default()
+                },
+                async |_| {},
+            )
+            .await
+            .unwrap();
+
+        assert_matches!(best_move, BestMove::Normal(_));
+
+        let best_move = best_move.take_normal().unwrap();
+
+        assert_eq!(
+            best_move,
+            NormalBestMove {
+                r#move: UciMove::from_ascii(b"g8f6").unwrap(),
+                ponder: Some(UciMove::from_ascii(b"c2c4").unwrap())
+            }
+        );
     }
 
     #[allow(clippy::too_many_lines)]

@@ -24,6 +24,24 @@ pub enum BestMove {
     Normal(NormalBestMove),
 }
 
+impl BestMove {
+    /// Returns the inner [`NormalBestMove`], if [`Self`] matches [`Self::Normal`].
+    pub const fn normal(&self) -> Option<&NormalBestMove> {
+        match self {
+            Self::Other => None,
+            Self::Normal(n) => Some(n),
+        }
+    }
+
+    /// Returns the inner [`NormalBestMove`], if [`Self`] matches [`Self::Normal`].
+    pub const fn take_normal(self) -> Option<NormalBestMove> {
+        match self {
+            Self::Other => None,
+            Self::Normal(n) => Some(n),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// The engine's best move, with an optional pondering move.
