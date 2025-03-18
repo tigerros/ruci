@@ -240,7 +240,7 @@ impl From<Info> for crate::engine::Message {
 
 from_str_parts!(impl Info for parts -> Self {
     let mut this = Self::default();
-    // Need to handle depth like this in case the seldepth argument comes before the depth argument
+    // Need to handle depth like this in case the seldepth argument comes before the depth argument.
     let mut depth = None::<usize>;
     let mut seldepth = None::<usize>;
     let parameter_fn = |parameter, value: &str| match parameter {

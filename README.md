@@ -22,9 +22,9 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
   - Doesn't use `shakmaty`, which AFAIK is the go-to chess crate now.
   - API problems:
     - Doesn't separate GUI and engine messages. This is bad if you want to communicate with an engine/GUI, because you're going to need functions like `send_message` and `read_message`, where you want to specify which type of message you are sending and receiving. It's not impossible to do this with `vampirc-uci`, but you won't have strong type guarantees.
-    - Doesn't have separate structs/enums for messages. Similar to the above, this is bad if you want to represent a specific message. With `vampirc-uci`, you can only represent the whole enum.
+    - Doesn't have separate structs/enums for messages. Like the above, this is bad if you want to represent a specific message. With `vampirc-uci`, you can only represent the whole enum.
   - Doesn't provide IO communication with an engine.
-  - More dependencies; [`pest`](https://crates.io/crates/pest) and [`chrono`](https://crates.io/crates/chrono). `ruci` only has shakmaty and two macros which don't get included in the final binary.
+  - More dependencies; [`pest`](https://crates.io/crates/pest) and [`chrono`](https://crates.io/crates/chrono). `ruci` only has shakmaty and two macros, which don't get included in the final binary.
   - Not `#![no_std]` compatible.
   - More tests, but I don't know the coverage.
 - [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci): this library is based on/inspired by `vampirc-uci`, so all of the above bullet points apply, except:
@@ -37,4 +37,4 @@ toy benchmarks (but yes, they do technically favor `ruci`).*
 
 ## Feature flags
 - `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) as a dependency.
-- `serde`: enables `Serialize` and `Deserialize` for most types. All of the implementations are derived with no parameters.
+- `serde`: enables `Serialize` and `Deserialize` for most types. All the implementations are derived with no parameters.

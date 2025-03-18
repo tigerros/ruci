@@ -3,7 +3,7 @@
 //!
 //! Note that this will print out the [`Display`](std::fmt::Display) impls of the [`Info`](engine::Info) messages.
 //! That is not a reading from the engine, those are parsed messages converted back into a string
-//! because it's easier to read.
+//! because it is easier to read.
 //!
 //! This example requires that you have installed Stockfish.
 #![cfg(feature = "engine-connection")]

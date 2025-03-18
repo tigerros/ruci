@@ -172,7 +172,7 @@ impl Display for Message {
     }
 }
 
-/// This is not an actual pointer; it's just a [`Copy`] enum for referencing messages.
+/// This is not an actual pointer; it is just a [`Copy`] enum for referencing messages.
 enum MessagePointer {
     Engine(engine::pointers::MessagePointer),
     Gui(gui::pointers::MessagePointer),

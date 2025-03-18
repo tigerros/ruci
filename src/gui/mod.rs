@@ -24,7 +24,7 @@ define_message! {
         =[empty]
         /// Tells the engine to use UCI.
         Uci,
-        /// Asks the engine if it's ready.
+        /// Asks the engine if it is ready.
         ///
         /// Once ready, engine replies with [`ReadyOk`](crate::engine::ReadyOk).
         IsReady,

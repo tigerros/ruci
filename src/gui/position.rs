@@ -15,7 +15,7 @@ use crate::gui::pointers::{PositionParameterPointer};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Changes the position to analyze.
 ///
-/// Returns an error when parsing if neither `startpos` or `fen` parameters are present.
+/// Returns an error when parsing if neither `startpos` nor `fen` parameters are present.
 /// If both are present, the first one takes precedence (because Stockfish and Dragon do it like that).
 /// 
 /// <https://backscattering.de/chess/uci/#gui-position>

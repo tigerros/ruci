@@ -33,7 +33,7 @@ from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
     let mut value = String::with_capacity(200);
     let value = parsing::apply_parameters(parts, &mut value, parameter_fn);
 
-    // CLIPPY: It's less readable and also doesn't work
+    // CLIPPY: It is less readable and doesn't work
     #[allow(clippy::option_if_let_else)]
     if let Some(name) = name {
         if let Some(code) = code {

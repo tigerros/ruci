@@ -256,7 +256,7 @@ mod tests {
             variations: vec!["Foo bar fighter".to_string(), "Aggressive p".to_string(), "Defensive p".to_string(), "Positional".to_string(), "Endgame".to_string()],
         }.into();
         let str_in = "option var Foo bar fighter name K Personality type combo default Default p var Aggressive p var Defensive p var Positional var Endgame";
-        // Output has a different order which is fine but can't use the same string
+        // Output has a different order, which is fine, but can't use the same string.
         let str_out = "option name K Personality type combo default Default p var Foo bar fighter var Aggressive p var Defensive p var Positional var Endgame";
         assert_eq!(repr.to_string(), str_out);
         assert_eq!(engine::Message::from_str(str_in), Ok(repr));

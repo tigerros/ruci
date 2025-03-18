@@ -8,7 +8,7 @@ use crate::OptionReplaceIf;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum BestMove {
-    /// This variant exists exists because engines can send "valid" [`BestMove`] messages which will fail to parse.
+    /// This variant exists because engines can send "valid" [`BestMove`] messages, which will fail to parse.
     ///
     /// For example, this happens with Stockfish when trying to analyze a game over position, it will send back `bestmove (none)`.
     /// However, Komodo Dragon sends back a null move; `bestmove 0000`.
@@ -18,7 +18,7 @@ pub enum BestMove {
     ///
     /// The [`Display`] impl of this variant is just `"bestmove"`.
     ///
-    /// This case is not covered by the protocol description which is why this solution
+    /// This case is not covered by the protocol description, which is why this solution
     /// is improvised and isn't great.
     Other,
     Normal(NormalBestMove),
@@ -133,7 +133,7 @@ mod tests {
         }.into();
 
         assert_eq!(repr.to_string(), "bestmove d2d4 ponder c7c5");
-        assert_eq!(Message::from_str("bestmove oops d2d4 ponder c7c5 ignorthis"), Ok(repr));
+        assert_eq!(Message::from_str("bestmove oops d2d4 ponder c7c5 ignorethis"), Ok(repr));
     }
 
     #[test]

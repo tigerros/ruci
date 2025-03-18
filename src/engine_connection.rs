@@ -124,17 +124,15 @@ impl Engine {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`](engine::Id) and a vec
+    /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`] and a vec
     /// of [`Option`](engine::Option)s once the [`UciOk`](engine::UciOk) message is received.
-    pub async fn use_uci(
-        &mut self,
-    ) -> Result<(Option<engine::Id>, Vec<engine::Option>), ReadWriteError> {
+    pub async fn use_uci(&mut self) -> Result<(Option<Id>, Vec<engine::Option>), ReadWriteError> {
         self.send(&gui::Uci.into())
             .await
             .map_err(ReadWriteError::Write)?;
 
         let mut options = Vec::with_capacity(40);
-        let mut id = None::<engine::Id>;
+        let mut id = None::<Id>;
 
         loop {
             match self.read().await.map_err(ReadWriteError::Read)? {

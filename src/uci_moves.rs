@@ -5,7 +5,7 @@ use core::fmt::{Display, Formatter, Write};
 use shakmaty::uci::UciMove;
 
 /// Separates the string by spaces and parses moves while it can.
-/// When it encounter an unparseable move, stops.
+/// When it encounters an unparseable move, it stops.
 pub fn from_str(s: &str) -> Vec<UciMove> {
     s.split(' ').map_while(|part| part.parse().ok()).collect()
 }

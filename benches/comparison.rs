@@ -6,7 +6,7 @@ use vampirc_uci::UciSquare;
 
 fn to_str(c: &mut Criterion) {
     let mut group = c.benchmark_group("to_str");
-    // These are bogus values they're not sent to an engine
+    // These are bogus values they're not sent to an engine.
     let ruci_go = ruci::gui::Go {
         search_moves: vec![
             UciMove::from_ascii(b"e2e4").unwrap(),
