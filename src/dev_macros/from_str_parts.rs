@@ -1,7 +1,7 @@
 macro_rules! from_str_parts {
     (impl $message:ident for $parts:ident -> Result<Self, MessageParseError> $body:tt) => {
         impl $message {
-            /// Like the [`FromStr`](::std::str::FromStr) impl, but assumes the message is already parsed.
+            /// Like the [`FromStr`](::core::str::FromStr) impl, but assumes the message is already parsed.
             /// The `parts` should be the string separated by spaces, *without the message*.
             pub(crate) fn from_str_parts_message_assumed<'s>(
                 $parts: impl Iterator<Item = &'s str>,
@@ -25,7 +25,7 @@ macro_rules! from_str_parts {
 
     (impl $message:ident for $parts:ident -> Self $body:tt) => {
         impl $message {
-            /// Like the [`FromStr`](::std::str::FromStr) impl, but assumes the message is already parsed.
+            /// Like the [`FromStr`](::core::str::FromStr) impl, but assumes the message is already parsed.
             /// The `parts` should be the string separated by spaces, *without the message*.
             pub(crate) fn from_str_parts_message_assumed<'s>(
                 $parts: impl Iterator<Item = &'s str>,

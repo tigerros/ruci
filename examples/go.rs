@@ -40,11 +40,15 @@ async fn main() -> Result<(), anyhow::Error> {
 
     engine.is_ready().await?;
 
-    let (infos, best_move) = engine
-        .go(gui::Go {
-            depth: Some(20),
-            ..Default::default()
-        })
+    let mut infos = Vec::new();
+    let best_move = engine
+        .go(
+            gui::Go {
+                depth: Some(20),
+                ..Default::default()
+            },
+            |info| infos.push(info),
+        )
         .await?;
 
     for info in infos {

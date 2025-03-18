@@ -50,7 +50,7 @@ async fn main() -> Result<(), anyhow::Error> {
         };
 
         engine_lock
-            .go_stream(
+            .go(
                 gui::Go {
                     infinite: true,
                     ..Default::default()

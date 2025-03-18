@@ -1,6 +1,6 @@
-use crate::engine::{BestMove, Info, Registration};
+use crate::engine::{BestMove, Info};
 use crate::errors::{ConnectionError, ReadError, ReadWriteError};
-use crate::gui::{Go, Register};
+use crate::gui::Go;
 use crate::{engine, gui};
 use std::ffi::OsStr;
 use std::process::Stdio;
@@ -150,64 +150,13 @@ impl Engine {
         }
     }
 
-    /// Sends [`Go`] to the engine and waits for [`BestMove`],
-    /// returning it, along with a list of [`Info`]s.
+    /// Sends [`Go`] to the engine and waits for [`BestMove`].
+    /// You pass in a function through which [`Info`]s will be sent.
     ///
     /// Note that the engine will only send [`BestMove`]
     /// if you configure the message to set a constraint on the engine's calculation.
     ///
-    /// See also [`Self::go_only_last_info`], [`Self::go_stream`] and [`Self::go_async_stream`].
-    ///
-    /// # Errors
-    /// See [`Self::send_message`].
-    pub async fn go(&mut self, message: Go) -> Result<(Vec<Info>, BestMove), ReadWriteError> {
-        let message_depth = message.depth;
-
-        self.send_message(&message.into())
-            .await
-            .map_err(ReadWriteError::Write)?;
-
-        let mut info_messages =
-            Vec::<Info>::with_capacity(message_depth.map_or(100, |depth| depth.saturating_mul(5)));
-
-        loop {
-            match self.read_message().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => info_messages.push(*info),
-                engine::Message::BestMove(best_move) => return Ok((info_messages, best_move)),
-                _ => (),
-            }
-        }
-    }
-
-    /// Same as [`Self::go`], but instead of storing a vec of [`Info`]s,
-    /// returns just the last one.
-    ///
-    /// # Errors
-    /// See [`Self::go`].
-    pub async fn go_only_last_info(
-        &mut self,
-        message: Go,
-    ) -> Result<(Option<Info>, BestMove), ReadWriteError> {
-        self.send_message(&message.into())
-            .await
-            .map_err(ReadWriteError::Write)?;
-
-        let mut last_info_message = None;
-
-        loop {
-            match self.read_message().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => last_info_message = Some(*info),
-                engine::Message::BestMove(best_move) => return Ok((last_info_message, best_move)),
-                _ => (),
-            }
-        }
-    }
-
-    /// Same as [`Self::go`], but instead of storing a vec of [`Info`]s,
-    /// you pass in a function that is called every time an [`Info`] is encountered.
-    ///
-    /// This allows you to receive [`Info`]s before the engine is done calculating.
-    /// There's an example at the [repo](https://github.com/tigerros/ruci) that shows how you can:
+    /// There's examples at the [repo](https://github.com/tigerros/ruci) that shows how you can:
     ///
     /// 1. Start calculating in a separate task.
     /// 2. Save the state to the main task.
@@ -215,8 +164,8 @@ impl Engine {
     /// 4. Check the results.
     ///
     /// # Errors
-    /// See [`Self::go`].
-    pub async fn go_stream(
+    /// See [`Self::send_message`].
+    pub async fn go(
         &mut self,
         message: Go,
         mut info_fn: impl FnMut(Info),
@@ -236,11 +185,11 @@ impl Engine {
         }
     }
 
-    /// Same as [`Self::go_stream`], but you can pass in an async function.
+    /// Same as [`Self::go`], but you can pass in an async function.
     ///
     /// # Errors
     /// See [`Self::go`].
-    pub async fn go_async_stream(
+    pub async fn go_async(
         &mut self,
         message: Go,
         mut info_fn: impl AsyncFnMut(Info),
@@ -364,11 +313,14 @@ mod tests {
             .await
             .unwrap();
 
-        let (_, best_move) = engine_conn
-            .go_only_last_info(Go {
-                depth: Some(5),
-                ..Default::default()
-            })
+        let best_move = engine_conn
+            .go(
+                Go {
+                    depth: Some(5),
+                    ..Default::default()
+                },
+                |_| {},
+            )
             .await
             .unwrap();
 
