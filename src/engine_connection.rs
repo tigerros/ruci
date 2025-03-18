@@ -278,24 +278,6 @@ impl Engine {
             }
         }
     }
-
-    /// Sends [`Register`] and waits for [`Registration`].
-    ///
-    /// # Errors
-    /// See [`Self::send_message`].
-    pub async fn register(&mut self, register: Register) -> Result<Registration, ReadWriteError> {
-        self.send_message(&register.into())
-            .await
-            .map_err(ReadWriteError::Write)?;
-
-        loop {
-            if let engine::Message::Registration(registration) =
-                self.read_message().await.map_err(ReadWriteError::Read)?
-            {
-                return Ok(registration);
-            }
-        }
-    }
 }
 
 fn update_id(old_id: &mut Option<engine::Id>, new_id: engine::Id) {
