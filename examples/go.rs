@@ -16,7 +16,7 @@ use shakmaty::uci::UciMove;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let mut engine = Engine::from_path("stockfish", false)?;
+    let mut engine = Engine::from_path("stockfish")?;
 
     println!("== Sending use UCI message, waiting for uciok");
 

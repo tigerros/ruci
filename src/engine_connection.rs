@@ -257,7 +257,7 @@ mod tests {
     };
 
     fn engine_conn() -> Engine {
-        Engine::from_path(ENGINE_EXE, false).unwrap()
+        Engine::from_path(ENGINE_EXE).unwrap()
     }
 
     #[test]

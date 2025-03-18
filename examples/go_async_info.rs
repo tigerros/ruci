@@ -15,7 +15,7 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let engine = Arc::new(Mutex::new(Engine::from_path("stockfish", false)?));
+    let engine = Arc::new(Mutex::new(Engine::from_path("stockfish")?));
     let mut lock = engine.lock().await;
 
     println!("== Sending use UCI message, waiting for uciok");
