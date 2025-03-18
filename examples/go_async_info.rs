@@ -73,7 +73,7 @@ async fn main() -> Result<(), anyhow::Error> {
     println!("== Seen {} infos", infos.len());
     println!("== Sending quit message");
 
-    engine.send_message(&gui::Quit.into()).await?;
+    engine.send(&gui::Quit.into()).await?;
 
     println!("== Sent. Program terminated");
 

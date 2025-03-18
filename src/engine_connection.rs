@@ -23,6 +23,8 @@ pub struct Engine {
 }
 
 impl Engine {
+    /// Creates a new [`Engine`] from an existing process.
+    /// 
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
     pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, ConnectionError> {
@@ -43,10 +45,8 @@ impl Engine {
         })
     }
 
-    /// Creates a new connection from the given executable path.
-    ///
-    /// # Errors
-    /// See [`ConnectionError`].
+    #[allow(clippy::missing_errors_doc)]
+    /// Creates a new [`Engine`] from the given path.
     pub fn from_path(path: impl AsRef<OsStr>, strict: bool) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
@@ -65,7 +65,7 @@ impl Engine {
     ///
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
-    pub async fn send_message(&mut self, message: &gui::Message) -> io::Result<()> {
+    pub async fn send(&mut self, message: &gui::Message) -> io::Result<()> {
         self.stdin
             .write_all((message.to_string() + "\n").as_bytes())
             .await
@@ -85,12 +85,10 @@ impl Engine {
         Ok(())
     }
 
+    #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a [`engine::Message`].
     /// Skips lines which are only composed of whitespace.
-    ///
-    /// # Errors
-    /// See [`ReadError`].
-    pub async fn read_message(&mut self) -> Result<engine::Message, ReadError> {
+    pub async fn read(&mut self) -> Result<engine::Message, ReadError> {
         let mut line = String::new();
 
         if self.strict {
@@ -125,15 +123,13 @@ impl Engine {
         }
     }
 
+    #[allow(clippy::missing_errors_doc)]
     /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`](engine::Id) and a vec
     /// of [`Option`](engine::Option)s once the [`UciOk`](engine::UciOk) message is received.
-    ///
-    /// # Errors
-    /// See [`Self::send_message`].
     pub async fn use_uci(
         &mut self,
     ) -> Result<(Option<engine::Id>, Vec<engine::Option>), ReadWriteError> {
-        self.send_message(&gui::Uci.into())
+        self.send(&gui::Uci.into())
             .await
             .map_err(ReadWriteError::Write)?;
 
@@ -141,7 +137,7 @@ impl Engine {
         let mut id = None::<engine::Id>;
 
         loop {
-            match self.read_message().await.map_err(ReadWriteError::Read)? {
+            match self.read().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Option(option) => options.push(option),
                 engine::Message::Id(new_id) => update_id(&mut id, new_id),
                 engine::Message::UciOk(_) => return Ok((id, options)),
@@ -150,6 +146,7 @@ impl Engine {
         }
     }
 
+    #[allow(clippy::missing_errors_doc)]
     /// Sends [`Go`] to the engine and waits for [`BestMove`].
     /// You pass in a function through which [`Info`]s will be sent.
     ///
@@ -163,19 +160,18 @@ impl Engine {
     /// 3. Abort the calculation task.
     /// 4. Check the results.
     ///
-    /// # Errors
-    /// See [`Self::send_message`].
+    /// Or just do it on the same task and wait for completion.
     pub async fn go(
         &mut self,
         message: Go,
         mut info_fn: impl FnMut(Info),
     ) -> Result<BestMove, ReadWriteError> {
-        self.send_message(&message.into())
+        self.send(&message.into())
             .await
             .map_err(ReadWriteError::Write)?;
 
         loop {
-            match self.read_message().await.map_err(ReadWriteError::Read)? {
+            match self.read().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Info(info) => info_fn(*info),
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
@@ -185,21 +181,19 @@ impl Engine {
         }
     }
 
+    #[allow(clippy::missing_errors_doc)]
     /// Same as [`Self::go`], but you can pass in an async function.
-    ///
-    /// # Errors
-    /// See [`Self::go`].
     pub async fn go_async(
         &mut self,
         message: Go,
         mut info_fn: impl AsyncFnMut(Info),
     ) -> Result<BestMove, ReadWriteError> {
-        self.send_message(&message.into())
+        self.send(&message.into())
             .await
             .map_err(ReadWriteError::Write)?;
 
         loop {
-            match self.read_message().await.map_err(ReadWriteError::Read)? {
+            match self.read().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Info(info) => info_fn(*info).await,
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
@@ -209,18 +203,16 @@ impl Engine {
         }
     }
 
+    #[allow(clippy::missing_errors_doc)]
     /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
-    ///
-    /// # Errors
-    /// See [`Self::send_message`].
     pub async fn is_ready(&mut self) -> Result<(), ReadWriteError> {
-        self.send_message(&gui::IsReady.into())
+        self.send(&gui::IsReady.into())
             .await
             .map_err(ReadWriteError::Write)?;
 
         loop {
             if matches!(
-                self.read_message().await.map_err(ReadWriteError::Read)?,
+                self.read().await.map_err(ReadWriteError::Read)?,
                 engine::Message::ReadyOk(_)
             ) {
                 return Ok(());
@@ -281,7 +273,7 @@ mod tests {
     async fn skip_lines() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send_message(&gui::Uci.into()).await.unwrap();
+        engine_conn.send(&gui::Uci.into()).await.unwrap();
 
         engine_conn.skip_lines(4).await.unwrap();
 
@@ -299,10 +291,10 @@ mod tests {
     async fn analyze_checkmate() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send_message(&gui::Uci.into()).await.unwrap();
+        engine_conn.send(&gui::Uci.into()).await.unwrap();
 
         engine_conn
-            .send_message(
+            .send(
                 &gui::Position::Fen {
                     moves: None,
                     fen: "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"

@@ -27,7 +27,7 @@ async fn main() -> Result<(), anyhow::Error> {
     println!("== Sending custom FEN with an extra move");
 
     engine
-        .send_message(
+        .send(
             &Position::Fen {
                 fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
                 moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()])),
@@ -58,7 +58,7 @@ async fn main() -> Result<(), anyhow::Error> {
     println!("Best move (probably e2g8): {best_move:?}");
 
     println!("== Sending quit message");
-    engine.send_message(&gui::Quit.into()).await?;
+    engine.send(&gui::Quit.into()).await?;
     println!("== Sent. Program terminated");
 
     Ok(())
