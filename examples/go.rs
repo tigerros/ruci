@@ -30,12 +30,11 @@ async fn main() -> anyhow::Result<()> {
 
     engine
         .send(
-            &Position {
-                startpos: false,
-                fen: Some(Fen::from_ascii(
+            &Position::Fen {
+                fen: Fen::from_ascii(
                     b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5",
-                )?),
-                moves: vec![UciMove::from_ascii(b"b1c3").unwrap()],
+                )?,
+                moves: vec![UciMove::from_ascii(b"b1c3")?],
             }
             .into(),
         )

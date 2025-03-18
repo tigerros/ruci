@@ -152,7 +152,7 @@ impl FromStr for Message {
                     Ok(Register::from_str_parts_message_assumed(parts)?.into())
                 }
                 gui::pointers::MessagePointer::Position => {
-                    Ok(Position::from_str_parts_message_assumed(parts).into())
+                    Ok(Position::from_str_parts_message_assumed(parts)?.into())
                 }
                 gui::pointers::MessagePointer::Go => {
                     Ok(Go::from_str_parts_message_assumed(parts).into())

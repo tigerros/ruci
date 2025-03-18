@@ -296,15 +296,12 @@ mod tests {
 
         engine_conn
             .send(
-                &gui::Position {
-                    startpos: false,
+                &gui::Position::Fen {
                     moves: Vec::new(),
-                    fen: Some(
-                        Fen::from_ascii(
-                            b"rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3",
-                        )
-                        .unwrap(),
-                    ),
+                    fen: Fen::from_ascii(
+                        b"rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3",
+                    )
+                    .unwrap(),
                 }
                 .into(),
             )

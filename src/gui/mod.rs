@@ -51,7 +51,7 @@ impl FromStr for Message {
                 Ok(SetOption::from_str_parts_message_assumed(parts)?.into())
             }
             MessagePointer::Register => Ok(Register::from_str_parts_message_assumed(parts)?.into()),
-            MessagePointer::Position => Ok(Position::from_str_parts_message_assumed(parts).into()),
+            MessagePointer::Position => Ok(Position::from_str_parts_message_assumed(parts)?.into()),
             MessagePointer::Go => Ok(Go::from_str_parts_message_assumed(parts).into()),
             MessagePointer::Uci => Ok(Uci.into()),
             MessagePointer::IsReady => Ok(IsReady.into()),
