@@ -27,7 +27,7 @@ impl Engine {
     ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, ConnectionError> {
+    pub fn from_process(process: &mut Child) -> Result<Self, ConnectionError> {
         let Some(stdout) = process.stdout.take() else {
             return Err(ConnectionError::StdoutIsNotCaptured);
         };
@@ -41,13 +41,13 @@ impl Engine {
         Ok(Self {
             stdout,
             stdin,
-            strict,
+            strict: false,
         })
     }
 
     #[allow(clippy::missing_errors_doc)]
     /// Creates a new [`Engine`] from the given path.
-    pub fn from_path(path: impl AsRef<OsStr>, strict: bool) -> Result<Self, ConnectionError> {
+    pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -58,7 +58,7 @@ impl Engine {
 
         let mut process = cmd.spawn().map_err(ConnectionError::Spawn)?;
 
-        Self::from_process(&mut process, strict)
+        Self::from_process(&mut process)
     }
 
     /// Sends a message.
