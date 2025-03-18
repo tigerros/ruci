@@ -24,6 +24,10 @@ name = "go"
 path = "examples/go.rs"
 required-features = ["engine-connection"]
 
+[[example]]
+name = "no_std"
+path = "examples/no_std.rs"
+
 [dependencies]
 shakmaty = "~0.27"
 paste = "1"
