@@ -8,7 +8,8 @@
 <ins>R</ins>ust <ins>U</ins>niversal <ins>C</ins>hess <ins>I</ins>nterface.
 
 This crate parses and creates UCI messages.
-It follows the [UCI standard](https://backscattering.de/chess/uci) and uses [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
+It follows the [UCI protocol](https://backscattering.de/chess/uci) and uses [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
+The UCI protocol is the most widely used way for GUI's to communicate with engines and vice versa.
 
 `#![no_std]` compatible, unless you enable the `engine-connection` feature.
 
@@ -36,5 +37,5 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
 toy benchmarks (but yes, they do technically favor RUCI).*
 
 ## Feature flags
-- `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) and [`parking_lot`](https://crates.io/crates/parking_lot) as dependencies. If you're making an engine, listen to stdin and parse it into a `gui::Message`, then print a string representation of an `engine::Message`.
+- `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) as a dependency.
 - `serde`: enables `Serialize` and `Deserialize` for most types. All of the implementations are derived with no parameters.

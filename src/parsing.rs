@@ -35,11 +35,12 @@ where
 ///
 /// # Errors
 /// No message was found.
-pub fn collect_any_message(
-    s: &str,
-) -> Result<(MessagePointer, impl Iterator<Item = &str>), MessageParseError>
+pub fn collect_any_message<'s, M>(
+    expected: &'static str,
+    s: &'s str,
+) -> Result<(M, impl Iterator<Item = &'s str>), MessageParseError>
 where
-    MessagePointer: FromStr,
+    M: FromStr,
 {
     let s = s.trim();
     let s = if let Some((s1, _)) = s.split_once('\n') {
@@ -50,10 +51,8 @@ where
 
     let mut parts = s.split(' ');
     let message = parts
-        .find_map(|part| MessagePointer::from_str(part).ok())
-        .ok_or(MessageParseError::NoMessage {
-            expected: "any UCI message",
-        })?;
+        .find_map(|part| M::from_str(part).ok())
+        .ok_or(MessageParseError::NoMessage { expected })?;
 
     Ok((message, parts))
 }

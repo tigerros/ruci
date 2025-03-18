@@ -31,18 +31,32 @@
     clippy::string_slice
 )]
 #![cfg_attr(not(feature = "engine-connection"), no_std)]
-//! **Note:** [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
-//!
 //! You can get started with [`Message`], but keep in mind that all messages (even those which
 //! are void, like [`UciOk`]), implement [`FromStr`] and [`Display`], so you can (and should) use them
 //! individually.
 //!
-//! But if you do need to use the more general enums like the top-level [`Message`],
-//! you might find yourself writing code like `Message::Gui(gui::Message::Go(gui::Go { .. }))`.
-//! There is an easier way! The "higher level" messages implement [`From`] for the "lower level"
+//! # A note on "layers"
+//! The [`Message`] enum wraps around the engine/GUI variants, which wraps around a specific message,
+//! which is a lot of layers.
+//!
+//! So if you use the more general enums like the top-level [`Message`],
+//! you might find yourself writing code like:
+//!
+//! ```ignore
+//! Message::Gui(gui::Message::Go(gui::Go { .. }))
+//! ```
+//!
+//! Know that there is an easier way! The "higher level" messages implement [`From`] for the "lower level"
 //! messages, which means that [`Message`] and [`gui::Message`] implement [`From`] for [`Go`] (or any other message).
 //!
-//! So just call `gui::Go { .. }.into()` and you're good to go!
+//! So just do:
+//!
+//! ```ignore
+//! gui::Go { .. }.into()
+//! ```
+//!
+//! # A note on [`Display`] impls
+//! [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
 
 extern crate alloc;
 extern crate core;
@@ -93,7 +107,8 @@ impl FromStr for Message {
     /// Tries to parse one line to a [`Message`].
     /// If there's a newline character (`\n`) present, only the first line will be processed.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (message_pointer, parts) = parsing::collect_any_message(s)?;
+        let (message_pointer, parts) =
+            parsing::collect_any_message::<MessagePointer>("any UCI message", s)?;
 
         match message_pointer {
             MessagePointer::Engine(engine) => match engine {

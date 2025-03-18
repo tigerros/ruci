@@ -3,6 +3,10 @@ dry_mods::mods! {
 }
 
 use crate::dev_macros::define_message;
+use crate::errors::MessageParseError;
+use crate::parsing;
+use core::str::FromStr;
+use pointers::MessagePointer;
 
 define_message! {
     /// A message sent from the GUI to the engine.
@@ -31,5 +35,30 @@ define_message! {
         PonderHit,
         /// Tells the engine to stop everything.
         Quit
+    }
+}
+
+impl FromStr for Message {
+    type Err = MessageParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (message_pointer, parts) =
+            parsing::collect_any_message::<MessagePointer>("GUI UCI message", s)?;
+
+        match message_pointer {
+            MessagePointer::Debug => Ok(Debug::from_str_parts_message_assumed(parts)?.into()),
+            MessagePointer::SetOption => {
+                Ok(SetOption::from_str_parts_message_assumed(parts)?.into())
+            }
+            MessagePointer::Register => Ok(Register::from_str_parts_message_assumed(parts)?.into()),
+            MessagePointer::Position => Ok(Position::from_str_parts_message_assumed(parts).into()),
+            MessagePointer::Go => Ok(Go::from_str_parts_message_assumed(parts).into()),
+            MessagePointer::Uci => Ok(Uci.into()),
+            MessagePointer::IsReady => Ok(IsReady.into()),
+            MessagePointer::UciNewGame => Ok(UciNewGame.into()),
+            MessagePointer::Stop => Ok(Stop.into()),
+            MessagePointer::PonderHit => Ok(PonderHit.into()),
+            MessagePointer::Quit => Ok(Quit.into()),
+        }
     }
 }

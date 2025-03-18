@@ -42,7 +42,7 @@ mod tests {
 
     use alloc::string::ToString;
     use core::str::FromStr;
-    use crate::Message;
+    use crate::{gui, Message};
     use super::Debug;
     use crate::MessageParseError;
     use pretty_assertions::{assert_eq, assert_matches};
@@ -57,14 +57,14 @@ mod tests {
 
     #[test]
     fn to_from_str_off() {
-        let m: Message = Debug(false).into();
+        let m: gui::Message = Debug(false).into();
         let str = "debug off";
         assert_eq!(m.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), m);
+        assert_eq!(gui::Message::from_str(str).unwrap(), m);
 
-        let m: Message = Debug(false).into();
+        let m: gui::Message = Debug(false).into();
         assert_eq!(m.to_string(), "debug off");
-        assert_eq!(Message::from_str("debug blah   off asffd"), Ok(m));
+        assert_eq!(gui::Message::from_str("debug blah   off asffd"), Ok(m));
     }
 
     #[test]

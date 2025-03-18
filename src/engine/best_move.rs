@@ -16,6 +16,8 @@ pub enum BestMove {
     /// This variant just means that the `bestmove` string
     /// was encountered, but the rest of the message was not understood.
     ///
+    /// The [`Display`] impl of this variant is just `"bestmove"`.
+    ///
     /// This case is not covered by the protocol description which is why this solution
     /// is improvised and isn't great.
     Other,
@@ -76,9 +78,9 @@ impl Display for BestMove {
         f.write_str("bestmove")?;
 
         match &self {
-            Self::Other => f.write_str("bestmove (none)\n"),
+            Self::Other => Ok(()),
             Self::Normal(best_move) => {
-                write!(f, "bestmove {}", best_move.r#move)?;
+                write!(f, " {}", best_move.r#move)?;
 
                 best_move.ponder.as_ref().map_or(Ok(()), |ponder| write!(f, " ponder {ponder}"))
             }
@@ -93,8 +95,8 @@ mod tests {
     use alloc::string::ToString;
     use shakmaty::uci::UciMove;
     use pretty_assertions::{assert_eq};
-    use crate::engine::NormalBestMove;
-    use crate::Message;
+    use crate::engine::{BestMove, NormalBestMove};
+    use crate::{engine, Message};
 
     #[test]
     fn to_from_str() {
@@ -118,12 +120,20 @@ mod tests {
 
     #[test]
     fn to_from_str_bad_value() {
-        let repr: Message = NormalBestMove {
+        let repr: engine::Message = NormalBestMove {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
         
         assert_eq!(repr.to_string(), "bestmove e2e4 ponder c7c5");
-        assert_eq!(Message::from_str("bestmove junk e2e4 ponder c7c5\n"), Ok(repr));
+        assert_eq!(engine::Message::from_str("bestmove junk e2e4 ponder c7c5\n"), Ok(repr));
+    }
+
+    #[test]
+    fn to_from_str_other() {
+        let repr: engine::Message = BestMove::Other.into();
+
+        assert_eq!(repr.to_string(), "bestmove");
+        assert_eq!(engine::Message::from_str("bestmove (none)\n"), Ok(repr));
     }
 }

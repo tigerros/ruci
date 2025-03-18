@@ -5,7 +5,11 @@ dry_mods::mods! {
 extern crate alloc;
 
 use crate::dev_macros::define_message;
+use crate::engine::pointers::MessagePointer;
+use crate::errors::MessageParseError;
+use crate::parsing;
 use alloc::boxed::Box;
+use core::str::FromStr;
 
 define_message! {
     /// A message sent from the engine to the GUI.
@@ -27,5 +31,29 @@ define_message! {
         UciOk,
         /// The engine is ready to accept new commands.
         ReadyOk
+    }
+}
+
+impl FromStr for Message {
+    type Err = MessageParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (message_pointer, parts) =
+            parsing::collect_any_message::<MessagePointer>("engine UCI message", s)?;
+
+        match message_pointer {
+            MessagePointer::Id => Ok(Id::from_str_parts_message_assumed(parts)?.into()),
+            MessagePointer::BestMove => Ok(BestMove::from_str_parts_message_assumed(parts).into()),
+            MessagePointer::CopyProtection => {
+                Ok(CopyProtection::from_str_parts_message_assumed(parts)?.into())
+            }
+            MessagePointer::Registration => {
+                Ok(Registration::from_str_parts_message_assumed(parts)?.into())
+            }
+            MessagePointer::Info => Ok(Info::from_str_parts_message_assumed(parts).into()),
+            MessagePointer::Option => Ok(Option::from_str_parts_message_assumed(parts)?.into()),
+            MessagePointer::UciOk => Ok(UciOk.into()),
+            MessagePointer::ReadyOk => Ok(ReadyOk.into()),
+        }
     }
 }

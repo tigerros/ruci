@@ -51,12 +51,12 @@ impl Error for MessageParseError {}
 
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]
-/// Something went wrong with spawning the engine process.
+/// Spawning the engine process failed.
 pub enum ConnectionError {
     Spawn(io::Error),
-    /// See <https://docs.rs/tokio/1.44.1/tokio/process/struct.Child.html#structfield.stdout>.
+    /// See [`tokio::process::Child.stdout`](tokio::process::Child#structfield.stdout).
     StdoutIsNotCaptured,
-    /// See <https://docs.rs/tokio/1.44.1/tokio/process/struct.Child.html#structfield.stdin>.
+    /// See [`tokio::process::Child.stdin`](tokio::process::Child#structfield.stdin).
     StdinIsNotCaptured,
 }
 
@@ -80,27 +80,46 @@ impl Error for ConnectionError {}
 
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]
-/// Reading the message either resulted in an IO error, or it could not be parsed.
-pub enum ReadMessageError {
+/// Reading a message from the engine failed.
+pub enum ReadError {
+    /// Reading failed due to an I/O error.
     Io(io::Error),
-    MessageParse(MessageParseError),
-    /// Got GUI message when expecting an engine message.
-    GotGuiMessage,
+    /// Reading succeeded but parsing to a [`engine::Message`](crate::engine::Message) failed.
+    Parse(MessageParseError),
 }
 
 #[cfg(feature = "engine-connection")]
-impl Display for ReadMessageError {
+impl Display for ReadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Io(e) => write!(f, "failed to read UCI engine message: {e}"),
-            Self::MessageParse(e) => write!(f, "failed to parse UCI engine message: {e}"),
-            Self::GotGuiMessage => write!(
-                f,
-                "received GUI UCI message but was expecting engine message"
-            ),
+            Self::Io(e) => write!(f, "I/O error while trying to read UCI message: {e}"),
+            Self::Parse(e) => write!(f, "failed to parse UCI message: {e}"),
         }
     }
 }
 
 #[cfg(feature = "engine-connection")]
-impl Error for ReadMessageError {}
+impl Error for ReadError {}
+
+#[cfg(feature = "engine-connection")]
+#[derive(Debug)]
+/// Reading/sending a message from/to the engine failed.
+pub enum ReadWriteError {
+    /// Sending a message failed due to an I/O error.
+    Write(io::Error),
+    /// Reading a message failed.
+    Read(ReadError),
+}
+
+#[cfg(feature = "engine-connection")]
+impl Display for ReadWriteError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Write(e) => write!(f, "I/O error while trying to sending UCI message: {e}"),
+            Self::Read(e) => write!(f, "error reading UCI message: {e}"),
+        }
+    }
+}
+
+#[cfg(feature = "engine-connection")]
+impl Error for ReadWriteError {}
