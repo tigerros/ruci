@@ -167,9 +167,8 @@ impl Engine {
             .await
             .map_err(ReadWriteError::Write)?;
 
-        let mut info_messages = Vec::<Info>::with_capacity(
-            message_depth.map_or(100, |depth| depth.saturating_mul(5)),
-        );
+        let mut info_messages =
+            Vec::<Info>::with_capacity(message_depth.map_or(100, |depth| depth.saturating_mul(5)));
 
         loop {
             match self.read_message().await.map_err(ReadWriteError::Read)? {
