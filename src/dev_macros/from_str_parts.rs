@@ -35,11 +35,11 @@ macro_rules! from_str_parts {
         }
 
         impl ::core::str::FromStr for $message {
-            type Err = $crate::errors::MessageParseError;
+            type Err = $crate::MessageParseError;
 
             /// # Errors
-            /// Guaranteed to only be [`MessageParseError::NoMessage`](crate::errors::MessageParseError::NoMessage), parsing after that cannot fail.
-            fn from_str(s: &str) -> Result<Self, $crate::errors::MessageParseError> {
+            /// Guaranteed to only be [`MessageParseError::NoMessage`](crate::MessageParseError::NoMessage), parsing after that cannot fail.
+            fn from_str(s: &str) -> Result<Self, $crate::MessageParseError> {
                 let parts = $crate::parsing::collect_message(
                     super::pointers::MessagePointer::$message.to_string(),
                     s,

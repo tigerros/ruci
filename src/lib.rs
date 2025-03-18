@@ -64,13 +64,12 @@ mod dev_macros;
 pub mod engine;
 #[cfg(feature = "engine-connection")]
 mod engine_connection;
-pub mod errors;
+mod errors;
 pub mod gui;
 mod parsing;
 mod uci_moves;
 
 use crate::engine::{BestMove, CopyProtection, Id, Info, ReadyOk, Registration, UciOk};
-use crate::errors::MessageParseError;
 use crate::gui::{
     Debug, Go, IsReady, PonderHit, Position, Quit, Register, SetOption, Stop, Uci, UciNewGame,
 };
@@ -78,6 +77,7 @@ use core::fmt::{Display, Formatter};
 use core::str::FromStr;
 #[cfg(feature = "engine-connection")]
 pub use engine_connection::*;
+pub use errors::*;
 
 pub(crate) trait OptionReplaceIf<T> {
     fn replace_if(&mut self, other: Option<T>);

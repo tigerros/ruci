@@ -20,13 +20,11 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
 
 - [`vampirc-uci`](https://crates.io/crates/vampirc-uci):
   - Doesn't use `shakmaty`, which AFAIK is the go-to chess crate now.
-  - API problems:
-    - Doesn't separate GUI and engine messages. This is bad if you want to communicate with an engine/GUI, because you're going to need functions like `send_message` and `read_message`, where you want to specify which type of message you are sending and receiving. It's not impossible to do this with `vampirc-uci`, but you won't have strong type guarantees.
-    - Doesn't have separate structs/enums for messages. Like the above, this is bad if you want to represent a specific message. With `vampirc-uci`, you can only represent the whole enum.
+  - Doesn't separate the two types of messages (engine, GUI) and specific messages. It just has one big enum which mostly uses enum fields for message data. This is really inconvenient because you can't represent specific messages, only the whole `Message` enum.
   - Doesn't provide IO communication with an engine.
   - More dependencies; [`pest`](https://crates.io/crates/pest) and [`chrono`](https://crates.io/crates/chrono). `ruci` only has shakmaty and two macros, which don't get included in the final binary.
   - Not `#![no_std]` compatible.
-  - More tests, but I don't know the coverage.
+  - More tests, but I don't know about the coverage.
 - [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci): this library is based on/inspired by `vampirc-uci`, so all of the above bullet points apply, except:
   - Uses `shakmaty`.
   - Uses [`nom`](https://crates.io/crates/nom) instead of `pest` and doesn't use `chrono`.
