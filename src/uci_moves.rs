@@ -2,48 +2,28 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 use core::fmt::{Display, Formatter, Write};
-use core::str::FromStr;
 use shakmaty::uci::UciMove;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-/// A simple [`Vec<UciMove>`] wrapper that provides [`FromStr`] and [`Display`] implementations.
-pub struct UciMoves(pub Vec<UciMove>);
-
-impl From<Vec<UciMove>> for UciMoves {
-    fn from(moves: Vec<UciMove>) -> Self {
-        Self(moves)
-    }
+/// Separates the string by spaces and parses moves while it can.
+/// When it encounter an unparseable move, stops.
+pub fn from_str(s: &str) -> Vec<UciMove> {
+    s.split(' ').map_while(|part| part.parse().ok()).collect()
 }
 
-impl FromStr for UciMoves {
-    type Err = ();
+/// Just joins the moves with a space.
+pub fn fmt(this: &[UciMove], f: &mut Formatter<'_>) -> core::fmt::Result {
+    let mut first_iter = true;
 
-    /// Splits a string by spaces and keeps parsing the fragments to a [`UciMove`] until it encounters an error,
-    /// then returns a unit error.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(
-            s.split(' ').map_while(|part| part.parse().ok()).collect(),
-        ))
-    }
-}
-
-impl Display for UciMoves {
-    /// Just joins the moves with a space.
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        let mut first_iter = true;
-
-        for r#move in &self.0 {
-            // Do not write the space on the first iteration
-            if first_iter {
-                first_iter = false;
-            } else {
-                f.write_char(' ')?;
-            }
-
-            r#move.fmt(f)?;
+    for r#move in this {
+        // Do not write the space on the first iteration
+        if first_iter {
+            first_iter = false;
+        } else {
+            f.write_char(' ')?;
         }
 
-        Ok(())
+        r#move.fmt(f)?;
     }
+
+    Ok(())
 }

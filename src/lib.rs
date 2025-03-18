@@ -59,7 +59,6 @@
 //! [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
 
 extern crate alloc;
-extern crate core;
 
 mod dev_macros;
 pub mod engine;
@@ -79,7 +78,6 @@ use core::fmt::{Display, Formatter};
 use core::str::FromStr;
 #[cfg(feature = "engine-connection")]
 pub use engine_connection::*;
-pub use uci_moves::UciMoves;
 
 pub(crate) trait OptionReplaceIf<T> {
     fn replace_if(&mut self, other: Option<T>);

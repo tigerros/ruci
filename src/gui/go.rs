@@ -1,9 +1,11 @@
 extern crate alloc;
 
+use alloc::vec::Vec;
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
 use core::num::NonZeroUsize;
-use crate::{parsing, OptionReplaceIf, UciMoves};
+use shakmaty::uci::UciMove;
+use crate::{parsing, uci_moves, OptionReplaceIf};
 use crate::dev_macros::{from_str_parts, message_from_impl};
 use crate::gui::pointers::GoParameterPointer;
 
@@ -15,7 +17,7 @@ use crate::gui::pointers::GoParameterPointer;
 /// <https://backscattering.de/chess/uci/#gui-go>
 pub struct Go {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
-    pub search_moves: Option<UciMoves>,
+    pub search_moves: Vec<UciMove>,
     /// <https://backscattering.de/chess/uci/#gui-go-ponder>
     pub ponder: bool,
     /// White's time.
@@ -52,7 +54,13 @@ message_from_impl!(gui Go);
 from_str_parts!(impl Go for parts -> Self {
     let mut this = Self::default();
     let parameter_fn = |parameter, value: &str| match parameter {
-        GoParameterPointer::SearchMoves => this.search_moves.replace_if(value.parse().ok()),
+        GoParameterPointer::SearchMoves => {
+            let parsed = uci_moves::from_str(value);
+
+            if !parsed.is_empty() {
+                this.search_moves = parsed;
+            }
+        },
         GoParameterPointer::Ponder => this.ponder = true,
         GoParameterPointer::WTime => this.w_time.replace_if(value.parse().ok()),
         GoParameterPointer::BTime => this.b_time.replace_if(value.parse().ok()),
@@ -76,8 +84,9 @@ impl Display for Go {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("go")?;
 
-        if let Some(search_moves) = &self.search_moves {
-            write!(f, " searchmoves {}", &search_moves)?;
+        if !self.search_moves.is_empty() {
+            f.write_str(" searchmoves ")?;
+            uci_moves::fmt(&self.search_moves, f)?;
         }
 
         if self.ponder {
@@ -138,15 +147,15 @@ mod tests {
     use core::num::NonZeroUsize;
     use core::str::FromStr;
     use crate::gui::Go;
-    use crate::{gui, Message, UciMoves};
+    use crate::{gui, Message};
 
     #[test]
     fn to_from_str() {
         let repr: Message = Go {
-            search_moves: Some(UciMoves(vec![
+            search_moves: vec![
                 UciMove::from_ascii(b"e2e4").unwrap(),
                 UciMove::from_ascii(b"d2d4").unwrap(),
-            ])),
+            ],
             ponder: true,
             w_time: Some(5),
             b_time: None,
@@ -168,10 +177,7 @@ mod tests {
     #[test]
     fn to_from_str_bad_parameters() {
         let repr: gui::Message = Go {
-            search_moves: Some(UciMoves(vec![
-                UciMove::from_ascii(b"e2e4").unwrap(),
-                UciMove::from_ascii(b"d2d4").unwrap(),
-            ])),
+            search_moves: vec![],
             ponder: true,
             w_time: None,
             b_time: None,
@@ -185,8 +191,8 @@ mod tests {
             infinite: false,
         }.into();
         
-        assert_eq!(repr.to_string(), "go searchmoves e2e4 d2d4 ponder depth 20 nodes 2 mate 0");
-        assert_eq!(gui::Message::from_str("go mate 7 searchmoves e2e4 d2d4 ponder depth 20 depth bad nodes nope nope nodes 2 mate 0"), Ok(repr));
+        assert_eq!(repr.to_string(), "go ponder depth 20 nodes 2 mate 0");
+        assert_eq!(gui::Message::from_str("go mate 7 ponder depth 20 depth bad nodes nope nope nodes 2 mate 0"), Ok(repr));
     }
 
     #[test]
@@ -194,6 +200,6 @@ mod tests {
         let repr: Message = Go::default().into();
 
         assert_eq!(repr.to_string(), "go");
-        assert_eq!(Message::from_str("     go      THIS IS NOT A GO MESSAGE AT ALL!!! (but it doesnt matter)"), Ok(repr));
+        assert_eq!(Message::from_str("     go    this is  empty)"), Ok(repr));
     }
 }

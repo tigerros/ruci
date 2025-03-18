@@ -17,7 +17,7 @@ define_message! {
         SetOption(SetOption),
         %[parameters = [Name, Code]]
         Register(Register),
-        %[parameters = [Fen, Moves]]
+        %[parameters = [Fen, Moves, StartPos]]
         Position(Position),
         %[parameters = [SearchMoves, Ponder, WTime, BTime, WInc, BInc, MovesToGo, Depth, Nodes, Mate, MoveTime, Infinite]]
         Go(Go)

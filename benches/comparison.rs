@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use ruci::UciMoves;
 use shakmaty::uci::UciMove;
 use std::hint::black_box;
 use std::str::FromStr;
@@ -9,10 +8,10 @@ fn to_str(c: &mut Criterion) {
     let mut group = c.benchmark_group("to_str");
     // These are bogus values they're not sent to an engine
     let ruci_go = ruci::gui::Go {
-        search_moves: Some(UciMoves(vec![
+        search_moves: vec![
             UciMove::from_ascii(b"e2e4").unwrap(),
             UciMove::from_ascii(b"g2g4").unwrap(),
-        ])),
+        ],
         ponder: true,
         w_time: None,
         b_time: None,

@@ -249,6 +249,7 @@ fn update_id(old_id: &mut Option<engine::Id>, new_id: engine::Id) {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+    use shakmaty::fen::Fen;
 
     const ENGINE_EXE: &str = if cfg!(target_os = "windows") {
         "resources/stockfish-windows-x86-64-avx2.exe"
@@ -295,10 +296,15 @@ mod tests {
 
         engine_conn
             .send(
-                &gui::Position::Fen {
-                    moves: None,
-                    fen: "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
-                        .to_string(),
+                &gui::Position {
+                    startpos: false,
+                    moves: Vec::new(),
+                    fen: Some(
+                        Fen::from_ascii(
+                            b"rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3",
+                        )
+                        .unwrap(),
+                    ),
                 }
                 .into(),
             )

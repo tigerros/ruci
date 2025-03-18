@@ -14,7 +14,7 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> anyhow::Result<()> {
     let engine = Arc::new(Mutex::new(Engine::from_path("stockfish", false)?));
     let mut lock = engine.lock().await;
 

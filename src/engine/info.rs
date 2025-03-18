@@ -6,7 +6,7 @@ use alloc::boxed::Box;
 use core::fmt::{Display, Formatter, Write};
 use shakmaty::Color;
 use shakmaty::uci::UciMove;
-use crate::{parsing, OptionReplaceIf, UciMoves};
+use crate::{parsing, uci_moves, OptionReplaceIf};
 use crate::engine::pointers::InfoParameterPointer;
 use crate::dev_macros::from_str_parts;
 
@@ -126,18 +126,18 @@ impl ScoreWithBound {
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
 pub struct Refutation {
     pub refuted_move: UciMove,
-    pub refutation: UciMoves,
+    pub refutation: Vec<UciMove>,
 }
 
 impl Refutation {
     fn from_str(s: &str) -> Option<Self> {
-        let mut moves: UciMoves = s.parse().ok()?;
+        let mut moves = uci_moves::from_str(s);
 
-        if moves.0.is_empty() {
+        if moves.is_empty() {
             return None;
         }
 
-        let first = moves.0.remove(0);
+        let first = moves.remove(0);
 
         Some(Self {
             refuted_move: first,
@@ -151,7 +151,7 @@ impl Refutation {
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
 pub struct CurrLine {
     pub used_cpu: Option<usize>,
-    pub line: UciMoves,
+    pub line: Vec<UciMove>,
 }
 
 impl CurrLine {
@@ -163,13 +163,9 @@ impl CurrLine {
             return None;
         };
 
-        let Ok(line) = line.parse() else {
-            return None;
-        };
-
         Some(Self {
             used_cpu: Some(used_cpu),
-            line,
+            line: uci_moves::from_str(line),
         })
     }
 }
@@ -191,7 +187,7 @@ pub struct Info {
     /// Primary variation.
     ///
     /// <https://backscattering.de/chess/uci/#engine-info-pv>
-    pub pv: Option<UciMoves>,
+    pub pv: Vec<UciMove>,
     /// Multi primary variation.
     ///
     /// <https://backscattering.de/chess/uci/#engine-info-multipv>
@@ -252,7 +248,13 @@ from_str_parts!(impl Info for parts -> Self {
         InfoParameterPointer::SelDepth => seldepth.replace_if(value.parse().ok()),
         InfoParameterPointer::Time => this.time.replace_if(value.parse().ok()),
         InfoParameterPointer::Nodes => this.nodes.replace_if(value.parse().ok()),
-        InfoParameterPointer::PV => this.pv.replace_if(value.parse().ok()),
+        InfoParameterPointer::PV => {
+            let parsed = uci_moves::from_str(value);
+
+            if !parsed.is_empty() {
+                this.pv = parsed;
+            }
+        },
         InfoParameterPointer::MultiPV => this.multi_pv.replace_if(value.parse().ok()),
         InfoParameterPointer::Score => this.score.replace_if(ScoreWithBound::from_str(value)),
         InfoParameterPointer::CurrMove => this.curr_move.replace_if(value.parse().ok()),
@@ -300,8 +302,9 @@ impl Display for Info {
             write!(f, " nodes {nodes}")?;
         }
 
-        if let Some(primary_variation) = &self.pv {
-            write!(f, " pv {primary_variation}")?;
+        if !self.pv.is_empty() {
+            f.write_str(" pv ")?;
+            uci_moves::fmt(&self.pv, f)?;
         }
 
         if let Some(multi_primary_variation) = self.multi_pv {
@@ -361,7 +364,7 @@ impl Display for Info {
 
         if let Some(refutation) = &self.refutation {
             write!(f, " refutation {} ", refutation.refuted_move)?;
-            f.write_str(&refutation.refutation.to_string())?;
+            uci_moves::fmt(&refutation.refutation, f)?;
         }
 
         if let Some(current_line) = &self.curr_line {
@@ -371,9 +374,11 @@ impl Display for Info {
                 f.write_char(' ')?;
                 f.write_str(&used_cpu.to_string())?;
             }
-
-            f.write_char(' ')?;
-            f.write_str(&current_line.line.to_string())?;
+            
+            if !current_line.line.is_empty() {
+                f.write_char(' ')?;
+                uci_moves::fmt(&current_line.line, f)?;
+            }
         }
 
         Ok(())
@@ -391,7 +396,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
     use crate::engine::{CurrLine, Depth, Refutation, Score, ScoreBound, ScoreStandardized, ScoreWithBound};
-    use crate::{engine, Message, UciMoves};
+    use crate::{engine, Message};
 
     #[test]
     fn score_kind_standardize() {
@@ -422,7 +427,7 @@ mod tests {
             }),
             time: Some(12),
             nodes: Some(4),
-            pv: Some(UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
+            pv: vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()],
             multi_pv: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
@@ -438,11 +443,11 @@ mod tests {
             string: Some("blabla".to_string()),
             refutation: Some(Refutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
-                refutation: UciMoves(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
+                refutation: vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()],
             }),
             curr_line: Some(CurrLine {
                 used_cpu: Some(1),
-                line: UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
+                line: vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()],
             }),
         }.into();
         let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5";
@@ -460,7 +465,7 @@ mod tests {
             }),
             time: Some(12),
             nodes: Some(4),
-            pv: Some(UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()])),
+            pv: vec![],
             multi_pv: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
@@ -476,15 +481,15 @@ mod tests {
             string: Some("blabla".to_string()),
             refutation: Some(Refutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
-                refutation: UciMoves(vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()]),
+                refutation: vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()],
             }),
             curr_line: Some(CurrLine {
                 used_cpu: Some(1),
-                line: UciMoves(vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()]),
+                line: vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()],
             }),
         }.into();
 
-        assert_eq!(repr.to_string(), "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5");
-        assert_eq!(engine::Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4"), Ok(repr));
+        assert_eq!(repr.to_string(), "info depth 20 seldepth 31 time 12 nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5");
+        assert_eq!(engine::Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4"), Ok(repr));
     }
 }

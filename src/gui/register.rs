@@ -46,7 +46,7 @@ from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
         }
     } else if let Some(code) = code {
         Ok(Self::Code(code))
-    } else if value == "later" {
+    } else if value.split(' ').any(|s| s == "later") {
         Ok(Self::Later)
     } else {
         Err(MessageParseError::MissingParameters { expected: "name, code, or the \"later\" value" })
@@ -85,6 +85,14 @@ mod tests {
 
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str), Ok(m));
+    }
+
+    #[test]
+    fn to_from_str_later() {
+        let m: Message = Register::Later.into();
+
+        assert_eq!(m.to_string(), "register later");
+        assert_eq!(Message::from_str("register   later   ff\n\n"), Ok(m));
     }
 
     #[test]

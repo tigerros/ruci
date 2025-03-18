@@ -71,15 +71,14 @@ where
 
     for part in parts {
         let Ok(parameter) = ParameterPointer::from_str(part) else {
-            if first_parameter_encountered {
-                value.push_str(part);
-                value.push(' ');
-            }
+            value.push_str(part);
+            value.push(' ');
             continue;
         };
 
         if !first_parameter_encountered {
             first_parameter_encountered = true;
+            value.clear();
         }
 
         if let Some(last_parameter) = last_parameter {

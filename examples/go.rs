@@ -7,13 +7,15 @@
 //!
 //! This example requires that you have installed Stockfish.
 #![cfg(feature = "engine-connection")]
+
+use ruci::gui;
 use ruci::gui::Position;
 use ruci::Engine;
-use ruci::{gui, UciMoves};
+use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> anyhow::Result<()> {
     let mut engine = Engine::from_path("stockfish", false)?;
 
     println!("== Sending use UCI message, waiting for uciok");
@@ -28,9 +30,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     engine
         .send(
-            &Position::Fen {
-                fen: "rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5".to_string(),
-                moves: Some(UciMoves(vec![UciMove::from_ascii(b"b1c3").unwrap()])),
+            &Position {
+                startpos: false,
+                fen: Some(Fen::from_ascii(
+                    b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5",
+                )?),
+                moves: vec![UciMove::from_ascii(b"b1c3").unwrap()],
             }
             .into(),
         )
