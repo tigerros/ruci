@@ -152,7 +152,6 @@ impl Engine {
 
     /// Sends [`Go`] to the engine and waits for [`BestMove`],
     /// returning it, along with a list of [`Info`]s.
-    /// The [`Info`]s are boxed because that is how they're represented in the [`engine::Message`] enum.
     ///
     /// Note that the engine will only send [`BestMove`]
     /// if you configure the message to set a constraint on the engine's calculation.
@@ -161,20 +160,20 @@ impl Engine {
     ///
     /// # Errors
     /// See [`Self::send_message`].
-    pub async fn go(&mut self, message: Go) -> Result<(Vec<Box<Info>>, BestMove), ReadWriteError> {
+    pub async fn go(&mut self, message: Go) -> Result<(Vec<Info>, BestMove), ReadWriteError> {
         let message_depth = message.depth;
 
         self.send_message(&message.into())
             .await
             .map_err(ReadWriteError::Write)?;
 
-        let mut info_messages = Vec::<Box<Info>>::with_capacity(
-            message_depth.map_or(100, |depth| depth.saturating_add(3)),
+        let mut info_messages = Vec::<Info>::with_capacity(
+            message_depth.map_or(100, |depth| depth.saturating_mul(5)),
         );
 
         loop {
             match self.read_message().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => info_messages.push(info),
+                engine::Message::Info(info) => info_messages.push(*info),
                 engine::Message::BestMove(best_move) => return Ok((info_messages, best_move)),
                 _ => (),
             }
@@ -189,7 +188,7 @@ impl Engine {
     pub async fn go_only_last_info(
         &mut self,
         message: Go,
-    ) -> Result<(Option<Box<Info>>, BestMove), ReadWriteError> {
+    ) -> Result<(Option<Info>, BestMove), ReadWriteError> {
         self.send_message(&message.into())
             .await
             .map_err(ReadWriteError::Write)?;
@@ -198,7 +197,7 @@ impl Engine {
 
         loop {
             match self.read_message().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => last_info_message = Some(info),
+                engine::Message::Info(info) => last_info_message = Some(*info),
                 engine::Message::BestMove(best_move) => return Ok((last_info_message, best_move)),
                 _ => (),
             }
@@ -221,7 +220,7 @@ impl Engine {
     pub async fn go_stream(
         &mut self,
         message: Go,
-        mut info_fn: impl FnMut(Box<Info>),
+        mut info_fn: impl FnMut(Info),
     ) -> Result<BestMove, ReadWriteError> {
         self.send_message(&message.into())
             .await
@@ -229,7 +228,7 @@ impl Engine {
 
         loop {
             match self.read_message().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => info_fn(info),
+                engine::Message::Info(info) => info_fn(*info),
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
                 }
@@ -245,7 +244,7 @@ impl Engine {
     pub async fn go_async_stream(
         &mut self,
         message: Go,
-        mut info_fn: impl AsyncFnMut(Box<Info>),
+        mut info_fn: impl AsyncFnMut(Info),
     ) -> Result<BestMove, ReadWriteError> {
         self.send_message(&message.into())
             .await
@@ -253,7 +252,7 @@ impl Engine {
 
         loop {
             match self.read_message().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => info_fn(info).await,
+                engine::Message::Info(info) => info_fn(*info).await,
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
                 }

@@ -41,7 +41,7 @@ async fn main() -> Result<(), anyhow::Error> {
         let mut engine_lock = engine2.lock().await;
         let mut infos_lock = infos2.lock().await;
 
-        let info_fn = move |info: Box<engine::Info>| {
+        let info_fn = move |info: engine::Info| {
             // Ignore the insignificant ones
             if info.score.is_some() {
                 println!("Info #{}: {info}", infos_lock.len());
