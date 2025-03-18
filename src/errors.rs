@@ -51,7 +51,7 @@ impl Error for MessageParseError {}
 
 #[cfg(feature = "engine-connection")]
 #[derive(Debug)]
-/// Spawning the engine process failed.
+/// Initiating the engine process failed.
 pub enum ConnectionError {
     Spawn(io::Error),
     /// See [`tokio::process::Child.stdout`](tokio::process::Child#structfield.stdout).
