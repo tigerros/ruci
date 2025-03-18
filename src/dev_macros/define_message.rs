@@ -51,6 +51,11 @@ macro_rules! define_message {
 
                         assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
                         assert_eq!(Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), " ddd")), Ok(repr));
+
+                        let repr: super::super::Message = $empty_message_ident.into();
+
+                        assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
+                        assert_eq!(super::super::Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), "  \t foo\n\n")), Ok(repr));
                     }
 
                     #[test]
