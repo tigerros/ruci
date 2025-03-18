@@ -23,10 +23,10 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
   - API problems:
     - Doesn't separate GUI and engine messages. This is bad if you want to communicate with an engine/GUI, because you're going to need functions like `send_message` and `read_message`, where you want to specify which type of message you are sending and receiving. It's not impossible to do this with `vampirc-uci`, but you won't have strong type guarantees.
     - Doesn't have separate structs/enums for messages. Similar to the above, this is bad if you want to represent a specific message. With `vampirc-uci`, you can only represent the whole enum.
+  - Doesn't provide IO communication with an engine.
   - More dependencies; `pest` and `chrono`. RUCI only has shakmaty and two macros which don't get included in the final binary.
   - Not `#![no_std]` compatible.
   - More tests than RUCI.
-  - Doesn't provide IO communication with an engine.
 - [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci):
   - This library is based on/inspired by `vampirc-uci`, so all of the above bullet points apply, except:
     - Uses shakmaty.
