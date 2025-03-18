@@ -1,6 +1,6 @@
 //! This example shows how to start a UCI connection, send it some initial commands,
 //! start calculating a custom position, and let it finish.
-//! 
+//!
 //! Note that this will print out the [`Display`](std::fmt::Display) impls of the [`Info`](engine::Info) messages.
 //! That is not a reading from the engine, those are parsed messages converted back into a string
 //! because it's easier to read.
