@@ -41,19 +41,38 @@ pub enum Score {
     MateIn(isize),
 }
 
+impl Score {
+    /// Visit [`ScoreStandardized`] to see what this does.
+    #[allow(clippy::arithmetic_side_effects)]
+    pub const fn standardized(self, turn: Color) -> ScoreStandardized {
+        match (turn, self) {
+            (Color::White, Self::Centipawns(centipawns)) => ScoreStandardized(Self::Centipawns(centipawns)),
+            (Color::Black, Self::Centipawns(centipawns)) => ScoreStandardized(Self::Centipawns(-centipawns)),
+            (Color::White, Self::MateIn(mate_in)) => ScoreStandardized(Self::MateIn(mate_in)),
+            (Color::Black, Self::MateIn(mate_in)) => ScoreStandardized(Self::MateIn(-mate_in)),
+        }
+    }
+}
+
 /// This struct represents a "standardized" score (read below).
 ///
-/// Some engines return a [`Score`] dependent on whose turn it is to move.
-/// If you want to have a score independent of that, use this.
-/// No matter whose turn it is to move, `x` means that *white* has an advantage of `x`, and vice versa.
+/// Engines (should) return a [`Score`] dependent on whose turn it is to move.
+/// [`ScoreStandardized`] is a score *independent* of whose turn it is to move.
+/// So, `x` means that *white* has an advantage of `x`, `-x` means that *black* has an advantage of `x`.
 ///
-/// **Do not use** this with engines that *do* return a standardized score.
+/// Get this by calling [`Score::standardized`].
+/// Note that you need to specify whose turn it is to move.
+///
+/// **⚠️** While the UCI protocol does say engines should score from their point of view,
+/// you should verify this is the case with the engine you're using.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ScoreStandardized(Score);
 
 impl ScoreStandardized {
     #[allow(clippy::arithmetic_side_effects)]
+    #[doc(hidden)]
+    #[deprecated(since = "0.8.1", note = "use Score::standardized instead")]
     pub const fn from_score(score: Score, turn: Color) -> Self {
         match (turn, score) {
             (Color::White, Score::Centipawns(centipawns)) => Self(Score::Centipawns(centipawns)),
@@ -395,25 +414,25 @@ mod tests {
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
-    use crate::engine::{CurrLine, Depth, Refutation, Score, ScoreBound, ScoreStandardized, ScoreWithBound};
+    use crate::engine::{CurrLine, Depth, Refutation, Score, ScoreBound, ScoreWithBound};
     use crate::{engine, Message};
 
     #[test]
     fn score_kind_standardize() {
         assert_eq!(
-            ScoreStandardized::from_score(Score::Centipawns(-20), Color::White).score(),
+            Score::Centipawns(-20).standardized(Color::White).score(),
             Score::Centipawns(-20)
         );
         assert_eq!(
-            ScoreStandardized::from_score(Score::Centipawns(-15), Color::Black).score(),
+            Score::Centipawns(-15).standardized(Color::Black).score(),
             Score::Centipawns(15)
         );
         assert_eq!(
-            ScoreStandardized::from_score(Score::Centipawns(10), Color::White).score(),
+            Score::Centipawns(10).standardized(Color::White).score(),
             Score::Centipawns(10)
         );
         assert_eq!(
-            ScoreStandardized::from_score(Score::Centipawns(5), Color::Black).score(),
+            Score::Centipawns(5).standardized(Color::Black).score(),
             Score::Centipawns(-5)
         );
     }
