@@ -74,12 +74,7 @@ impl ScoreStandardized {
     #[doc(hidden)]
     #[deprecated(since = "0.8.1", note = "use Score::standardized instead")]
     pub const fn from_score(score: Score, turn: Color) -> Self {
-        match (turn, score) {
-            (Color::White, Score::Centipawns(centipawns)) => Self(Score::Centipawns(centipawns)),
-            (Color::Black, Score::Centipawns(centipawns)) => Self(Score::Centipawns(-centipawns)),
-            (Color::White, Score::MateIn(mate_in)) => Self(Score::MateIn(mate_in)),
-            (Color::Black, Score::MateIn(mate_in)) => Self(Score::MateIn(-mate_in)),
-        }
+        score.standardized(turn)
     }
 
     pub const fn score(self) -> Score {
