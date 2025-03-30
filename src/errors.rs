@@ -2,6 +2,8 @@ use core::error::Error;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "engine-connection")]
 use tokio::io;
+#[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection")))]
+use std::io;
 
 /// Something went wrong with parsing a message.
 ///
@@ -49,7 +51,7 @@ impl Display for MessageParseError {
 
 impl Error for MessageParseError {}
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 #[derive(Debug)]
 /// Initiating the engine process failed.
 pub enum ConnectionError {
@@ -60,7 +62,7 @@ pub enum ConnectionError {
     StdinIsNotCaptured,
 }
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 impl Display for ConnectionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -75,10 +77,10 @@ impl Display for ConnectionError {
     }
 }
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 impl Error for ConnectionError {}
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 #[derive(Debug)]
 /// Reading a message from the engine failed.
 pub enum ReadError {
@@ -88,7 +90,7 @@ pub enum ReadError {
     Parse(MessageParseError),
 }
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 impl Display for ReadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -98,10 +100,10 @@ impl Display for ReadError {
     }
 }
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 impl Error for ReadError {}
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 #[derive(Debug)]
 /// Reading/sending a message from/to the engine failed.
 pub enum ReadWriteError {
@@ -111,7 +113,7 @@ pub enum ReadWriteError {
     Read(ReadError),
 }
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 impl Display for ReadWriteError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -121,5 +123,5 @@ impl Display for ReadWriteError {
     }
 }
 
-#[cfg(feature = "engine-connection")]
+#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
 impl Error for ReadWriteError {}

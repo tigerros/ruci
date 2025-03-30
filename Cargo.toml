@@ -1,5 +1,59 @@
 [package]
 name = "ruci"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+include.workspace = true
+rust-version.workspace = true
+
+[package.metadata.docs.rs]
+features = ["engine-connection"]
+
+[[example]]
+name = "go_async_info"
+path = "examples/go_async_info.rs"
+required-features = ["engine-connection"]
+
+[[example]]
+name = "no_std"
+path = "examples/no_std.rs"
+
+[dependencies]
+shakmaty = { workspace = true }
+paste = { workspace = true }
+dry-mods = { workspace = true }
+maybe-async = { workspace = true }
+tokio = { workspace = true, optional = true, default-features = false, features = ["io-util", "process"] }
+serde = { workspace = true, optional = true, default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+pretty_assertions = { version = "1", features = ["unstable"] }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time"] }
+criterion = { version = "~0.5", features = ["html_reports"] }
+shakmaty-uci = "~0.1"
+vampirc-uci = "~0.11"
+anyhow = "1"
+maybe-async = "~0.2"
+
+[[bench]]
+name = "comparison"
+harness = false
+
+[features]
+default = []
+serde = ["dep:serde", "shakmaty/serde"]
+engine-connection = ["tokio"]
+engine-connection-sync = []
+
+[workspace]
+members = ["examples/go"]
+
+[workspace.package]
 version = "0.8.1"
 edition = "2021"
 authors = ["Leonard D. <tigerros.gh@gmail.com>"]
@@ -11,43 +65,11 @@ keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md"]
 rust-version = "1.81.0"
 
-[package.metadata.docs.rs]
-features = ["engine-connection"]
-
-[[example]]
-name = "go_async_info"
-path = "examples/go_async_info.rs"
-required-features = ["engine-connection"]
-
-[[example]]
-name = "go"
-path = "examples/go.rs"
-required-features = ["engine-connection"]
-
-[[example]]
-name = "no_std"
-path = "examples/no_std.rs"
-
-[dependencies]
-shakmaty = "~0.27"
-paste = "1"
-dry-mods = "~0.1"
-tokio = { version = "1", default-features = false, features = ["io-util", "process"], optional = true }
-serde = { version = "1", default-features = false, features = ["derive"], optional = true }
-
-[dev-dependencies]
-pretty_assertions = { version = "1", features = ["unstable"] }
-tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time"] }
-criterion = { version = "~0.5", features = ["html_reports"] }
-shakmaty-uci = "~0.1"
-vampirc-uci = "~0.11"
-anyhow = "1"
-
-[[bench]]
-name = "comparison"
-harness = false
-
-[features]
-default = []
-serde = ["dep:serde", "shakmaty/serde"]
-engine-connection = ["tokio"]
+[workspace.dependencies]
+ruci = { version = "0.8.1", path = "." }
+shakmaty = { version = "~0.27", default-features = false }
+paste = { version = "1", default-features = false }
+dry-mods = { version = "~0.1", default-features = false }
+maybe-async = { version = "~0.2", default-features = false }
+tokio = { version = "1", default-features = false }
+serde = { version = "1", default-features = false }

@@ -6,7 +6,6 @@
 //! because it is easier to read.
 //!
 //! This example requires that you have installed Stockfish.
-#![cfg(feature = "engine-connection")]
 
 use ruci::gui;
 use ruci::gui::Position;
@@ -14,13 +13,12 @@ use ruci::Engine;
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     let mut engine = Engine::from_path("stockfish")?;
 
     println!("== Sending use UCI message, waiting for uciok");
 
-    let (id, options) = engine.use_uci().await?;
+    let (id, options) = engine.use_uci()?;
 
     println!("== Received uciok");
     println!("== ID: {id:?}");
@@ -36,13 +34,12 @@ async fn main() -> anyhow::Result<()> {
                 )?,
                 moves: vec![UciMove::from_ascii(b"b1c3")?],
             }
-            .into(),
-        )
-        .await?;
+                .into(),
+        )?;
 
     println!("== Sending isready message, waiting for readyok");
 
-    engine.is_ready().await?;
+    engine.is_ready()?;
 
     let mut infos = Vec::new();
     let best_move = engine
@@ -52,8 +49,7 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             },
             |info| infos.push(info),
-        )
-        .await?;
+        )?;
 
     for info in infos {
         println!("Info: {info}");
@@ -62,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
     println!("Best move (probably e2g8): {best_move:?}");
 
     println!("== Sending quit message");
-    engine.send(&gui::Quit.into()).await?;
+    engine.send(&gui::Quit.into())?;
     println!("== Sent. Program terminated");
 
     Ok(())
