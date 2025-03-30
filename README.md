@@ -21,7 +21,7 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
 - [`vampirc-uci`](https://crates.io/crates/vampirc-uci):
   - Doesn't use `shakmaty`, which AFAIK is the go-to chess crate now.
   - Doesn't separate the two types of messages (engine, GUI) and specific messages. It just has one big enum which mostly uses enum fields for message data. This is really inconvenient because you can't represent specific messages, only the whole `Message` enum.
-  - Doesn't provide IO communication with an engine.
+  - ~~Doesn't provide IO communication with an engine.~~ There is [`vampirc-io`](https://crates.io/crates/vampirc-io), but the API is lacking and it uses the deprecated [`async-std`](https://crates.io/crates/async-std) crate.
   - More dependencies; [`pest`](https://crates.io/crates/pest) and [`chrono`](https://crates.io/crates/chrono). `ruci` only has shakmaty and two macros, which don't get included in the final binary.
   - Not `#![no_std]` compatible.
   - More tests, but I don't know about the coverage.
