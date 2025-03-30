@@ -1,75 +1,44 @@
 [package]
 name = "ruci"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-description.workspace = true
-license.workspace = true
-repository.workspace = true
-categories.workspace = true
-keywords.workspace = true
-include.workspace = true
-rust-version.workspace = true
-
-[package.metadata.docs.rs]
-features = ["engine-connection"]
-
-[[example]]
-name = "go_async_info"
-path = "examples/go_async_info.rs"
-required-features = ["engine-connection"]
-
-[[example]]
-name = "no_std"
-path = "examples/no_std.rs"
+version = "0.8.2-dev"
+description = "A UCI (Universal Chess Interface) crate."
+categories = ["parser-implementations", "game-development"]
+keywords = ["chess", "uci", "parser"]
+include = ["src", "README.md", "LICENSE"]
+rust-version = "1.81.0"
+edition = "2021"
+authors = ["Leonard D. <tigerros.gh@gmail.com>"]
+license = "GPL-3.0"
+repository = "https://github.com/tigerros/ruci"
 
 [dependencies]
-shakmaty = { workspace = true }
-paste = { workspace = true }
-dry-mods = { workspace = true }
-maybe-async = { workspace = true }
-tokio = { workspace = true, optional = true, default-features = false, features = ["io-util", "process"] }
-serde = { workspace = true, optional = true, default-features = false, features = ["derive"] }
+shakmaty = { version = "~0.27", default-features = false }
+paste = { version = "1", default-features = false }
+dry-mods = { version = "~0.1", default-features = false }
+maybe-async = { version = "~0.2", default-features = false }
+tokio = { version = "1", optional = true, features = ["io-util", "process"] }
+serde = { version = "1", optional = true, features = ["derive"] }
+
+[features]
+default = []
+serde = ["dep:serde", "shakmaty/serde"]
+std = ["shakmaty/std"]
+tokio = ["shakmaty/std", "dep:tokio"]
 
 [dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+maybe-async = { version = "~0.2" }
 pretty_assertions = { version = "1", features = ["unstable"] }
-tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time"] }
 criterion = { version = "~0.5", features = ["html_reports"] }
 shakmaty-uci = "~0.1"
 vampirc-uci = "~0.11"
-anyhow = "1"
-maybe-async = "~0.2"
 
 [[bench]]
 name = "comparison"
 harness = false
 
-[features]
-default = []
-serde = ["dep:serde", "shakmaty/serde"]
-engine-connection = ["tokio"]
-engine-connection-sync = []
-
 [workspace]
-members = ["examples/go"]
-
-[workspace.package]
-version = "0.8.1"
-edition = "2021"
-authors = ["Leonard D. <tigerros.gh@gmail.com>"]
-description = "A UCI (Universal Chess Interface) crate."
-license = "GPL-3.0"
-repository = "https://github.com/tigerros/ruci"
-categories = ["parser-implementations", "game-development"]
-keywords = ["chess", "uci", "parser"]
-include = ["src", "README.md"]
-rust-version = "1.81.0"
+members = ["examples/*"]
 
 [workspace.dependencies]
-ruci = { version = "0.8.1", path = "." }
-shakmaty = { version = "~0.27", default-features = false }
-paste = { version = "1", default-features = false }
-dry-mods = { version = "~0.1", default-features = false }
-maybe-async = { version = "~0.2", default-features = false }
-tokio = { version = "1", default-features = false }
-serde = { version = "1", default-features = false }
+ruci = { version = "0.8.2-dev", path = "." }

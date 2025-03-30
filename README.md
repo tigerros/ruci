@@ -14,6 +14,7 @@ The UCI protocol is the most widely used way for GUI's to communicate with engin
 `#![no_std]` compatible, unless you enable the `engine-connection` feature.
 
 See the [examples](https://github.com/tigerros/ruci) for a demo on how to send and receive messages.
+You can run each one with `cargo run --package <example-name>`.
 
 ## Comparison
 There's two other crates that I'm aware of which serve a similar purpose. *Keep in mind that this is a shallow comparison, I haven't looked extensively and I am not an expert.*

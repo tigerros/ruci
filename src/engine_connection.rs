@@ -3,22 +3,22 @@ use crate::errors::{ConnectionError, ReadError, ReadWriteError};
 use crate::gui::Go;
 use crate::{engine, gui};
 use std::ffi::OsStr;
-use std::process::Stdio;
-use std::str::FromStr;
-#[cfg(feature = "engine-connection")]
-use tokio::io;
-#[cfg(feature = "engine-connection")]
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-#[cfg(feature = "engine-connection")]
-use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-#[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection")))]
+#[cfg(all(feature = "std", not(feature = "tokio")))]
 use std::io;
-#[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection")))]
-use std::io::{BufReader, Write, BufRead};
-#[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection")))]
-use std::process::{Child, ChildStdin, ChildStdout, Command};
-#[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection"), windows))]
+#[cfg(all(feature = "std", not(feature = "tokio")))]
+use std::io::{BufRead, BufReader, Write};
+#[cfg(all(feature = "std", not(feature = "tokio"), windows))]
 use std::os::windows::process::CommandExt;
+use std::process::Stdio;
+#[cfg(all(feature = "std", not(feature = "tokio")))]
+use std::process::{Child, ChildStdin, ChildStdout, Command};
+use std::str::FromStr;
+#[cfg(feature = "tokio")]
+use tokio::io;
+#[cfg(feature = "tokio")]
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+#[cfg(feature = "tokio")]
+use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 
 /// Communicate with a Chess engine.
 #[derive(Debug)]
@@ -33,7 +33,7 @@ pub struct Engine {
     pub strict: bool,
 }
 
-#[cfg_attr(all(feature = "engine-connection-sync", not(feature = "engine-connection")), maybe_async::must_be_sync)]
+#[cfg_attr(not(feature = "tokio"), maybe_async::must_be_sync)]
 impl Engine {
     /// Creates a new [`Engine`] from an existing process.
     ///
@@ -191,8 +191,8 @@ impl Engine {
         }
     }
 
-    #[cfg(feature = "engine-connection")]
     #[allow(clippy::missing_errors_doc)]
+    #[cfg(feature = "tokio")]
     /// Same as [`Self::go`], but you can pass in an async function.
     pub async fn go_async(
         &mut self,
@@ -299,16 +299,22 @@ mod tests {
         );
     }
 
-    #[cfg_attr(all(feature = "engine-connection-sync", not(feature = "engine-connection")), maybe_async::must_be_sync)]
-    #[cfg_attr(feature = "engine-connection", tokio::test)]
+    #[cfg_attr(
+        all(feature = "std", not(feature = "tokio")),
+        maybe_async::must_be_sync
+    )]
+    #[cfg_attr(feature = "tokio", tokio::test)]
     async fn is_ready() {
         let mut engine_conn = engine_conn();
 
         engine_conn.is_ready().await.unwrap();
     }
 
-    #[cfg_attr(all(feature = "engine-connection-sync", not(feature = "engine-connection")), maybe_async::must_be_sync)]
-    #[cfg_attr(feature = "engine-connection", tokio::test)]
+    #[cfg_attr(
+        all(feature = "std", not(feature = "tokio")),
+        maybe_async::must_be_sync
+    )]
+    #[cfg_attr(feature = "tokio", tokio::test)]
     async fn skip_lines() {
         let mut engine_conn = engine_conn();
 
@@ -326,8 +332,11 @@ mod tests {
     }
 
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
-    #[cfg_attr(all(feature = "engine-connection-sync", not(feature = "engine-connection")), maybe_async::must_be_sync)]
-    #[cfg_attr(feature = "engine-connection", tokio::test)]
+    #[cfg_attr(
+        all(feature = "std", not(feature = "tokio")),
+        maybe_async::must_be_sync
+    )]
+    #[cfg_attr(feature = "tokio", tokio::test)]
     async fn analyze_checkmate() {
         let mut engine_conn = engine_conn();
 
@@ -361,8 +370,11 @@ mod tests {
         assert_eq!(best_move, BestMove::Other);
     }
 
-    #[cfg_attr(all(feature = "engine-connection-sync", not(feature = "engine-connection")), maybe_async::must_be_sync)]
-    #[cfg_attr(feature = "engine-connection", tokio::test)]
+    #[cfg_attr(
+        all(feature = "std", not(feature = "tokio")),
+        maybe_async::must_be_sync
+    )]
+    #[cfg_attr(feature = "tokio", tokio::test)]
     async fn go() {
         let mut engine_conn = engine_conn();
 
@@ -400,25 +412,28 @@ mod tests {
             .await
             .unwrap();
 
-        #[cfg(feature = "engine-connection")]
+        #[cfg(feature = "tokio")]
         let best_move = engine_conn
             .go_async(
                 Go {
                     depth: Some(25),
                     ..Default::default()
                 },
-                async |_| {}
-            ).await.unwrap();
+                async |_| {},
+            )
+            .await
+            .unwrap();
 
-        #[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection")))]
+        #[cfg(all(feature = "std", not(feature = "tokio")))]
         let best_move = engine_conn
             .go(
                 Go {
                     depth: Some(25),
                     ..Default::default()
                 },
-                |_| {}
-            ).unwrap();
+                |_| {},
+            )
+            .unwrap();
 
         assert_matches!(best_move, BestMove::Normal(_));
 
@@ -434,8 +449,11 @@ mod tests {
     }
 
     #[allow(clippy::too_many_lines)]
-    #[cfg_attr(all(feature = "engine-connection-sync", not(feature = "engine-connection")), maybe_async::must_be_sync)]
-    #[cfg_attr(feature = "engine-connection", tokio::test)]
+    #[cfg_attr(
+        all(feature = "std", not(feature = "tokio")),
+        maybe_async::must_be_sync
+    )]
+    #[cfg_attr(feature = "tokio", tokio::test)]
     async fn use_uci() {
         use engine::{Id, Option};
 

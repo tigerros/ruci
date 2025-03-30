@@ -1,8 +1,6 @@
 use core::error::Error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "engine-connection")]
-use tokio::io;
-#[cfg(all(feature = "engine-connection-sync", not(feature = "engine-connection")))]
+#[cfg(feature = "std")]
 use std::io;
 
 /// Something went wrong with parsing a message.
@@ -51,7 +49,7 @@ impl Display for MessageParseError {
 
 impl Error for MessageParseError {}
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 #[derive(Debug)]
 /// Initiating the engine process failed.
 pub enum ConnectionError {
@@ -62,7 +60,7 @@ pub enum ConnectionError {
     StdinIsNotCaptured,
 }
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 impl Display for ConnectionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -77,10 +75,10 @@ impl Display for ConnectionError {
     }
 }
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 impl Error for ConnectionError {}
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 #[derive(Debug)]
 /// Reading a message from the engine failed.
 pub enum ReadError {
@@ -90,7 +88,7 @@ pub enum ReadError {
     Parse(MessageParseError),
 }
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 impl Display for ReadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -100,10 +98,10 @@ impl Display for ReadError {
     }
 }
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 impl Error for ReadError {}
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 #[derive(Debug)]
 /// Reading/sending a message from/to the engine failed.
 pub enum ReadWriteError {
@@ -113,7 +111,7 @@ pub enum ReadWriteError {
     Read(ReadError),
 }
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 impl Display for ReadWriteError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -123,5 +121,5 @@ impl Display for ReadWriteError {
     }
 }
 
-#[cfg(any(feature = "engine-connection", feature = "engine-connection-sync"))]
+#[cfg(feature = "std")]
 impl Error for ReadWriteError {}

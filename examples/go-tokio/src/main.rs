@@ -1,12 +1,3 @@
-//! This example shows how to start a UCI connection, send it some initial commands,
-//! start calculating a position, but interrupt it after a couple of seconds.
-//!
-//! Note that this will print out the [`Display`](std::fmt::Display) impls of the [`Info`](engine::Info) messages.
-//! That is not a reading from the engine, those are parsed messages converted back into a string
-//! because it is easier to read.
-//!
-//! This example requires that you have installed Stockfish.
-#![cfg(feature = "engine-connection")]
 use ruci::Engine;
 use ruci::{engine, gui};
 use std::sync::Arc;
@@ -18,14 +9,11 @@ async fn main() -> anyhow::Result<()> {
     let engine = Arc::new(Mutex::new(Engine::from_path("stockfish")?));
     let mut lock = engine.lock().await;
 
-    println!("== Sending use UCI message, waiting for uciok");
+    println!("== Sending cui, waiting for uciok");
 
-    let (id, options) = lock.use_uci().await?;
+    let (_, _) = lock.use_uci().await?;
 
-    println!("== Received uciok");
-    println!("== ID: {id:?}");
-    println!("== Options: {options:?}");
-    println!("== Sending isready message, waiting for readyok");
+    println!("== Received uciok, sending isready");
 
     lock.is_ready().await?;
 
@@ -44,6 +32,8 @@ async fn main() -> anyhow::Result<()> {
         let info_fn = move |info: engine::Info| {
             // Ignore the insignificant ones
             if info.score.is_some() {
+                let mut info = info.to_string();
+                info.truncate(20);
                 println!("Info #{}: {info}", infos_lock.len());
                 infos_lock.push(info);
             }
