@@ -31,6 +31,7 @@
     clippy::string_slice
 )]
 #![cfg_attr(not(feature = "engine-sync"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! You can get started with [`Message`], but keep in mind that all messages (even those which
 //! are void, like [`UciOk`]), implement [`FromStr`] and [`Display`], so you can (and should) use them
 //! individually.
@@ -78,8 +79,10 @@ use crate::gui::{
 use core::fmt::{Display, Formatter};
 use core::str::FromStr;
 #[cfg(feature = "engine-sync")]
+#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 pub use engine_connection::*;
 #[cfg(feature = "engine-async")]
+#[cfg_attr(docsrs, doc(cfg(feature = "engine-async")))]
 pub use engine_connection_async::*;
 pub use errors::*;
 

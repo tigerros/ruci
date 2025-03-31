@@ -50,6 +50,7 @@ impl Display for MessageParseError {
 impl Error for MessageParseError {}
 
 #[cfg(feature = "engine-sync")]
+#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 #[derive(Debug)]
 /// Initiating the engine process failed.
 pub enum ConnectionError {
@@ -76,9 +77,11 @@ impl Display for ConnectionError {
 }
 
 #[cfg(feature = "engine-sync")]
+#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 impl Error for ConnectionError {}
 
 #[cfg(feature = "engine-sync")]
+#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 #[derive(Debug)]
 /// Reading a message from the engine failed.
 pub enum ReadError {
@@ -102,6 +105,7 @@ impl Display for ReadError {
 impl Error for ReadError {}
 
 #[cfg(feature = "engine-sync")]
+#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 #[derive(Debug)]
 /// Reading/sending a message from/to the engine failed.
 pub enum ReadWriteError {

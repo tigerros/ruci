@@ -1,6 +1,6 @@
 [package]
 name = "ruci"
-version = "0.9.0"
+version = "0.9.1"
 description = "A UCI (Universal Chess Interface) crate."
 categories = ["parser-implementations", "game-development", "no-std"]
 keywords = ["chess", "uci", "parser"]
@@ -26,7 +26,11 @@ serde = ["dep:serde", "shakmaty/serde"]
 # Adds the `Engine` struct for communicating with an engine. Requires `std`.
 engine-sync = []
 # Enables the `engine-sync` feature and adds the `EngineAsync` struct for communicating with an engine using tokio.
-engine-async = ["dep:tokio"]
+engine-async = ["engine-sync", "dep:tokio"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
