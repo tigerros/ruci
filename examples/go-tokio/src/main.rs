@@ -1,4 +1,4 @@
-use ruci::Engine;
+use ruci::EngineAsync;
 use ruci::{engine, gui};
 use std::sync::Arc;
 use std::time::Duration;
@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let engine = Arc::new(Mutex::new(Engine::from_path("stockfish")?));
+    let engine = Arc::new(Mutex::new(EngineAsync::from_path("stockfish")?));
     let mut lock = engine.lock().await;
 
     println!("== Sending cui, waiting for uciok");

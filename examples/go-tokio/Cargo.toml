@@ -2,9 +2,9 @@
 name = "go-tokio"
 publish = false
 version = "0.0.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-ruci = { workspace = true, features = ["tokio"] }
-tokio = { version = "1", features = ["full"] }
-anyhow = "1"
+ruci = { workspace = true, features = ["engine-async"] }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }

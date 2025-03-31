@@ -1,6 +1,6 @@
 use core::error::Error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 use std::io;
 
 /// Something went wrong with parsing a message.
@@ -49,18 +49,18 @@ impl Display for MessageParseError {
 
 impl Error for MessageParseError {}
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 #[derive(Debug)]
 /// Initiating the engine process failed.
 pub enum ConnectionError {
     Spawn(io::Error),
-    /// See [`tokio::process::Child.stdout`](tokio::process::Child#structfield.stdout).
+    /// See [`std::process::Child.stdout`](std::process::Child#structfield.stdout).
     StdoutIsNotCaptured,
-    /// See [`tokio::process::Child.stdin`](tokio::process::Child#structfield.stdin).
+    /// See [`std::process::Child.stdin`](std::process::Child#structfield.stdin).
     StdinIsNotCaptured,
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 impl Display for ConnectionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -75,10 +75,10 @@ impl Display for ConnectionError {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 impl Error for ConnectionError {}
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 #[derive(Debug)]
 /// Reading a message from the engine failed.
 pub enum ReadError {
@@ -88,7 +88,7 @@ pub enum ReadError {
     Parse(MessageParseError),
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 impl Display for ReadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -98,10 +98,10 @@ impl Display for ReadError {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 impl Error for ReadError {}
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 #[derive(Debug)]
 /// Reading/sending a message from/to the engine failed.
 pub enum ReadWriteError {
@@ -111,7 +111,7 @@ pub enum ReadWriteError {
     Read(ReadError),
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 impl Display for ReadWriteError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -121,5 +121,5 @@ impl Display for ReadWriteError {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "engine-sync")]
 impl Error for ReadWriteError {}

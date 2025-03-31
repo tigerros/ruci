@@ -2,9 +2,9 @@
 name = "go-std"
 publish = false
 version = "0.0.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-ruci = { workspace = true, features = ["std"] }
-shakmaty = { version = "~0.27", features = ["std"] }
-anyhow = "1"
+ruci = { workspace = true, features = ["engine-sync", "serde"] }
+shakmaty = { workspace = true, features = ["std"] }
+anyhow = { workspace = true }

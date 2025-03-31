@@ -3,17 +3,15 @@ use crate::errors::{ConnectionError, ReadError, ReadWriteError};
 use crate::gui::Go;
 use crate::{engine, gui};
 use std::ffi::OsStr;
-use std::io;
-use std::io::{BufRead, BufReader, Write};
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use std::process::Stdio;
-use std::process::{Child, ChildStdin, ChildStdout, Command};
 use std::str::FromStr;
+use tokio::io;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 
 /// Communicate with a Chess engine.
 #[derive(Debug)]
-pub struct Engine {
+pub struct EngineAsync {
     pub stdout: BufReader<ChildStdout>,
     pub stdin: ChildStdin,
     /// Whether message parsing errors should be ignored.
@@ -24,8 +22,8 @@ pub struct Engine {
     pub strict: bool,
 }
 
-impl Engine {
-    /// Creates a new [`Engine`] from an existing process.
+impl EngineAsync {
+    /// Creates a new [`EngineAsync`] from an existing process.
     ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
@@ -48,7 +46,7 @@ impl Engine {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Creates a new [`Engine`] from the given path.
+    /// Creates a new [`EngineAsync`] from the given path.
     pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
@@ -66,21 +64,22 @@ impl Engine {
     /// Sends a message.
     ///
     /// # Errors
-    /// See [`Write::write_all`].
-    pub fn send(&mut self, message: &gui::Message) -> io::Result<()> {
+    /// See [`AsyncWriteExt::write_all`].
+    pub async fn send(&mut self, message: &gui::Message) -> io::Result<()> {
         self.stdin
             .write_all((message.to_string() + "\n").as_bytes())
+            .await
     }
 
     /// Skips some lines.
     ///
     /// # Errors
-    /// See [`BufRead::read_line`].
-    pub fn skip_lines(&mut self, count: usize) -> io::Result<()> {
+    /// See [`AsyncBufReadExt::read_line`].
+    pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = String::new();
 
         for _ in 0..count {
-            self.stdout.read_line(&mut buf)?;
+            self.stdout.read_line(&mut buf).await?;
         }
 
         Ok(())
@@ -89,12 +88,15 @@ impl Engine {
     #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a [`engine::Message`].
     /// Skips lines which are only composed of whitespace.
-    pub fn read(&mut self) -> Result<engine::Message, ReadError> {
+    pub async fn read(&mut self) -> Result<engine::Message, ReadError> {
         let mut line = String::new();
 
         if self.strict {
             loop {
-                self.stdout.read_line(&mut line).map_err(ReadError::Io)?;
+                self.stdout
+                    .read_line(&mut line)
+                    .await
+                    .map_err(ReadError::Io)?;
 
                 if line.is_empty() || line.chars().all(char::is_whitespace) {
                     line.clear();
@@ -107,7 +109,10 @@ impl Engine {
             engine::Message::from_str(&line).map_err(ReadError::Parse)
         } else {
             loop {
-                self.stdout.read_line(&mut line).map_err(ReadError::Io)?;
+                self.stdout
+                    .read_line(&mut line)
+                    .await
+                    .map_err(ReadError::Io)?;
 
                 if let Ok(message) = engine::Message::from_str(&line) {
                     return Ok(message);
@@ -121,14 +126,16 @@ impl Engine {
     #[allow(clippy::missing_errors_doc)]
     /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`] and a vec
     /// of [`Option`](engine::Option)s once the [`UciOk`](engine::UciOk) message is received.
-    pub fn use_uci(&mut self) -> Result<(Option<Id>, Vec<engine::Option>), ReadWriteError> {
-        self.send(&gui::Uci.into()).map_err(ReadWriteError::Write)?;
+    pub async fn use_uci(&mut self) -> Result<(Option<Id>, Vec<engine::Option>), ReadWriteError> {
+        self.send(&gui::Uci.into())
+            .await
+            .map_err(ReadWriteError::Write)?;
 
         let mut options = Vec::with_capacity(40);
         let mut id = None::<Id>;
 
         loop {
-            match self.read().map_err(ReadWriteError::Read)? {
+            match self.read().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Option(option) => options.push(option),
                 engine::Message::Id(new_id) => update_id(&mut id, new_id),
                 engine::Message::UciOk(_) => return Ok((id, options)),
@@ -152,15 +159,17 @@ impl Engine {
     /// 4. Check the results.
     ///
     /// Or just do it on the same task and wait for completion.
-    pub fn go(
+    pub async fn go(
         &mut self,
         message: Go,
         mut info_fn: impl FnMut(Info),
     ) -> Result<BestMove, ReadWriteError> {
-        self.send(&message.into()).map_err(ReadWriteError::Write)?;
+        self.send(&message.into())
+            .await
+            .map_err(ReadWriteError::Write)?;
 
         loop {
-            match self.read().map_err(ReadWriteError::Read)? {
+            match self.read().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Info(info) => info_fn(*info),
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
@@ -171,13 +180,36 @@ impl Engine {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
-    pub fn is_ready(&mut self) -> Result<(), ReadWriteError> {
-        self.send(&gui::IsReady.into())
+    /// Same as [`Self::go`], but you can pass in an async function.
+    pub async fn go_async(
+        &mut self,
+        message: Go,
+        mut info_fn: impl AsyncFnMut(Info),
+    ) -> Result<BestMove, ReadWriteError> {
+        self.send(&message.into())
+            .await
             .map_err(ReadWriteError::Write)?;
 
         loop {
-            if let engine::Message::ReadyOk(_) = self.read().map_err(ReadWriteError::Read)? {
+            match self.read().await.map_err(ReadWriteError::Read)? {
+                engine::Message::Info(info) => info_fn(*info).await,
+                engine::Message::BestMove(best_move) => {
+                    return Ok(best_move);
+                }
+                _ => (),
+            }
+        }
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
+    pub async fn is_ready(&mut self) -> Result<(), ReadWriteError> {
+        self.send(&gui::IsReady.into())
+            .await
+            .map_err(ReadWriteError::Write)?;
+
+        loop {
+            if let engine::Message::ReadyOk(_) = self.read().await.map_err(ReadWriteError::Read)? {
                 return Ok(());
             }
         }
@@ -221,8 +253,8 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine_conn() -> Engine {
-        Engine::from_path(ENGINE_EXE).unwrap()
+    fn engine_conn() -> EngineAsync {
+        EngineAsync::from_path(ENGINE_EXE).unwrap()
     }
 
     #[test]
@@ -254,23 +286,23 @@ mod tests {
         );
     }
 
-    #[test]
-    fn is_ready() {
+    #[tokio::test]
+    async fn is_ready() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.is_ready().unwrap();
+        engine_conn.is_ready().await.unwrap();
     }
 
-    #[test]
-    fn skip_lines() {
+    #[tokio::test]
+    async fn skip_lines() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(&gui::Uci.into()).unwrap();
+        engine_conn.send(&gui::Uci.into()).await.unwrap();
 
-        engine_conn.skip_lines(4).unwrap();
+        engine_conn.skip_lines(4).await.unwrap();
 
         let mut line = String::new();
-        engine_conn.stdout.read_line(&mut line).unwrap();
+        engine_conn.stdout.read_line(&mut line).await.unwrap();
 
         assert_eq!(
             line.trim(),
@@ -279,11 +311,11 @@ mod tests {
     }
 
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
-    #[test]
-    fn analyze_checkmate() {
+    #[tokio::test]
+    async fn analyze_checkmate() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(&gui::Uci.into()).unwrap();
+        engine_conn.send(&gui::Uci.into()).await.unwrap();
 
         engine_conn
             .send(
@@ -296,6 +328,7 @@ mod tests {
                 }
                 .into(),
             )
+            .await
             .unwrap();
 
         let best_move = engine_conn
@@ -306,13 +339,14 @@ mod tests {
                 },
                 |_| {},
             )
+            .await
             .unwrap();
 
         assert_eq!(best_move, BestMove::Other);
     }
 
-    #[test]
-    fn go() {
+    #[tokio::test]
+    async fn go() {
         let mut engine_conn = engine_conn();
 
         let best_move = engine_conn
@@ -323,6 +357,7 @@ mod tests {
                 },
                 |_| {},
             )
+            .await
             .unwrap();
 
         assert_matches!(best_move, BestMove::Normal(_));
@@ -337,7 +372,7 @@ mod tests {
             }
         );
 
-        engine_conn.send(&gui::UciNewGame.into()).unwrap();
+        engine_conn.send(&gui::UciNewGame.into()).await.unwrap();
         engine_conn
             .send(
                 &gui::Position::StartPos {
@@ -345,16 +380,18 @@ mod tests {
                 }
                 .into(),
             )
+            .await
             .unwrap();
 
         let best_move = engine_conn
-            .go(
+            .go_async(
                 Go {
                     depth: Some(25),
                     ..Default::default()
                 },
-                |_| {},
+                async |_| {},
             )
+            .await
             .unwrap();
 
         assert_matches!(best_move, BestMove::Normal(_));
@@ -371,13 +408,13 @@ mod tests {
     }
 
     #[allow(clippy::too_many_lines)]
-    #[test]
-    fn use_uci() {
+    #[tokio::test]
+    async fn use_uci() {
         use engine::{Id, Option};
 
         let mut engine_conn = engine_conn();
 
-        let (id, options) = engine_conn.use_uci().unwrap();
+        let (id, options) = engine_conn.use_uci().await.unwrap();
 
         let mut options_str = String::new();
 

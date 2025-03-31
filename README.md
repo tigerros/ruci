@@ -11,7 +11,7 @@ This crate parses and creates UCI messages.
 It follows the [UCI protocol](https://backscattering.de/chess/uci) and uses [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
 The UCI protocol is the most widely used way for GUI's to communicate with engines and vice versa.
 
-`#![no_std]` compatible, unless you enable the `engine-connection` feature.
+`#![no_std]` compatible.
 
 See the [examples](https://github.com/tigerros/ruci) for a demo on how to send and receive messages.
 You can run each one with `cargo run --package <example-name>`.
@@ -35,5 +35,7 @@ There's two other crates that I'm aware of which serve a similar purpose. *Keep 
 toy benchmarks (but yes, they do technically favor `ruci`).*
 
 ## Feature flags
-- `engine-connection`: enables a structs to manage the IO when it comes to working with a UCI engine. Note that this will add [`tokio`](https://crates.io/crates/tokio) as a dependency.
-- `serde`: enables `Serialize` and `Deserialize` for most types. All the implementations are derived with no parameters.
+- `default`: no features are enabled by default.
+- `engine-sync`: adds the `Engine` struct for communicating with an engine. Requires `std`.
+- `engine-async`: adds the `EngineAsync` struct for communicating with an engine using [`tokio`](https://crates.io/crates/tokio). Also enables the `engine-sync` feature because of shared error types.
+- `serde`: enables serde support for most types. All implementations are derived with no parameters. Requires `std`.

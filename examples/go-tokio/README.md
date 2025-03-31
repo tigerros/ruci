@@ -1,7 +1,10 @@
-This example shows how to start a UCI connection, send it some initial commands,
-start calculating a position, but interrupt it after a couple of seconds.
+This example shows how to:
+- Start a UCI engine connection.
+- Send it some initial commands.
+- Analyze a custom position.
+- Interrupt the analysis (async-exclusive feature).
 
-Note that this will print out the `Display` impls of the `Info` messages.
+Note that this will print out the (truncated) `Display` impls of the `Info` messages.
 That is not a reading from the engine, those are parsed messages converted back into a string
 because it is easier to read.
 

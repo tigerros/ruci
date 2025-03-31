@@ -2,7 +2,7 @@
 name = "no-std"
 publish = false
 version = "0.0.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 ruci = { workspace = true }
