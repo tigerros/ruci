@@ -21,7 +21,6 @@
 )]
 #![deny(
     clippy::unwrap_used,
-    unsafe_code,
     clippy::panic,
     clippy::exit,
     clippy::todo,
@@ -32,6 +31,7 @@
 )]
 #![cfg_attr(not(feature = "engine-sync"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![forbid(unsafe_code)]
 //! You can get started with [`Message`], but keep in mind that all messages (even those which
 //! are void, like [`UciOk`]), implement [`FromStr`] and [`Display`], so you can (and should) use them
 //! individually.
