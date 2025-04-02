@@ -8,4 +8,4 @@ Note that this will print out the (truncated) `Display` impls of the `Info` mess
 That is not a reading from the engine, those are parsed messages converted back into a string
 because it is easier to read.
 
-This example requires that you have installed Stockfish.
+Requires that you have installed Stockfish.

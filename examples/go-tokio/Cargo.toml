@@ -6,5 +6,5 @@ edition = "2021"
 
 [dependencies]
 ruci = { workspace = true, features = ["engine-async"] }
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 anyhow = { workspace = true }
