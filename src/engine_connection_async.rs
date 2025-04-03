@@ -240,7 +240,7 @@ fn update_id(old_id: &mut Option<Id>, new_id: Id) {
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
-    use crate::engine::{Id, NormalBestMove};
+    use crate::engine::{Id, NormalBestMove, OptionType};
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
     use shakmaty::uci::UciMove;
@@ -410,6 +410,7 @@ mod tests {
     #[allow(clippy::too_many_lines)]
     #[tokio::test]
     async fn use_uci() {
+        use core::fmt::Write;
         use engine::{Id, Option};
 
         let mut engine_conn = engine_conn();
@@ -419,7 +420,7 @@ mod tests {
         let mut options_str = String::new();
 
         for option in &options {
-            options_str.push_str(&format!("{option}\n"));
+            let _ = writeln!(options_str, "{option}");
         }
 
         assert_eq!(
@@ -458,178 +459,217 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
 
         assert_eq!(
             options.next(),
-            Some(Option::String {
+            Some(Option {
                 name: "Debug Log File".to_string(),
-                default: Some("<empty>".to_string())
+                r#type: OptionType::String {
+                    default: Some("<empty>".to_string())
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::String {
+            Some(Option {
                 name: "NumaPolicy".to_string(),
-                default: Some("auto".to_string())
+                r#type: OptionType::String {
+                    default: Some("auto".to_string())
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "Threads".to_string(),
-                default: Some(1),
-                min: Some(1),
-                max: Some(1024)
+                r#type: OptionType::Spin {
+                    default: Some(1),
+                    min: Some(1),
+                    max: Some(1024)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "Hash".to_string(),
-                default: Some(16),
-                min: Some(1),
-                max: Some(33_554_432)
+                r#type: OptionType::Spin {
+                    default: Some(16),
+                    min: Some(1),
+                    max: Some(33_554_432)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Button {
+            Some(Option {
                 name: "Clear Hash".to_string(),
+                r#type: OptionType::Button
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Check {
+            Some(Option {
                 name: "Ponder".to_string(),
-                default: Some(false)
+                r#type: OptionType::Check {
+                    default: Some(false)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "MultiPV".to_string(),
-                default: Some(1),
-                min: Some(1),
-                max: Some(256)
+                r#type: OptionType::Spin {
+                    default: Some(1),
+                    min: Some(1),
+                    max: Some(256)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "Skill Level".to_string(),
-                default: Some(20),
-                min: Some(0),
-                max: Some(20)
+                r#type: OptionType::Spin {
+                    default: Some(20),
+                    min: Some(0),
+                    max: Some(20)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "Move Overhead".to_string(),
-                default: Some(10),
-                min: Some(0),
-                max: Some(5000)
+                r#type: OptionType::Spin {
+                    default: Some(10),
+                    min: Some(0),
+                    max: Some(5000)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "nodestime".to_string(),
-                default: Some(0),
-                min: Some(0),
-                max: Some(10000)
+                r#type: OptionType::Spin {
+                    default: Some(0),
+                    min: Some(0),
+                    max: Some(10000)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Check {
+            Some(Option {
                 name: "UCI_Chess960".to_string(),
-                default: Some(false)
+                r#type: OptionType::Check {
+                    default: Some(false)
+                },
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Check {
+            Some(Option {
                 name: "UCI_LimitStrength".to_string(),
-                default: Some(false)
+                r#type: OptionType::Check {
+                    default: Some(false)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "UCI_Elo".to_string(),
-                default: Some(1320),
-                min: Some(1320),
-                max: Some(3190)
+                r#type: OptionType::Spin {
+                    default: Some(1320),
+                    min: Some(1320),
+                    max: Some(3190)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Check {
+            Some(Option {
                 name: "UCI_ShowWDL".to_string(),
-                default: Some(false)
+                r#type: OptionType::Check {
+                    default: Some(false)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::String {
+            Some(Option {
                 name: "SyzygyPath".to_string(),
-                default: Some("<empty>".to_string())
+                r#type: OptionType::String {
+                    default: Some("<empty>".to_string())
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "SyzygyProbeDepth".to_string(),
-                default: Some(1),
-                min: Some(1),
-                max: Some(100)
+                r#type: OptionType::Spin {
+                    default: Some(1),
+                    min: Some(1),
+                    max: Some(100)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Check {
+            Some(Option {
                 name: "Syzygy50MoveRule".to_string(),
-                default: Some(true)
+                r#type: OptionType::Check {
+                    default: Some(true)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::Spin {
+            Some(Option {
                 name: "SyzygyProbeLimit".to_string(),
-                default: Some(7),
-                min: Some(0),
-                max: Some(7)
+                r#type: OptionType::Spin {
+                    default: Some(7),
+                    min: Some(0),
+                    max: Some(7)
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::String {
+            Some(Option {
                 name: "EvalFile".to_string(),
-                default: Some("nn-1111cefa1111.nnue".to_string())
+                r#type: OptionType::String {
+                    default: Some("nn-1111cefa1111.nnue".to_string())
+                }
             })
         );
 
         assert_eq!(
             options.next(),
-            Some(Option::String {
+            Some(Option {
                 name: "EvalFileSmall".to_string(),
-                default: Some("nn-37f18f62d772.nnue".to_string())
+                r#type: OptionType::String {
+                    default: Some("nn-37f18f62d772.nnue".to_string())
+                }
             })
         );
     }

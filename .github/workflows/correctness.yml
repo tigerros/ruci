@@ -9,9 +9,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Clippy
-        run: cargo clippy --workspace --examples --tests --all-targets -- --deny warnings
+        run: cargo clippy --workspace --examples --benches --tests --all-targets -- --deny warnings
       - name: Clippy all features
-        run: cargo clippy --workspace --examples --tests --all-targets --all-features -- --deny warnings
+        run: cargo clippy --workspace --examples --benches --tests --all-targets --all-features -- --deny warnings
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Make stockfish executable
