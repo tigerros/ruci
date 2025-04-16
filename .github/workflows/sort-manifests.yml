@@ -1,0 +1,16 @@
+name: Sort manifests
+on: [push, pull_request]
+
+jobs:
+  sort:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-sort
+
+      - name: Sort
+        run: cargo sort --check --workspace

@@ -1,6 +1,6 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,8 +14,9 @@ pub enum CopyProtection {
     Error,
 }
 
+impl_message!(copy CopyProtection);
 message_from_impl!(engine CopyProtection);
-from_str_parts!(impl CopyProtection for parts -> Result<Self, MessageParseError> {
+from_str_parts!(impl CopyProtection for parts -> Result {
     for part in parts {
         // TODO: Should it be lowercased (case insensitive)?
         match part.trim() {

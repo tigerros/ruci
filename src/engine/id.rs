@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use alloc::string::String;
-use alloc::borrow::ToOwned;
+use alloc::borrow::{Cow, ToOwned};
 use core::fmt::{Display, Formatter};
 use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
@@ -15,16 +15,72 @@ use crate::parsing;
 /// Sent after [`Uci`](crate::gui::Uci).
 ///
 /// <https://backscattering.de/chess/uci/#engine-id>
-pub enum Id {
+pub enum Id<'a> {
     /// <https://backscattering.de/chess/uci/#engine-id-name>
-    Name(String),
+    Name(Cow<'a, str>),
     /// <https://backscattering.de/chess/uci/#engine-id-author>
-    Author(String),
-    NameAndAuthor { name: String, author: String },
+    Author(Cow<'a, str>),
+    NameAndAuthor { name: Cow<'a, str>, author: Cow<'a, str> },
 }
 
-message_from_impl!(engine Id);
-from_str_parts!(impl Id for parts -> Result<Self, MessageParseError>  {
+impl Id<'_> {
+    #[must_use]
+    /// Returns a new [`Id`] that is updated with values of the `new` parameter.
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use pretty_assertions::assert_eq;
+    /// # use ruci::engine::Id;
+    /// let mut id = Id::Name("Carp".into());
+    ///
+    /// id = id.updated(Id::Name("Salmon".into()));
+    /// assert_eq!(id, Id::Name("Salmon".into()));
+    ///
+    /// id = id.updated(Id::Author("Fischerman".into()));
+    /// assert_eq!(
+    ///     id,
+    ///     Id::NameAndAuthor {
+    ///         name: "Salmon".into(),
+    ///         author: "Fischerman".into()
+    ///     }
+    /// );
+    ///
+    /// id = id.updated(Id::Author("Garry Chess".into()));
+    /// assert_eq!(
+    ///     id,
+    ///     Id::NameAndAuthor {
+    ///         name: "Salmon".into(),
+    ///         author: "Garry Chess".into()
+    ///     }
+    /// );
+    ///
+    /// id = id.updated(Id::Name("Big Tuna".into()));
+    /// assert_eq!(
+    ///     id,
+    ///     Id::NameAndAuthor {
+    ///         name: "Big Tuna".into(),
+    ///         author: "Garry Chess".into()
+    ///     }
+    /// );
+    /// ```
+    pub fn updated(self, new: Self) -> Self {
+        match (self, new) {
+            (Id::Author(_), Id::Author(author)) => Id::Author(author),
+            (Id::Name(_), Id::Name(name)) => Id::Name(name),
+            (
+                Id::NameAndAuthor { .. } | Id::Author(_) | Id::Name(_),
+                Id::NameAndAuthor { name, author },
+            )
+            | (Id::NameAndAuthor { author: _, name } | Id::Name(name), Id::Author(author))
+            | (Id::NameAndAuthor { author, name: _ } | Id::Author(author), Id::Name(name)) => {
+                Id::NameAndAuthor { name, author }
+            }
+        }
+    }
+}
+
+message_from_impl!(engine Id<'a>);
+from_str_parts!(impl Id<'a> for parts -> Result {
     let mut name = None::<String>;
     let mut author = None::<String>;
     let parameter_fn = |parameter, value: &str| match parameter {
@@ -39,20 +95,20 @@ from_str_parts!(impl Id for parts -> Result<Self, MessageParseError>  {
     if let Some(name) = name {
         if let Some(author) = author {
             Ok(Self::NameAndAuthor {
-                name,
-                author,
+                name: Cow::Owned(name),
+                author: Cow::Owned(author),
             })
         } else {
-            Ok(Self::Name(name))
+            Ok(Self::Name(Cow::Owned(name)))
         }
     } else if let Some(author) = author {
-        Ok(Self::Author(author))
+        Ok(Self::Author(Cow::Owned(author)))
     } else {
         Err(MessageParseError::MissingParameters { expected: "name or author" })
     }
 });
 
-impl Display for Id {
+impl Display for Id<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("id ")?;
 
@@ -70,6 +126,7 @@ impl Display for Id {
 
 #[cfg(test)]
 mod tests {
+    use alloc::borrow::Cow;
     use core::str::FromStr;
     use pretty_assertions::assert_eq;
     use crate::{engine, Message};
@@ -79,15 +136,15 @@ mod tests {
     #[test]
     fn to_from_str() {
         let repr: Message = Id::NameAndAuthor {
-            name: "Stockfish 16.1".to_string(),
-            author: "The stockfish developers".to_string(),
+            name: Cow::from("Stockfish 16.1"),
+            author: Cow::from("The stockfish developers"),
         }.into();
         let str_repr = "id name Stockfish 16.1 author The stockfish developers";
 
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
 
-        let repr: engine::Message = Id::Name("Stockfish 16.1".to_string()).into();
+        let repr: engine::Message = Id::Name(Cow::from("Stockfish 16.1")).into();
         let str_repr = "id name Stockfish 16.1";
 
         assert_eq!(repr.to_string(), str_repr);

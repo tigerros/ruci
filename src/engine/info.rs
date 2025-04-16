@@ -1,5 +1,6 @@
 extern crate alloc;
 
+use alloc::borrow::Cow;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::boxed::Box;
@@ -111,8 +112,8 @@ impl ScoreWithBound {
         let split = s.split(' ').collect::<Vec<_>>();
         let centipawns_position = split.iter().position(|&part| part == "cp");
         let mate_in_position = split.iter().position(|&part| part == "mate");
-        let is_lowerbound = split.iter().any(|&part| part == "lowerbound");
-        let is_upperbound = split.iter().any(|&part| part == "upperbound");
+        let is_lowerbound = split.contains(&"lowerbound");
+        let is_upperbound = split.contains(&"upperbound");
         let centipawns = isize_at_plus1_position(&split, centipawns_position);
         let mate_in = isize_at_plus1_position(&split, mate_in_position);
         let kind = centipawns.map_or(
@@ -138,12 +139,12 @@ impl ScoreWithBound {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-refutation>
-pub struct Refutation {
+pub struct Refutation<'a> {
     pub refuted_move: UciMove,
-    pub refutation: Vec<UciMove>,
+    pub refutation: Cow<'a, [UciMove]>,
 }
 
-impl Refutation {
+impl Refutation<'static> {
     fn from_str(s: &str) -> Option<Self> {
         let mut moves = uci_moves::from_str(s);
 
@@ -155,7 +156,7 @@ impl Refutation {
 
         Some(Self {
             refuted_move: first,
-            refutation: moves,
+            refutation: Cow::Owned(moves),
         })
     }
 }
@@ -163,12 +164,12 @@ impl Refutation {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// <https://backscattering.de/chess/uci/#engine-info-currline>
-pub struct CurrLine {
+pub struct CurrLine<'a> {
     pub used_cpu: Option<usize>,
-    pub line: Vec<UciMove>,
+    pub line: Cow<'a, [UciMove]>,
 }
 
-impl CurrLine {
+impl CurrLine<'static> {
     fn from_str(s: &str) -> Option<Self> {
         // TODO: This will fail if there's more whitespace in between.
         // Fix in future
@@ -179,7 +180,7 @@ impl CurrLine {
 
         Some(Self {
             used_cpu: Some(used_cpu),
-            line: uci_moves::from_str(line),
+            line: Cow::Owned(uci_moves::from_str(line)),
         })
     }
 }
@@ -191,7 +192,7 @@ impl CurrLine {
 /// <https://backscattering.de/chess/uci/#engine-info>
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Info {
+pub struct Info<'a> {
     /// <https://backscattering.de/chess/uci/#engine-info-depth>
     pub depth: Option<Depth>,
     /// <https://backscattering.de/chess/uci/#engine-info-time>
@@ -201,7 +202,7 @@ pub struct Info {
     /// Primary variation.
     ///
     /// <https://backscattering.de/chess/uci/#engine-info-pv>
-    pub pv: Vec<UciMove>,
+    pub pv: Cow<'a, [UciMove]>,
     /// Multi primary variation.
     ///
     /// <https://backscattering.de/chess/uci/#engine-info-multipv>
@@ -233,30 +234,31 @@ pub struct Info {
     /// <https://backscattering.de/chess/uci/#engine-info-cpuload>
     pub cpu_load: Option<usize>,
     /// <https://backscattering.de/chess/uci/#engine-info-string>
-    pub string: Option<String>,
+    pub string: Option<Cow<'a, str>>,
     /// <https://backscattering.de/chess/uci/#engine-info-refutation>
-    pub refutation: Option<Refutation>,
+    pub refutation: Option<Refutation<'a>>,
     /// <https://backscattering.de/chess/uci/#engine-info-currline>
-    pub curr_line: Option<CurrLine>,
+    pub curr_line: Option<CurrLine<'a>>,
 }
 
-impl From<Info> for crate::Message {
-    fn from(value: Info) -> Self {
+impl<'a> From<Info<'a>> for crate::Message<'a> {
+    fn from(value: Info<'a>) -> Self {
         Self::Engine(crate::engine::Message::Info(Box::new(value)))
     }
 }
 
-impl From<Info> for crate::engine::Message {
-    fn from(value: Info) -> Self {
+impl<'a> From<Info<'a>> for crate::engine::Message<'a> {
+    fn from(value: Info<'a>) -> Self {
         Self::Info(Box::new(value))
     }
 }
 
-from_str_parts!(impl Info for parts -> Self {
+from_str_parts!(impl Info<'a> for parts -> Self {
     let mut this = Self::default();
     // Need to handle depth like this in case the seldepth argument comes before the depth argument.
     let mut depth = None::<usize>;
     let mut seldepth = None::<usize>;
+    let mut pv = Vec::new();
     let parameter_fn = |parameter, value: &str| match parameter {
         InfoParameterPointer::Depth => depth.replace_if(value.parse().ok()),
         InfoParameterPointer::SelDepth => seldepth.replace_if(value.parse().ok()),
@@ -266,7 +268,7 @@ from_str_parts!(impl Info for parts -> Self {
             let parsed = uci_moves::from_str(value);
 
             if !parsed.is_empty() {
-                this.pv = parsed;
+                pv = parsed;
             }
         },
         InfoParameterPointer::MultiPV => this.multi_pv.replace_if(value.parse().ok()),
@@ -278,13 +280,15 @@ from_str_parts!(impl Info for parts -> Self {
         InfoParameterPointer::TbHits => this.tb_hits.replace_if(value.parse().ok()),
         InfoParameterPointer::SbHits => this.sb_hits.replace_if(value.parse().ok()),
         InfoParameterPointer::CpuLoad => this.cpu_load.replace_if(value.parse().ok()),
-        InfoParameterPointer::String => this.string = Some(value.to_string()),
+        InfoParameterPointer::String => this.string = Some(Cow::Owned(value.to_string())),
         InfoParameterPointer::Refutation => this.refutation.replace_if(Refutation::from_str(value)),
         InfoParameterPointer::CurrLine => this.curr_line.replace_if(CurrLine::from_str(value)),
     };
     
     let mut value = String::with_capacity(200);
     parsing::apply_parameters(parts, &mut value, parameter_fn);
+    
+    this.pv = Cow::Owned(pv);
     
     if let Some(depth) = depth {
         this.depth = Some(Depth {
@@ -296,7 +300,7 @@ from_str_parts!(impl Info for parts -> Self {
     this
 });
 
-impl Display for Info {
+impl Display for Info<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("info")?;
 
@@ -402,8 +406,8 @@ impl Display for Info {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use alloc::borrow::Cow;
     use alloc::string::ToString;
-    use alloc::vec;
     use core::str::FromStr;
     use super::Info;
     use shakmaty::uci::UciMove;
@@ -434,6 +438,10 @@ mod tests {
 
     #[test]
     fn to_from_str() {
+        let pv: &[UciMove] = &[UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()];
+        let refutation = [UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()];
+        let curr_line = [UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()];
+        
         let repr: Message = Info {
             depth: Some(Depth {
                 depth: 20,
@@ -441,7 +449,7 @@ mod tests {
             }),
             time: Some(12),
             nodes: Some(4),
-            pv: vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()],
+            pv: Cow::Borrowed(pv),
             multi_pv: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
@@ -454,14 +462,14 @@ mod tests {
             tb_hits: Some(2),
             sb_hits: None,
             cpu_load: None,
-            string: Some("blabla".to_string()),
+            string: Some(Cow::Borrowed("blabla")),
             refutation: Some(Refutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
-                refutation: vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()],
+                refutation: Cow::Borrowed(&refutation),
             }),
             curr_line: Some(CurrLine {
                 used_cpu: Some(1),
-                line: vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()],
+                line: Cow::Borrowed(&curr_line),
             }),
         }.into();
         let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5";
@@ -472,6 +480,9 @@ mod tests {
 
     #[test]
     fn to_from_str_bad_parameters() {
+        let refutation = [UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()];
+        let curr_line = [UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()];
+        
         let repr: engine::Message = Info {
             depth: Some(Depth {
                 depth: 20,
@@ -479,7 +490,7 @@ mod tests {
             }),
             time: Some(12),
             nodes: Some(4),
-            pv: vec![],
+            pv: Cow::Borrowed(&[]),
             multi_pv: Some(1),
             score: Some(ScoreWithBound {
                 kind: Score::Centipawns(22),
@@ -492,14 +503,14 @@ mod tests {
             tb_hits: Some(4),
             sb_hits: None,
             cpu_load: None,
-            string: Some("blabla".to_string()),
+            string: Some(Cow::Borrowed("blabla")),
             refutation: Some(Refutation {
                 refuted_move: UciMove::from_ascii(b"g2g4").unwrap(),
-                refutation: vec![UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()],
+                refutation: Cow::Borrowed(&refutation),
             }),
             curr_line: Some(CurrLine {
                 used_cpu: Some(1),
-                line: vec![UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()],
+                line: Cow::Borrowed(&curr_line),
             }),
         }.into();
 

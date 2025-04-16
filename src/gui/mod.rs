@@ -14,13 +14,13 @@ define_message! {
         =[custom]
         Debug(Debug),
         %[parameters = [Name, Value]]
-        SetOption(SetOption),
+        SetOption(SetOption<'a>),
         %[parameters = [Name, Code]]
-        Register(Register),
+        Register(Register<'a>),
         %[parameters = [Fen, Moves, StartPos]]
-        Position(Position),
+        Position(Position<'a>),
         %[parameters = [SearchMoves, Ponder, WTime, BTime, WInc, BInc, MovesToGo, Depth, Nodes, Mate, MoveTime, Infinite]]
-        Go(Go)
+        Go(Go<'a>)
         =[empty]
         /// Tells the engine to use UCI.
         Uci,
@@ -38,7 +38,7 @@ define_message! {
     }
 }
 
-impl FromStr for Message {
+impl FromStr for Message<'_> {
     type Err = MessageParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

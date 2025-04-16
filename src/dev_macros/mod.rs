@@ -1,3 +1,3 @@
 dry_mods::mods! {
-    mod pub use define_message, from_str_parts, message_from_impl;
+    mod pub use define_message, from_str_parts, message_from_impl, impl_message;
 }

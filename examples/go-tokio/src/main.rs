@@ -6,7 +6,7 @@ async fn main() -> anyhow::Result<()> {
     let mut engine = EngineAsync::from_path("stockfish")?;
 
     println!("== Sending quit message");
-    engine.send(&Quit.into()).await?;
+    engine.send(Quit).await?;
     println!("== Sent. Program terminated");
 
     Ok(())

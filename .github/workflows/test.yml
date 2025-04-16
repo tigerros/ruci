@@ -1,0 +1,17 @@
+name: Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+
+      - name: Make stockfish executable
+        run: chmod +x resources/stockfish-ubuntu-x86-64-avx2
+      - name: Test
+        run: cargo hack test --feature-powerset --workspace --bins --examples --benches --tests --all-targets -q

@@ -1,0 +1,38 @@
+name: Bench
+on:
+  push:
+    branches:
+      - master
+      - cow-rework
+
+permissions:
+  contents: write
+  deployments: write
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain update nightly && rustup default nightly
+
+      - name: Bench
+        run: cargo +nightly bench --all-features --all-targets --bins --examples --tests --benches | tee benches/output.txt
+
+      - name: Store result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Bench
+          tool: 'cargo'
+          output-file-path: benches/output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          summary-always: true
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: '200%'
+          comment-on-alert: true
+          fail-on-alert: true
+          gh-pages-branch: 'bench-page'
+          benchmark-data-dir-path: 'bench'
+          alert-comment-cc-users: '@tigerros'

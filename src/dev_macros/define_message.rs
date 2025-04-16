@@ -24,6 +24,8 @@ macro_rules! define_message {
                 #[doc = concat!("\n\n<https://backscattering.de/chess/uci/#", stringify!([< $ident:lower >]), "-", stringify!([< $empty_message_ident:lower >]), ">")]
                 pub struct $empty_message_ident;
 
+                impl super::traits::sealed::Message for $empty_message_ident {}
+                impl super::traits::Message for $empty_message_ident {}
                 $crate::dev_macros::message_from_impl!([< $ident:lower >] $empty_message_ident);
                 $crate::dev_macros::from_str_parts!(impl $empty_message_ident for _parts -> Self  {
                     Self
@@ -68,11 +70,19 @@ macro_rules! define_message {
             pub use [< $empty_message_ident:snake >]::*;
         }
         )*
+        
+        pub mod traits {
+            pub(crate) mod sealed {
+                pub trait Message {}
+            }
+            
+            pub trait Message: sealed::Message {}
+        }
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
         $(#[$attr])*
-        pub enum Message {
+        pub enum Message<'a> {
             $(
             $custom_message_ident
             ($custom_message_value),
@@ -83,13 +93,15 @@ macro_rules! define_message {
             )*
         }
 
-        impl ::core::convert::From<Message> for $crate::Message {
-            fn from(value: Message) -> Self {
+        impl traits::sealed::Message for Message<'_> {}
+        impl traits::Message for Message<'_> {}
+        impl<'a> ::core::convert::From<Message<'a>> for $crate::Message<'a> {
+            fn from(value: Message<'a>) -> Self {
                 Self::$ident(value)
             }
         }
 
-        impl ::core::fmt::Display for Message {
+        impl ::core::fmt::Display for Message<'_> {
             fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                 match self {
                     $(Self::$custom_message_ident(m) => m.fmt(f),)*

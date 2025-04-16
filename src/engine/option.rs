@@ -1,5 +1,6 @@
 extern crate alloc;
 
+use alloc::borrow::Cow;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt::{Display, Formatter};
@@ -50,7 +51,7 @@ impl Display for BlankOptionType {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum OptionType {
+pub enum OptionType<'a> {
     /// <https://backscattering.de/chess/uci/#engine-option-type-check>
     Check {
         /// <https://backscattering.de/chess/uci/#engine-option-default>
@@ -68,20 +69,20 @@ pub enum OptionType {
     /// <https://backscattering.de/chess/uci/#engine-option-type-combo>
     Combo {
         /// <https://backscattering.de/chess/uci/#engine-option-default>
-        default: StdOption<String>,
+        default: StdOption<Cow<'a, str>>,
         /// <https://backscattering.de/chess/uci/#engine-option-var>
-        var: Vec<String>,
+        var: Cow<'a, [Cow<'a, str>]>,
     },
     /// <https://backscattering.de/chess/uci/#engine-option-type-button>
     Button,
     /// <https://backscattering.de/chess/uci/#engine-option-type-string>
     String {
         /// <https://backscattering.de/chess/uci/#engine-option-default>
-        default: StdOption<String>,
+        default: StdOption<Cow<'a, str>>,
     },
 }
 
-impl Display for OptionType {
+impl Display for OptionType<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("type ")?;
 
@@ -115,7 +116,7 @@ impl Display for OptionType {
                     write!(f, " default {default}")?;
                 }
 
-                for variation in var {
+                for variation in var.iter() {
                     write!(f, " var {variation}")?;
                 }
             }
@@ -143,13 +144,13 @@ type StdOption<T> = core::option::Option<T>;
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Option {
-    pub name: String,
-    pub r#type: OptionType,
+pub struct Option<'a> {
+    pub name: Cow<'a, str>,
+    pub r#type: OptionType<'a>,
 }
 
-message_from_impl!(engine Option);
-from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
+message_from_impl!(engine Option<'a>);
+from_str_parts!(impl Option<'a> for parts -> Result {
     let mut name = None::<String>;
     let mut r#type = None::<BlankOptionType>;
     let mut default = None::<String>;
@@ -162,7 +163,7 @@ from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
         OptionParameterPointer::Default => default = Some(value.to_string()),
         OptionParameterPointer::Min => min.replace_if(value.parse().ok()),
         OptionParameterPointer::Max => max.replace_if(value.parse().ok()),
-        OptionParameterPointer::Var => var.push(value.to_string()),
+        OptionParameterPointer::Var => var.push(Cow::Owned(value.to_string())),
     };
 
     let mut value = String::with_capacity(200);
@@ -175,6 +176,8 @@ from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
     let Some(r#type) = r#type else {
         return Err(MessageParseError::MissingParameters { expected: "a type parameter; check, spin, combo, button or string" });
     };
+    
+    let name = Cow::Owned(name);
 
     match r#type {
         BlankOptionType::Check => {
@@ -188,16 +191,16 @@ from_str_parts!(impl Option for parts -> Result<Self, MessageParseError>  {
             } })
         },
         BlankOptionType::Combo => {
-            Ok(Self { name, r#type: OptionType::Combo { default, var } })
+            Ok(Self { name, r#type: OptionType::Combo { default: default.map(Cow::Owned), var: Cow::Owned(var) } })
         },
         BlankOptionType::Button => Ok(Self { name, r#type: OptionType::Button }),
         BlankOptionType::String => {
-            Ok(Self { name, r#type: OptionType::String { default } })
+            Ok(Self { name, r#type: OptionType::String { default: default.map(Cow::Owned) } })
         },
     }
 });
 
-impl Display for Option {
+impl Display for Option<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "option name {} {}", self.name, self.r#type)
     }
@@ -205,8 +208,8 @@ impl Display for Option {
 
 #[cfg(test)]
 mod tests {
+    use alloc::borrow::Cow;
     use alloc::string::ToString;
-    use alloc::vec;
     use core::str::FromStr;
     use pretty_assertions::assert_eq;
     use crate::{engine, Message};
@@ -216,7 +219,7 @@ mod tests {
     #[test]
     fn to_from_str_min_max() {
         let repr: Message = Option {
-            name: "Skill Level".to_string(),
+            name: Cow::Borrowed("Skill Level"),
             r#type: OptionType::Spin {
                 default: Some(20),
                 min: Some(-10),
@@ -228,8 +231,8 @@ mod tests {
         assert_eq!(Message::from_str("option name Skill Level type spin type INVALID default 20 min -10 max 20"), Ok(repr));
 
         let repr: Message = Option {
-            name: "Personality".to_string(),
-            r#type: OptionType::String { default: Some("Aggressive".to_string()) }
+            name: Cow::Borrowed("Personality"),
+            r#type: OptionType::String { default: Some(Cow::Borrowed("Aggressive")) }
         }.into();
 
         assert_eq!(repr.to_string(), "option name Personality type string default Aggressive");
@@ -238,11 +241,13 @@ mod tests {
 
     #[test]
     fn to_from_str_var() {
+        let var = &[Cow::Borrowed("Foo bar fighter"), Cow::Borrowed("Aggressive p"), Cow::Borrowed("Defensive p"), Cow::Borrowed("Positional"), Cow::Borrowed("Endgame")];
+        
         let repr: engine::Message = Option {
-            name: "K Personality".to_string(),
+            name: Cow::Borrowed("K Personality"),
             r#type: OptionType::Combo {
-                default: Some("Default p".to_string()),
-                var: vec!["Foo bar fighter".to_string(), "Aggressive p".to_string(), "Defensive p".to_string(), "Positional".to_string(), "Endgame".to_string()],
+                default: Some(Cow::Borrowed("Default p")),
+                var: Cow::Borrowed(var),
             }
         }.into();
         let str_in = "option var Foo bar fighter name K Personality type combo default Default p var Aggressive p var Defensive p var Positional var Endgame";

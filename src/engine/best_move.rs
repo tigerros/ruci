@@ -2,7 +2,7 @@ extern crate alloc;
 
 use core::fmt::{Display, Formatter};
 use shakmaty::uci::UciMove;
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::OptionReplaceIf;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,18 +60,19 @@ impl From<NormalBestMove> for BestMove {
     }
 }
 
-impl From<NormalBestMove> for crate::Message {
+impl From<NormalBestMove> for crate::Message<'_> {
     fn from(value: NormalBestMove) -> Self {
         Self::Engine(super::Message::BestMove(value.into()))
     }
 }
 
-impl From<NormalBestMove> for super::Message {
+impl From<NormalBestMove> for super::Message<'_> {
     fn from(value: NormalBestMove) -> Self {
         Self::BestMove(value.into())
     }
 }
 
+impl_message!(BestMove);
 message_from_impl!(engine BestMove);
 from_str_parts!(impl BestMove for parts -> Self  {
     let mut r#move = None;

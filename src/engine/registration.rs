@@ -1,6 +1,6 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 
 /// Engine's registration status.
 ///
@@ -16,8 +16,9 @@ pub enum Registration {
     Error,
 }
 
+impl_message!(copy Registration);
 message_from_impl!(engine Registration);
-from_str_parts!(impl Registration for parts -> Result<Self, MessageParseError>  {
+from_str_parts!(impl Registration for parts -> Result {
     for part in parts {
         match part.trim() {
             "checking" => return Ok(Self::Checking),

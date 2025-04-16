@@ -1,11 +1,11 @@
 extern crate alloc;
 
-use alloc::borrow::ToOwned;
+use alloc::borrow::{Cow, ToOwned};
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::RegisterParameterPointer;
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::parsing;
 
 #[allow(clippy::module_name_repetitions)]
@@ -14,15 +14,16 @@ use crate::parsing;
 /// Tries to register with the engine.
 ///
 /// <https://backscattering.de/chess/uci/#gui-register>
-pub enum Register {
+pub enum Register<'a> {
     Later,
-    Name(String),
-    Code(String),
-    NameAndCode { name: String, code: String },
+    Name(Cow<'a, str>),
+    Code(Cow<'a, str>),
+    NameAndCode { name: Cow<'a, str>, code: Cow<'a, str> },
 }
 
-message_from_impl!(gui Register);
-from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
+impl_message!(Register<'_>);
+message_from_impl!(gui Register<'a>);
+from_str_parts!(impl Register<'a> for parts -> Result {
     let mut name = None;
     let mut code = None;
     let parameter_fn = |parameter, value: &str| match parameter {
@@ -38,14 +39,14 @@ from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
     if let Some(name) = name {
         if let Some(code) = code {
             Ok(Self::NameAndCode {
-                name,
-                code,
+                name: Cow::Owned(name),
+                code: Cow::Owned(code),
             })
         } else {
-            Ok(Self::Name(name))
+            Ok(Self::Name(Cow::Owned(name)))
         }
     } else if let Some(code) = code {
-        Ok(Self::Code(code))
+        Ok(Self::Code(Cow::Owned(code)))
     } else if value.split(' ').any(|s| s == "later") {
         Ok(Self::Later)
     } else {
@@ -53,7 +54,7 @@ from_str_parts!(impl Register for parts -> Result<Self, MessageParseError>  {
     }
 });
 
-impl Display for Register {
+impl Display for Register<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Later => f.write_str("register later"),
@@ -69,6 +70,7 @@ impl Display for Register {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use alloc::borrow::Cow;
     use core::str::FromStr;
     use pretty_assertions::{assert_eq};
     use crate::gui::Register;
@@ -78,8 +80,8 @@ mod tests {
     #[test]
     fn to_from_str() {
         let m: Message = Register::NameAndCode {
-            name: "john smith".to_string(),
-            code: "31 tango".to_string()
+            name: Cow::Borrowed("john smith"),
+            code: Cow::Borrowed("31 tango")
         }.into();
         let str = "register name john smith code 31 tango";
 
@@ -97,7 +99,7 @@ mod tests {
 
     #[test]
     fn invalid_parameter() {
-        let m: gui::Message = Register::Name("a l o t o f s p a c e s".to_string()).into();
+        let m: gui::Message = Register::Name(Cow::Borrowed("a l o t o f s p a c e s")).into();
         assert_eq!(m.to_string(), "register name a l o t o f s p a c e s");
         assert_eq!(gui::Message::from_str("register blahblah woo name a l o t o f s p a c e s\n").unwrap(), m);
     }

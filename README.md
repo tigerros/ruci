@@ -13,26 +13,22 @@ The UCI protocol is the most widely used way for GUI's to communicate with engin
 
 `#![no_std]` compatible.
 
-See the [examples](https://github.com/tigerros/ruci) for a demo on how to send and receive messages.
+See the [examples](https://github.com/tigerros/ruci/tree/master/examples) for demos on how to send and receive messages.
 You can run each one with `cargo run --package <example-name>`.
 
 ## Comparison
-There's two other crates that I'm aware of which serve a similar purpose. *Keep in mind that this is a shallow comparison, I haven't looked extensively and I am not an expert.*
+There's two other crates that I'm aware of which serve a similar purpose; [`vampirc-uci`](https://crates.io/crates/vampirc-uci) and [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci).
+`shakmaty-uci` is basically an improved version of `vampirc-uci`, so I'll only cover `shakmaty-uci`.
 
-- [`vampirc-uci`](https://crates.io/crates/vampirc-uci):
-  - Doesn't use `shakmaty`, which AFAIK is the go-to chess crate now.
-  - Doesn't separate the two types of messages (engine, GUI) and specific messages. It just has one big enum which mostly uses enum fields for message data. This is really inconvenient because you can't represent specific messages, only the whole `Message` enum.
-  - ~~Doesn't provide IO communication with an engine.~~ There is [`vampirc-io`](https://crates.io/crates/vampirc-io), but the API is lacking and it uses the deprecated [`async-std`](https://crates.io/crates/async-std) crate.
-  - More dependencies; [`pest`](https://crates.io/crates/pest) and [`chrono`](https://crates.io/crates/chrono). `ruci` only has shakmaty and two macros, which don't get included in the final binary.
-  - Not `#![no_std]` compatible.
-  - More tests, but I don't know about the coverage.
-- [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci): this library is based on/inspired by `vampirc-uci`, so all of the above bullet points apply, except:
-  - Uses `shakmaty`.
-  - Uses [`nom`](https://crates.io/crates/nom) instead of `pest` and doesn't use `chrono`.
-  - Is `#![no_std]` compatible.
+- Doesn't separate the two types of messages (engine, GUI) and specific messages. It has one big enum which mostly uses enum fields for message data. This is inconvenient because you can't represent specific messages, just the whole `UciMessage` enum.
+- Doesn't provide IO communication with an engine.
+- Uses [`nom`](https://crates.io/crates/nom) for parsing, whereas `ruci` doesn't pull in anything.
+- More tests, but I don't know about the coverage.
+- 3 or more times slower than `ruci` when deserializing, 2 or more times slower when serializing. Benches don't cover that many types but there's a trend. Results available at [tigerros.github.io/ruci/bench](https://tigerros.github.io/ruci/bench), or you can view a more compact version in the summary of the latest [Bench workflow](https://github.com/tigerros/ruci/actions/workflows/bench.yml) run. Sources at [benches](https://github.com/tigerros/ruci/tree/master/benches).
+- `ruci` uses `Cow` for non-copy types. This is because converting a message to a string (which is what half of the library is for) doesn't require owned data, and I got the ick when I had to clone data just to do something that only needs a reference.
 
-*`ruci` might also faster since it doesn't use a parsing library, but I'm not making any claims or showing results because I only have some
-toy benchmarks (but yes, they do technically favor `ruci`).*
+## Benches
+`ruci` has more benches per scenario than the other two. This is because it uses `Cow`s to allow for borrowed or owned data. So, the suffix `borrowed` in bench names means that it is using a statically borrowed type rather than the owned type, e.g. `&'static str` instead of `String`. The flip side is the suffix `owned`.
 
 ## Feature flags
 - `default`: no features are enabled by default.

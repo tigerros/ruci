@@ -12,11 +12,11 @@ repository = "https://github.com/tigerros/ruci"
 rust-version = "1.81.0"
 
 [dependencies]
-tokio = { workspace = true, optional = true, features = ["io-util", "process"] }
-serde = { workspace = true, optional = true, features = ["derive"] }
-paste = { workspace = true }
-shakmaty = { workspace = true }
 dry-mods = { workspace = true }
+paste = { workspace = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
+shakmaty = { workspace = true }
+tokio = { workspace = true, optional = true, features = ["io-util", "process"] }
 
 [features]
 # No features are turned on by default.
@@ -33,18 +33,19 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["full"] }
 pretty_assertions = { version = "1", features = ["unstable"] }
-criterion = { version = "~0.5", features = ["html_reports"] }
 shakmaty-uci = { version = "~0.1" }
+tokio = { workspace = true, features = ["full"] }
 vampirc-uci = { version = "~0.11" }
 
 [[bench]]
-name = "comparison"
-harness = false
+name = "to_str"
+
+[[bench]]
+name = "from_str"
 
 [workspace]
-members = ["examples/go-std", "examples/go-tokio", "examples/no-std"]
+members = ["examples/go-std", "examples/go-tokio"]
 
 [workspace.dependencies]
 ruci = { version = "0.9.0", path = "." }

@@ -1,12 +1,13 @@
 extern crate alloc;
 
+use alloc::borrow::Cow;
 use alloc::vec::Vec;
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
 use core::num::NonZeroUsize;
 use shakmaty::uci::UciMove;
 use crate::{parsing, uci_moves, OptionReplaceIf};
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::gui::pointers::GoParameterPointer;
 
 #[allow(clippy::module_name_repetitions)]
@@ -15,9 +16,9 @@ use crate::gui::pointers::GoParameterPointer;
 /// Tells the engine to start calculating.
 ///
 /// <https://backscattering.de/chess/uci/#gui-go>
-pub struct Go {
+pub struct Go<'a> {
     /// <https://backscattering.de/chess/uci/#gui-go-searchmoves>
-    pub search_moves: Vec<UciMove>,
+    pub search_moves: Cow<'a, [UciMove]>,
     /// <https://backscattering.de/chess/uci/#gui-go-ponder>
     pub ponder: bool,
     /// White's time.
@@ -50,15 +51,17 @@ pub struct Go {
     pub infinite: bool,
 }
 
-message_from_impl!(gui Go);
-from_str_parts!(impl Go for parts -> Self {
+impl_message!(Go<'_>);
+message_from_impl!(gui Go<'a>);
+from_str_parts!(impl Go<'b> for parts -> Self {
     let mut this = Self::default();
+    let mut search_moves = Vec::new();
     let parameter_fn = |parameter, value: &str| match parameter {
         GoParameterPointer::SearchMoves => {
             let parsed = uci_moves::from_str(value);
 
             if !parsed.is_empty() {
-                this.search_moves = parsed;
+                search_moves = parsed;
             }
         },
         GoParameterPointer::Ponder => this.ponder = true,
@@ -76,11 +79,13 @@ from_str_parts!(impl Go for parts -> Self {
     
     let mut value = String::with_capacity(200);
     parsing::apply_parameters(parts, &mut value, parameter_fn);
+
+    this.search_moves = Cow::from(search_moves);
     
     this
 });
 
-impl Display for Go {
+impl Display for Go<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("go")?;
 
@@ -140,8 +145,8 @@ impl Display for Go {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use alloc::vec;
     use alloc::string::ToString;
+    use alloc::borrow::Cow;
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
     use core::num::NonZeroUsize;
@@ -151,11 +156,13 @@ mod tests {
 
     #[test]
     fn to_from_str() {
+        let search_moves = [
+            UciMove::from_ascii(b"e2e4").unwrap(),
+            UciMove::from_ascii(b"d2d4").unwrap(),
+        ];
+
         let repr: Message = Go {
-            search_moves: vec![
-                UciMove::from_ascii(b"e2e4").unwrap(),
-                UciMove::from_ascii(b"d2d4").unwrap(),
-            ],
+            search_moves: Cow::Borrowed(&search_moves),
             ponder: true,
             w_time: Some(5),
             b_time: None,
@@ -177,7 +184,7 @@ mod tests {
     #[test]
     fn to_from_str_bad_parameters() {
         let repr: gui::Message = Go {
-            search_moves: vec![],
+            search_moves: Cow::from(&[]),
             ponder: true,
             w_time: None,
             b_time: None,

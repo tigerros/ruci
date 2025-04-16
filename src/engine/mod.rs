@@ -16,14 +16,14 @@ define_message! {
     enum Engine {
         =[custom]
         %[parameters = [Name, Author]]
-        Id(Id),
+        Id(Id<'a>),
         BestMove(BestMove),
         CopyProtection(CopyProtection),
         Registration(Registration),
         %[parameters = [Depth, SelDepth, Time, Nodes, PV, MultiPV, Score, CurrMove, CurrMoveNumber, HashFull, Nps, TbHits, SbHits, CpuLoad, String, Refutation, CurrLine]]
-        Info(Box<Info>),
+        Info(Box<Info<'a>>),
         %[parameters = [Name, Type, Default, Min, Max, Var]]
-        Option(Option)
+        Option(Option<'a>)
         =[empty]
         /// The engine is ready for UCI.
         ///
@@ -34,7 +34,7 @@ define_message! {
     }
 }
 
-impl FromStr for Message {
+impl FromStr for Message<'_> {
     type Err = MessageParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

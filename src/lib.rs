@@ -101,12 +101,12 @@ impl<T> OptionReplaceIf<T> for Option<T> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Any message, sent from the engine or GUI.
-pub enum Message {
-    Engine(engine::Message),
-    Gui(gui::Message),
+pub enum Message<'a> {
+    Engine(engine::Message<'a>),
+    Gui(gui::Message<'a>),
 }
 
-impl FromStr for Message {
+impl FromStr for Message<'_> {
     type Err = MessageParseError;
 
     /// Tries to parse one line to a [`Message`].
@@ -169,7 +169,7 @@ impl FromStr for Message {
     }
 }
 
-impl Display for Message {
+impl Display for Message<'_> {
     /// Always end with a newline.
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {

@@ -4,6 +4,7 @@ use ruci::gui::Position;
 use ruci::Engine;
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
+use std::borrow::Cow;
 use std::sync::mpsc;
 use std::thread;
 
@@ -12,7 +13,8 @@ fn main() -> anyhow::Result<()> {
 
     println!("== Sending uci, waiting for uciok");
 
-    let (id, options) = engine.use_uci()?;
+    let mut options = Vec::new();
+    let id = engine.use_uci(|option| options.push(option))?;
 
     println!("== Received uciok");
     println!("== ID: {id:?}");
@@ -20,15 +22,12 @@ fn main() -> anyhow::Result<()> {
 
     println!("== Sending custom FEN with an extra move");
 
-    engine.send(
-        &Position::Fen {
-            fen: Fen::from_ascii(
-                b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5",
-            )?,
-            moves: vec![UciMove::from_ascii(b"b1c3")?],
-        }
-        .into(),
-    )?;
+    engine.send(&Position::Fen {
+        fen: Cow::Owned(Fen::from_ascii(
+            b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5",
+        )?),
+        moves: Cow::Borrowed(&[UciMove::from_ascii(b"b1c3")?]),
+    })?;
 
     println!("== Sending isready, waiting for readyok");
 
@@ -38,7 +37,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut infos = Vec::new();
     let best_move = engine.go(
-        gui::Go {
+        &gui::Go {
             depth: Some(20),
             ..Default::default()
         },
@@ -61,7 +60,7 @@ fn main() -> anyhow::Result<()> {
     });
 
     let _ = engine.go(
-        gui::Go {
+        &gui::Go {
             depth: Some(20),
             ..Default::default()
         },
@@ -73,7 +72,7 @@ fn main() -> anyhow::Result<()> {
     drop(info_sender);
 
     println!("== Sending quit");
-    engine.send(&gui::Quit.into())?;
+    engine.send(gui::Quit)?;
     println!("== Sent. Waiting for info printing thread to finish");
     info_printing_thread.join().unwrap();
     println!("== Program terminated");

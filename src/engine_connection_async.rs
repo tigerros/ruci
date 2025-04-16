@@ -2,6 +2,7 @@ use crate::engine::{BestMove, Id, Info};
 use crate::errors::{ConnectionError, ReadError, ReadWriteError};
 use crate::gui::Go;
 use crate::{engine, gui};
+use core::fmt::Display;
 use std::ffi::OsStr;
 use std::process::Stdio;
 use std::str::FromStr;
@@ -23,7 +24,7 @@ pub struct EngineAsync {
 }
 
 impl EngineAsync {
-    /// Creates a new [`EngineAsync`] from an existing process.
+    /// Creates a new [`Engine`] from an existing process.
     ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
@@ -46,7 +47,7 @@ impl EngineAsync {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Creates a new [`EngineAsync`] from the given path.
+    /// Creates a new [`Engine`] from the given path.
     pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
@@ -61,11 +62,16 @@ impl EngineAsync {
         Self::from_process(&mut process)
     }
 
+    // CLIPPY: Message is implemented for borrows as well
+    #[allow(clippy::needless_pass_by_value)]
     /// Sends a message.
     ///
     /// # Errors
-    /// See [`AsyncWriteExt::write_all`].
-    pub async fn send(&mut self, message: &gui::Message) -> io::Result<()> {
+    /// See [`Write::write_all`].
+    pub async fn send<M>(&mut self, message: M) -> io::Result<()>
+    where
+        M: gui::traits::Message + Display,
+    {
         self.stdin
             .write_all((message.to_string() + "\n").as_bytes())
             .await
@@ -74,7 +80,7 @@ impl EngineAsync {
     /// Skips some lines.
     ///
     /// # Errors
-    /// See [`AsyncBufReadExt::read_line`].
+    /// See [`BufRead::read_line`].
     pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = String::new();
 
@@ -88,7 +94,7 @@ impl EngineAsync {
     #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a [`engine::Message`].
     /// Skips lines which are only composed of whitespace.
-    pub async fn read(&mut self) -> Result<engine::Message, ReadError> {
+    pub async fn read(&mut self) -> Result<engine::Message<'static>, ReadError> {
         let mut line = String::new();
 
         if self.strict {
@@ -124,21 +130,29 @@ impl EngineAsync {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`] and a vec
-    /// of [`Option`](engine::Option)s once the [`UciOk`](engine::UciOk) message is received.
-    pub async fn use_uci(&mut self) -> Result<(Option<Id>, Vec<engine::Option>), ReadWriteError> {
-        self.send(&gui::Uci.into())
-            .await
-            .map_err(ReadWriteError::Write)?;
+    /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`]
+    /// once the [`UciOk`](engine::UciOk) message is received.
+    ///
+    /// When an [`Option`](engine::Option) is encountered, the `option_receiver` function is called.
+    pub async fn use_uci(
+        &mut self,
+        mut option_receiver: impl FnMut(engine::Option<'static>),
+    ) -> Result<Option<Id<'static>>, ReadWriteError> {
+        self.send(gui::Uci).await.map_err(ReadWriteError::Write)?;
 
-        let mut options = Vec::with_capacity(40);
         let mut id = None::<Id>;
 
         loop {
             match self.read().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Option(option) => options.push(option),
-                engine::Message::Id(new_id) => update_id(&mut id, new_id),
-                engine::Message::UciOk(_) => return Ok((id, options)),
+                engine::Message::Option(option) => option_receiver(option),
+                engine::Message::Id(new_id) => {
+                    id = Some(if let Some(id) = id {
+                        id.updated(new_id)
+                    } else {
+                        new_id
+                    });
+                }
+                engine::Message::UciOk(_) => return Ok(id),
                 _ => (),
             }
         }
@@ -151,48 +165,18 @@ impl EngineAsync {
     /// Note that the engine will only send [`BestMove`]
     /// if you configure the message to set a constraint on the engine's calculation.
     ///
-    /// There's examples at the [repo](https://github.com/tigerros/ruci) that shows how you can:
-    ///
-    /// 1. Start calculating in a separate task.
-    /// 2. Save the state to the main task.
-    /// 3. Abort the calculation task.
-    /// 4. Check the results.
-    ///
-    /// Or just do it on the same task and wait for completion.
+    /// There's examples at the [repo](https://github.com/tigerros/ruci) that show this
+    /// function being used concurrently.
     pub async fn go(
         &mut self,
-        message: Go,
-        mut info_fn: impl FnMut(Info),
+        message: &Go<'_>,
+        mut info_receiver: impl AsyncFnMut(Info<'static>),
     ) -> Result<BestMove, ReadWriteError> {
-        self.send(&message.into())
-            .await
-            .map_err(ReadWriteError::Write)?;
+        self.send(message).await.map_err(ReadWriteError::Write)?;
 
         loop {
             match self.read().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => info_fn(*info),
-                engine::Message::BestMove(best_move) => {
-                    return Ok(best_move);
-                }
-                _ => (),
-            }
-        }
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    /// Same as [`Self::go`], but you can pass in an async function.
-    pub async fn go_async(
-        &mut self,
-        message: Go,
-        mut info_fn: impl AsyncFnMut(Info),
-    ) -> Result<BestMove, ReadWriteError> {
-        self.send(&message.into())
-            .await
-            .map_err(ReadWriteError::Write)?;
-
-        loop {
-            match self.read().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Info(info) => info_fn(*info).await,
+                engine::Message::Info(info) => info_receiver(*info).await,
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
                 }
@@ -204,7 +188,7 @@ impl EngineAsync {
     #[allow(clippy::missing_errors_doc)]
     /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
     pub async fn is_ready(&mut self) -> Result<(), ReadWriteError> {
-        self.send(&gui::IsReady.into())
+        self.send(gui::IsReady)
             .await
             .map_err(ReadWriteError::Write)?;
 
@@ -216,31 +200,13 @@ impl EngineAsync {
     }
 }
 
-fn update_id(old_id: &mut Option<Id>, new_id: Id) {
-    let Some(old_id_some) = old_id.take() else {
-        *old_id = Some(new_id);
-        return;
-    };
-
-    *old_id = Some(match (old_id_some, new_id) {
-        (Id::Author(_), Id::Author(author)) => Id::Author(author),
-        (Id::Name(_), Id::Name(name)) => Id::Name(name),
-        (
-            Id::NameAndAuthor { .. } | Id::Author(_) | Id::Name(_),
-            Id::NameAndAuthor { name, author },
-        )
-        | (Id::NameAndAuthor { author: _, name } | Id::Name(name), Id::Author(author))
-        | (Id::NameAndAuthor { author, name: _ } | Id::Author(author), Id::Name(name)) => {
-            Id::NameAndAuthor { name, author }
-        }
-    });
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
-    use crate::engine::{Id, NormalBestMove, OptionType};
+    use crate::engine::{NormalBestMove, OptionType};
+    use crate::gui::Position;
+    use alloc::borrow::Cow;
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
     use shakmaty::uci::UciMove;
@@ -257,35 +223,6 @@ mod tests {
         EngineAsync::from_path(ENGINE_EXE).unwrap()
     }
 
-    #[test]
-    fn update_id() {
-        let mut id = None;
-
-        super::update_id(&mut id, Id::Name("John".to_string()));
-        assert_eq!(id, Some(Id::Name("John".to_string())));
-
-        super::update_id(&mut id, Id::Name("Jane".to_string()));
-        assert_eq!(id, Some(Id::Name("Jane".to_string())));
-
-        super::update_id(&mut id, Id::Author("Doe".to_string()));
-        assert_eq!(
-            id,
-            Some(Id::NameAndAuthor {
-                name: "Jane".to_string(),
-                author: "Doe".to_string()
-            })
-        );
-
-        super::update_id(&mut id, Id::Name("John".to_string()));
-        assert_eq!(
-            id,
-            Some(Id::NameAndAuthor {
-                name: "John".to_string(),
-                author: "Doe".to_string()
-            })
-        );
-    }
-
     #[tokio::test]
     async fn is_ready() {
         let mut engine_conn = engine_conn();
@@ -297,7 +234,7 @@ mod tests {
     async fn skip_lines() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(&gui::Uci.into()).await.unwrap();
+        engine_conn.send(gui::Uci).await.unwrap();
 
         engine_conn.skip_lines(4).await.unwrap();
 
@@ -315,29 +252,28 @@ mod tests {
     async fn analyze_checkmate() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(&gui::Uci.into()).await.unwrap();
+        engine_conn.send(gui::Uci).await.unwrap();
 
         engine_conn
-            .send(
-                &gui::Position::Fen {
-                    moves: Vec::new(),
-                    fen: Fen::from_ascii(
+            .send(&Position::Fen {
+                moves: Cow::Borrowed(&[]),
+                fen: Cow::Owned(
+                    Fen::from_ascii(
                         b"rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3",
                     )
                     .unwrap(),
-                }
-                .into(),
-            )
+                ),
+            })
             .await
             .unwrap();
 
         let best_move = engine_conn
             .go(
-                Go {
+                &Go {
                     depth: Some(5),
                     ..Default::default()
                 },
-                |_| {},
+                async |_| {},
             )
             .await
             .unwrap();
@@ -351,11 +287,11 @@ mod tests {
 
         let best_move = engine_conn
             .go(
-                Go {
+                &Go {
                     depth: Some(15),
                     ..Default::default()
                 },
-                |_| {},
+                async |_| {},
             )
             .await
             .unwrap();
@@ -372,20 +308,17 @@ mod tests {
             }
         );
 
-        engine_conn.send(&gui::UciNewGame.into()).await.unwrap();
+        engine_conn.send(gui::UciNewGame).await.unwrap();
         engine_conn
-            .send(
-                &gui::Position::StartPos {
-                    moves: vec![UciMove::from_ascii(b"d2d4").unwrap()],
-                }
-                .into(),
-            )
+            .send(&Position::StartPos {
+                moves: Cow::Borrowed(&[UciMove::from_ascii(b"d2d4").unwrap()]),
+            })
             .await
             .unwrap();
 
         let best_move = engine_conn
-            .go_async(
-                Go {
+            .go(
+                &Go {
                     depth: Some(25),
                     ..Default::default()
                 },
@@ -415,7 +348,11 @@ mod tests {
 
         let mut engine_conn = engine_conn();
 
-        let (id, options) = engine_conn.use_uci().await.unwrap();
+        let mut options = Vec::new();
+        let id = engine_conn
+            .use_uci(|option| options.push(option))
+            .await
+            .unwrap();
 
         let mut options_str = String::new();
 
@@ -450,8 +387,8 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             id,
             Some(Id::NameAndAuthor {
-                name: "Stockfish 17".to_string(),
-                author: "the Stockfish developers (see AUTHORS file)".to_string()
+                name: "Stockfish 17".into(),
+                author: "the Stockfish developers (see AUTHORS file)".into()
             })
         );
 
@@ -460,9 +397,9 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Debug Log File".to_string(),
+                name: Cow::Borrowed("Debug Log File"),
                 r#type: OptionType::String {
-                    default: Some("<empty>".to_string())
+                    default: Some(Cow::Borrowed("<empty>"))
                 }
             })
         );
@@ -470,9 +407,9 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "NumaPolicy".to_string(),
+                name: Cow::Borrowed("NumaPolicy"),
                 r#type: OptionType::String {
-                    default: Some("auto".to_string())
+                    default: Some(Cow::Borrowed("auto"))
                 }
             })
         );
@@ -480,7 +417,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Threads".to_string(),
+                name: Cow::Borrowed("Threads"),
                 r#type: OptionType::Spin {
                     default: Some(1),
                     min: Some(1),
@@ -492,7 +429,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Hash".to_string(),
+                name: Cow::Borrowed("Hash"),
                 r#type: OptionType::Spin {
                     default: Some(16),
                     min: Some(1),
@@ -504,7 +441,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Clear Hash".to_string(),
+                name: Cow::Borrowed("Clear Hash"),
                 r#type: OptionType::Button
             })
         );
@@ -512,7 +449,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Ponder".to_string(),
+                name: Cow::Borrowed("Ponder"),
                 r#type: OptionType::Check {
                     default: Some(false)
                 }
@@ -522,7 +459,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "MultiPV".to_string(),
+                name: Cow::Borrowed("MultiPV"),
                 r#type: OptionType::Spin {
                     default: Some(1),
                     min: Some(1),
@@ -534,7 +471,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Skill Level".to_string(),
+                name: Cow::Borrowed("Skill Level"),
                 r#type: OptionType::Spin {
                     default: Some(20),
                     min: Some(0),
@@ -546,7 +483,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Move Overhead".to_string(),
+                name: Cow::Borrowed("Move Overhead"),
                 r#type: OptionType::Spin {
                     default: Some(10),
                     min: Some(0),
@@ -558,7 +495,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "nodestime".to_string(),
+                name: Cow::Borrowed("nodestime"),
                 r#type: OptionType::Spin {
                     default: Some(0),
                     min: Some(0),
@@ -570,7 +507,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "UCI_Chess960".to_string(),
+                name: Cow::Borrowed("UCI_Chess960"),
                 r#type: OptionType::Check {
                     default: Some(false)
                 },
@@ -580,7 +517,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "UCI_LimitStrength".to_string(),
+                name: Cow::Borrowed("UCI_LimitStrength"),
                 r#type: OptionType::Check {
                     default: Some(false)
                 }
@@ -590,7 +527,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "UCI_Elo".to_string(),
+                name: Cow::Borrowed("UCI_Elo"),
                 r#type: OptionType::Spin {
                     default: Some(1320),
                     min: Some(1320),
@@ -602,7 +539,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "UCI_ShowWDL".to_string(),
+                name: Cow::Borrowed("UCI_ShowWDL"),
                 r#type: OptionType::Check {
                     default: Some(false)
                 }
@@ -612,9 +549,9 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "SyzygyPath".to_string(),
+                name: Cow::Borrowed("SyzygyPath"),
                 r#type: OptionType::String {
-                    default: Some("<empty>".to_string())
+                    default: Some(Cow::Borrowed("<empty>"))
                 }
             })
         );
@@ -622,7 +559,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "SyzygyProbeDepth".to_string(),
+                name: Cow::Borrowed("SyzygyProbeDepth"),
                 r#type: OptionType::Spin {
                     default: Some(1),
                     min: Some(1),
@@ -634,7 +571,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "Syzygy50MoveRule".to_string(),
+                name: "Syzygy50MoveRule".into(),
                 r#type: OptionType::Check {
                     default: Some(true)
                 }
@@ -644,7 +581,7 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "SyzygyProbeLimit".to_string(),
+                name: "SyzygyProbeLimit".into(),
                 r#type: OptionType::Spin {
                     default: Some(7),
                     min: Some(0),
@@ -656,9 +593,9 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "EvalFile".to_string(),
+                name: "EvalFile".into(),
                 r#type: OptionType::String {
-                    default: Some("nn-1111cefa1111.nnue".to_string())
+                    default: Some("nn-1111cefa1111.nnue".into())
                 }
             })
         );
@@ -666,9 +603,9 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
         assert_eq!(
             options.next(),
             Some(Option {
-                name: "EvalFileSmall".to_string(),
+                name: "EvalFileSmall".into(),
                 r#type: OptionType::String {
-                    default: Some("nn-37f18f62d772.nnue".to_string())
+                    default: Some("nn-37f18f62d772.nnue".into())
                 }
             })
         );
