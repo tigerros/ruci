@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744826345869,
+  "lastUpdate": 1744826798909,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -125,6 +125,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 42.7,
             "range": "± 5.24",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "67263d1383056eedb4146848cc1567f38467a2b5",
+          "message": "Squashed commit of the following:\n\ncommit 1f2b90ae831dfb10c93c7016e876d65551e7e214\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 19:57:57 2025 +0200\n\n    Update README.md\n\ncommit acb634dc1770fac3cfd0c9498ca7ecb202bbc0a6\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 18:27:48 2025 +0200\n\n    Update sort-manifests.yml\n\ncommit fe632a0c639556f462cb47f6d43e1242c564b775\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 18:14:40 2025 +0200\n\n    fix workflows\n\ncommit a47e696710740b04b3aebaff332b3f447afeb905\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 18:09:52 2025 +0200\n\n    improve github workflows, refactor benchmarks\n\ncommit 163abc7b0842af0a8261bf7bfac4ecee92a57fbe\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 03:32:31 2025 +0200\n\n    Update bench.yml\n\ncommit 5c077d8e5d7cd0886e8b01e2b474ca95af0571f4\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 03:28:56 2025 +0200\n\n    update readme, workflow\n\ncommit cae155d5fb0968a12b56bede1577b64a6678f88f\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 02:16:37 2025 +0200\n\n    Update bench.yml\n\ncommit 4a8cd63141881a6e9cf45a74ea49d867a8bf7b72\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 02:11:03 2025 +0200\n\n    fmt\n\ncommit 80b7f2575d470ce174a76804b99c49857bf8ad1f\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 02:08:56 2025 +0200\n\n    fix\n\ncommit d0d492eccd078b6eee972fbd8f8db500f9cf6cc2\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 02:04:38 2025 +0200\n\n    benchmark workflow\n\ncommit f510ec1188a38f46d41230e389e7e4ccb3905fec\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Wed Apr 16 01:32:03 2025 +0200\n\n    use libtest instead of criterion\n\ncommit 726b87a897d04a66ca815829ef5f0b27a3a78a2d\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Tue Apr 15 22:10:47 2025 +0200\n\n    add Id::updated\n\ncommit af182a46ecaf2567e2f48f252fd90d89dea9e9d8\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Tue Apr 15 20:44:44 2025 +0200\n\n    polishing\n\ncommit 1484f6411fe1318066fa50f8fee7b0642c469d91\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Tue Apr 15 20:14:32 2025 +0200\n\n    benchjes\n\ncommit 20472f3bb831e27e510b085e228ec846f13894ce\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Tue Apr 15 18:46:47 2025 +0200\n\n    finish?\n\ncommit 9d714378c02840116c3dc13c79d5e08ea7d5dc5f\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Tue Apr 15 02:54:06 2025 +0200\n\n    almost\n\ncommit 6ff781bdfcb2ef4ec670f836f5530073f09d8a5a\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Sat Apr 12 20:29:02 2025 +0200\n\n    wip\n\ncommit 6f5f607c4876c9777b44cfa248a0a85207f938e5\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Sat Apr 12 19:47:32 2025 +0200\n\n    Update from_str_parts.rs\n\ncommit 9f4c2d4e66ebab489edef2295301c999f42713ba\nAuthor: tigerros <aurel.leonard.danel@gmail.com>\nDate:   Tue Apr 8 18:49:09 2025 +0200\n\n    cow rework wip",
+          "timestamp": "2025-04-16T20:05:17+02:00",
+          "tree_id": "2388a665d435a80e558b81e749d8ce614d9a6c7d",
+          "url": "https://github.com/tigerros/ruci/commit/67263d1383056eedb4146848cc1567f38467a2b5"
+        },
+        "date": 1744826796495,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 984.69,
+            "range": "± 20.96",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3047.97,
+            "range": "± 76.05",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 27603.28,
+            "range": "± 688.82",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 22.71,
+            "range": "± 0.28",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 612.38,
+            "range": "± 9.89",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2336.09,
+            "range": "± 30.80",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 196.41,
+            "range": "± 1.74",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 210.28,
+            "range": "± 2.56",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 390.99,
+            "range": "± 6.84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 473.72,
+            "range": "± 8.15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 99.28,
+            "range": "± 1.45",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 156.06,
+            "range": "± 2.35",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 264.25,
+            "range": "± 3.47",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 277.44,
+            "range": "± 3.39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.42,
+            "range": "± 3.76",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.92,
+            "range": "± 0.57",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 42.67,
+            "range": "± 0.45",
             "unit": "ns/iter"
           }
         ]
