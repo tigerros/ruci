@@ -10,6 +10,7 @@ use crate::{parsing, uci_moves, OptionReplaceIf};
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::{PositionParameterPointer};
+use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

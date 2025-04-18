@@ -1,7 +1,7 @@
-use crate::engine::{BestMove, Id, Info};
 use crate::errors::{ConnectionError, ReadError, ReadWriteError};
-use crate::gui::Go;
+use crate::Go;
 use crate::{engine, gui};
+use crate::{BestMove, Id, Info};
 use core::fmt::Display;
 use std::ffi::OsStr;
 use std::process::Stdio;
@@ -24,7 +24,7 @@ pub struct EngineAsync {
 }
 
 impl EngineAsync {
-    /// Creates a new [`Engine`] from an existing process.
+    /// Creates a new [`EngineAsync`] from an existing process.
     ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
@@ -47,7 +47,7 @@ impl EngineAsync {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Creates a new [`Engine`] from the given path.
+    /// Creates a new [`EngineAsync`] from the given path.
     pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
@@ -67,7 +67,7 @@ impl EngineAsync {
     /// Sends a message.
     ///
     /// # Errors
-    /// See [`Write::write_all`].
+    /// See [`AsyncWriteExt::write_all`].
     pub async fn send<M>(&mut self, message: M) -> io::Result<()>
     where
         M: gui::traits::Message + Display,
@@ -80,12 +80,18 @@ impl EngineAsync {
     /// Skips some lines.
     ///
     /// # Errors
-    /// See [`BufRead::read_line`].
+    /// See [`AsyncBufReadExt::read_until`].
     pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
-        let mut buf = String::new();
+        let mut buf = Vec::with_capacity(512);
 
         for _ in 0..count {
-            self.stdout.read_line(&mut buf).await?;
+            let bytes = self.stdout.read_until(b'\n', &mut buf).await?;
+
+            if bytes == 0 {
+                break;
+            }
+
+            buf.clear();
         }
 
         Ok(())
@@ -136,9 +142,9 @@ impl EngineAsync {
     /// When an [`Option`](engine::Option) is encountered, the `option_receiver` function is called.
     pub async fn use_uci(
         &mut self,
-        mut option_receiver: impl FnMut(engine::Option<'static>),
+        mut option_receiver: impl FnMut(crate::Option<'static>),
     ) -> Result<Option<Id<'static>>, ReadWriteError> {
-        self.send(gui::Uci).await.map_err(ReadWriteError::Write)?;
+        self.send(crate::Uci).await.map_err(ReadWriteError::Write)?;
 
         let mut id = None::<Id>;
 
@@ -188,7 +194,7 @@ impl EngineAsync {
     #[allow(clippy::missing_errors_doc)]
     /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
     pub async fn is_ready(&mut self) -> Result<(), ReadWriteError> {
-        self.send(gui::IsReady)
+        self.send(crate::IsReady)
             .await
             .map_err(ReadWriteError::Write)?;
 
@@ -204,8 +210,8 @@ impl EngineAsync {
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
-    use crate::engine::{NormalBestMove, OptionType};
-    use crate::gui::Position;
+    use crate::Position;
+    use crate::{NormalBestMove, OptionType};
     use alloc::borrow::Cow;
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
@@ -234,7 +240,7 @@ mod tests {
     async fn skip_lines() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(gui::Uci).await.unwrap();
+        engine_conn.send(crate::Uci).await.unwrap();
 
         engine_conn.skip_lines(4).await.unwrap();
 
@@ -252,10 +258,10 @@ mod tests {
     async fn analyze_checkmate() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(gui::Uci).await.unwrap();
+        engine_conn.send(crate::Uci).await.unwrap();
 
         engine_conn
-            .send(&Position::Fen {
+            .send(Position::Fen {
                 moves: Cow::Borrowed(&[]),
                 fen: Cow::Owned(
                     Fen::from_ascii(
@@ -308,9 +314,9 @@ mod tests {
             }
         );
 
-        engine_conn.send(gui::UciNewGame).await.unwrap();
+        engine_conn.send(crate::UciNewGame).await.unwrap();
         engine_conn
-            .send(&Position::StartPos {
+            .send(Position::StartPos {
                 moves: Cow::Borrowed(&[UciMove::from_ascii(b"d2d4").unwrap()]),
             })
             .await
@@ -343,8 +349,8 @@ mod tests {
     #[allow(clippy::too_many_lines)]
     #[tokio::test]
     async fn use_uci() {
+        use crate::{Id, Option};
         use core::fmt::Write;
-        use engine::{Id, Option};
 
         let mut engine_conn = engine_conn();
 

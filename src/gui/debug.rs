@@ -1,6 +1,7 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
+use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -10,7 +11,7 @@ use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 /// <https://backscattering.de/chess/uci/#gui-debug>
 pub struct Debug(pub bool);
 
-impl_message!(copy Debug);
+impl_message!(Debug);
 message_from_impl!(gui Debug);
 from_str_parts!(impl Debug for parts -> Result {
     for part in parts {

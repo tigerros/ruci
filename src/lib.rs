@@ -32,29 +32,26 @@
 #![cfg_attr(not(feature = "engine-sync"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
-//! You can get started with [`Message`], but keep in mind that all messages (even those which
-//! are void, like [`UciOk`]), implement [`FromStr`] and [`Display`], so you can (and should) use them
-//! individually.
-//!
-//! # A note on "layers"
-//! The [`Message`] enum wraps around the engine/GUI variants, which wraps around a specific message,
-//! which is a lot of layers.
-//!
-//! So if you use the more general enums like the top-level [`Message`],
-//! you might find yourself writing code like:
-//!
-//! ```ignore
-//! Message::Gui(gui::Message::Go(gui::Go { .. }))
+//! # A note on message enums
+//! If you write something like:
+//! ```rust
+//! # use ruci::{engine, Info, Message};
+//! # use ruci::gui;
+//! # use ruci::Go;
+//! let _: engine::Message = engine::Message::Info(Box::new(Info::default()));
+//! let _: Message = Message::Gui(gui::Message::Go(Go::default()));
 //! ```
 //!
-//! Know that there is an easier way! The "higher level" messages implement [`From`] for the "lower level"
-//! messages, which means that [`Message`] and [`gui::Message`] implement [`From`] for [`Go`] (or any other message).
-//!
-//! So just do:
-//!
-//! ```ignore
-//! gui::Go { .. }.into()
+//! Use instead:
+//! ```rust
+//! # use ruci::{engine, Info, Message};
+//! # use ruci::gui;
+//! # use ruci::Go;
+//! let _: engine::Message = Info::default().into();
+//! let _: Message = Go::default().into();
 //! ```
+//!
+//! In short, lower level messages can be converted to the higher level.
 //!
 //! # A note on [`Display`] impls
 //! [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
@@ -72,10 +69,6 @@ pub mod gui;
 mod parsing;
 mod uci_moves;
 
-use crate::engine::{BestMove, CopyProtection, Id, Info, ReadyOk, Registration, UciOk};
-use crate::gui::{
-    Debug, Go, IsReady, PonderHit, Position, Quit, Register, SetOption, Stop, Uci, UciNewGame,
-};
 use core::fmt::{Display, Formatter};
 use core::str::FromStr;
 #[cfg(feature = "engine-sync")]
@@ -85,12 +78,13 @@ pub use engine_connection::*;
 #[cfg_attr(docsrs, doc(cfg(feature = "engine-async")))]
 pub use engine_connection_async::*;
 pub use errors::*;
+pub use {engine::*, gui::*};
 
 pub(crate) trait OptionReplaceIf<T> {
-    fn replace_if(&mut self, other: Option<T>);
+    fn replace_if(&mut self, other: core::option::Option<T>);
 }
 
-impl<T> OptionReplaceIf<T> for Option<T> {
+impl<T> OptionReplaceIf<T> for core::option::Option<T> {
     fn replace_if(&mut self, other: Self) {
         if let Some(other) = other {
             *self = Some(other);
@@ -105,6 +99,21 @@ pub enum Message<'a> {
     Engine(engine::Message<'a>),
     Gui(gui::Message<'a>),
 }
+
+pub mod traits {
+    pub(crate) mod sealed {
+        pub trait Message {}
+    }
+
+    /// Marks all message types and their references.
+    /// Intentionally sealed.
+    pub trait Message: sealed::Message {}
+}
+
+impl traits::sealed::Message for Message<'_> {}
+impl traits::Message for Message<'_> {}
+impl traits::sealed::Message for &'_ Message<'_> {}
+impl traits::Message for &'_ Message<'_> {}
 
 impl FromStr for Message<'_> {
     type Err = MessageParseError;
@@ -137,7 +146,7 @@ impl FromStr for Message<'_> {
                     Ok(Info::from_str_parts_message_assumed(parts).into())
                 }
                 engine::pointers::MessagePointer::Option => {
-                    Ok(engine::Option::from_str_parts_message_assumed(parts)?.into())
+                    Ok(Option::from_str_parts_message_assumed(parts)?.into())
                 }
             },
             MessagePointer::Gui(gui) => match gui {

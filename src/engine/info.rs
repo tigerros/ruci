@@ -9,7 +9,8 @@ use shakmaty::Color;
 use shakmaty::uci::UciMove;
 use crate::{parsing, uci_moves, OptionReplaceIf};
 use crate::engine::pointers::InfoParameterPointer;
-use crate::dev_macros::from_str_parts;
+use crate::dev_macros::{from_str_parts, impl_message};
+use super::{pointers, traits};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -253,6 +254,7 @@ impl<'a> From<Info<'a>> for crate::engine::Message<'a> {
     }
 }
 
+impl_message!(Info<'_>);
 from_str_parts!(impl Info<'a> for parts -> Self {
     let mut this = Self::default();
     // Need to handle depth like this in case the seldepth argument comes before the depth argument.

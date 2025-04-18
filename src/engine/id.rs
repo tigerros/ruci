@@ -5,8 +5,9 @@ use alloc::borrow::{Cow, ToOwned};
 use core::fmt::{Display, Formatter};
 use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::parsing;
+use super::{pointers, traits};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -79,6 +80,7 @@ impl Id<'_> {
     }
 }
 
+impl_message!(Id<'_>);
 message_from_impl!(engine Id<'a>);
 from_str_parts!(impl Id<'a> for parts -> Result {
     let mut name = None::<String>;

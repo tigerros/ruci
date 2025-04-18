@@ -15,67 +15,60 @@ macro_rules! define_message {
             ),*
         }
     ) => {
-        $(
-        ::paste::paste! {
-            mod [< $empty_message_ident:snake >] {
-                #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-                #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-                $(#[$empty_message_attr])*
-                #[doc = concat!("\n\n<https://backscattering.de/chess/uci/#", stringify!([< $ident:lower >]), "-", stringify!([< $empty_message_ident:lower >]), ">")]
-                pub struct $empty_message_ident;
-
-                impl super::traits::sealed::Message for $empty_message_ident {}
-                impl super::traits::Message for $empty_message_ident {}
-                $crate::dev_macros::message_from_impl!([< $ident:lower >] $empty_message_ident);
-                $crate::dev_macros::from_str_parts!(impl $empty_message_ident for _parts -> Self  {
-                    Self
-                });
-
-                impl ::core::fmt::Display for $empty_message_ident {
-                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> core::fmt::Result {
-                        f.write_str(stringify!([< $empty_message_ident:lower >]))
-                    }
-                }
-
-                #[cfg(test)]
-                mod tests {
-                    extern crate alloc;
-
-                    use alloc::string::ToString;
-                    use super::$empty_message_ident;
-                    use crate::{Message, errors::MessageParseError};
-                    use pretty_assertions::{assert_eq, assert_matches};
-                    use core::str::FromStr;
-
-                    #[test]
-                    fn to_from_str() {
-                        let repr: Message = $empty_message_ident.into();
-
-                        assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
-                        assert_eq!(Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), " ddd")), Ok(repr));
-
-                        let repr: super::super::Message = $empty_message_ident.into();
-
-                        assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
-                        assert_eq!(super::super::Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), "  \t foo\n\n")), Ok(repr));
-                    }
-
-                    #[test]
-                    fn parse_error() {
-                        assert_matches!($empty_message_ident::from_str("nope"), Err(MessageParseError::NoMessage { .. }))
-                    }
+        $(::paste::paste! {
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+            $(#[$empty_message_attr])*
+            #[doc = concat!("\n\n<https://backscattering.de/chess/uci/#", stringify!([< $ident:lower >]), "-", stringify!([< $empty_message_ident:lower >]), ">")]
+            pub struct $empty_message_ident;
+            
+            $crate::dev_macros::impl_message!($empty_message_ident);
+            $crate::dev_macros::message_from_impl!([< $ident:lower >] $empty_message_ident);
+            $crate::dev_macros::from_str_parts!(impl $empty_message_ident for _parts -> Self  {
+                Self
+            });
+            
+            impl ::core::fmt::Display for $empty_message_ident {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> core::fmt::Result {
+                    f.write_str(stringify!([< $empty_message_ident:lower >]))
                 }
             }
-
-            pub use [< $empty_message_ident:snake >]::*;
-        }
-        )*
+        })*
+        
+        #[cfg(test)]
+        mod tests {$(::paste::paste! {
+            mod [< $empty_message_ident:snake >] {
+                extern crate alloc;
+                use alloc::string::ToString;
+                use crate::{Message, errors::MessageParseError};
+                use pretty_assertions::{assert_eq, assert_matches};
+                use core::str::FromStr;
+                use super::super::$empty_message_ident;
+                
+                #[test]
+                fn to_from_str() {
+                    let repr: Message = $empty_message_ident.into();
+                    assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
+                    assert_eq!(Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), " ddd")), Ok(repr));
+                    let repr: super::super::super::Message = $empty_message_ident.into();
+                    assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
+                    assert_eq!(super::super::super::Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), "  \t foo\n\n")), Ok(repr));
+                }
+                
+                #[test]
+                fn parse_error() {
+                    assert_matches!($empty_message_ident::from_str("nope"), Err(MessageParseError::NoMessage { .. }))
+                }
+            }
+        })*}
         
         pub mod traits {
             pub(crate) mod sealed {
                 pub trait Message {}
             }
-            
+
+            /// Marks [`super`] message types and their references.
+            /// Intentionally sealed.
             pub trait Message: sealed::Message {}
         }
 
@@ -93,8 +86,7 @@ macro_rules! define_message {
             )*
         }
 
-        impl traits::sealed::Message for Message<'_> {}
-        impl traits::Message for Message<'_> {}
+        $crate::dev_macros::impl_message!(Message<'_>);
         impl<'a> ::core::convert::From<Message<'a>> for $crate::Message<'a> {
             fn from(value: Message<'a>) -> Self {
                 Self::$ident(value)

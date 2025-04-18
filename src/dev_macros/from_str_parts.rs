@@ -36,7 +36,7 @@ macro_rules! from_str_parts {
             #[doc = $crate::dev_macros::from_str_parts!(@from_str_docs=$ret)]
             fn from_str(s: &str) -> Result<Self, $crate::MessageParseError> {
                 let parts = $crate::parsing::collect_message(
-                    super::pointers::MessagePointer::$message.to_string(),
+                    pointers::MessagePointer::$message.to_string(),
                     s,
                 )?;
                 $crate::dev_macros::from_str_parts!(@from_str_ret=$ret(parts))
@@ -62,7 +62,7 @@ macro_rules! from_str_parts {
             #[doc = $crate::dev_macros::from_str_parts!(@from_str_docs=$ret)]
             fn from_str(s: &str) -> Result<Self, $crate::MessageParseError> {
                 let parts = $crate::parsing::collect_message(
-                    super::pointers::MessagePointer::$message.to_string(),
+                    pointers::MessagePointer::$message.to_string(),
                     s,
                 )?;
                 $crate::dev_macros::from_str_parts!(@from_str_ret=$ret(parts))

@@ -1,6 +1,7 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
+use super::{pointers, traits};
 
 /// Engine's registration status.
 ///
@@ -16,7 +17,7 @@ pub enum Registration {
     Error,
 }
 
-impl_message!(copy Registration);
+impl_message!(Registration);
 message_from_impl!(engine Registration);
 from_str_parts!(impl Registration for parts -> Result {
     for part in parts {

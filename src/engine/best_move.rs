@@ -4,6 +4,7 @@ use core::fmt::{Display, Formatter};
 use shakmaty::uci::UciMove;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::OptionReplaceIf;
+use super::{pointers, traits};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

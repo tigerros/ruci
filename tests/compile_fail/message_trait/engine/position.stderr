@@ -1,0 +1,23 @@
+error[E0277]: the trait bound `ruci::Position<'_>: ruci::engine::traits::Message` is not satisfied
+ --> tests/compile_fail/message_trait/engine/position.rs:3:7
+  |
+3 |     a(m);
+  |     - ^ the trait `ruci::engine::traits::Message` is not implemented for `ruci::Position<'_>`
+  |     |
+  |     required by a bound introduced by this call
+  |
+  = help: the following other types implement trait `ruci::engine::traits::Message`:
+            &ruci::BestMove
+            &ruci::CopyProtection
+            &ruci::Id<'_>
+            &ruci::Info<'_>
+            &ruci::Option<'_>
+            &ruci::ReadyOk
+            &ruci::Registration
+            &ruci::UciOk
+          and $N others
+note: required by a bound in `a`
+ --> tests/compile_fail/message_trait/engine/position.rs:1:14
+  |
+1 | fn a(_: impl ruci::engine::traits::Message) {}
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `a`

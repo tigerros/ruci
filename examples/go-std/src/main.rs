@@ -1,7 +1,3 @@
-use ruci::engine::Info;
-use ruci::gui;
-use ruci::gui::Position;
-use ruci::Engine;
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 use std::borrow::Cow;
@@ -9,7 +5,7 @@ use std::sync::mpsc;
 use std::thread;
 
 fn main() -> anyhow::Result<()> {
-    let mut engine = Engine::from_path("stockfish")?;
+    let mut engine = ruci::Engine::from_path("stockfish")?;
 
     println!("== Sending uci, waiting for uciok");
 
@@ -21,8 +17,9 @@ fn main() -> anyhow::Result<()> {
     println!("== Options: {options:?}");
 
     println!("== Sending custom FEN with an extra move");
-
-    engine.send(&Position::Fen {
+    
+    // You can also use a reference
+    engine.send(ruci::Position::Fen {
         fen: Cow::Owned(Fen::from_ascii(
             b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5",
         )?),
@@ -37,7 +34,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut infos = Vec::new();
     let best_move = engine.go(
-        &gui::Go {
+        &ruci::Go {
             depth: Some(20),
             ..Default::default()
         },
@@ -49,7 +46,7 @@ fn main() -> anyhow::Result<()> {
 
     println!("== Sending go again, this time receiving and printing them async");
 
-    let (info_sender, info_receiver) = mpsc::channel::<Info>();
+    let (info_sender, info_receiver) = mpsc::channel::<ruci::Info>();
 
     let info_printing_thread = thread::spawn(move || {
         while let Ok(info) = info_receiver.recv() {
@@ -60,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     });
 
     let _ = engine.go(
-        &gui::Go {
+        &ruci::Go {
             depth: Some(20),
             ..Default::default()
         },
@@ -72,7 +69,7 @@ fn main() -> anyhow::Result<()> {
     drop(info_sender);
 
     println!("== Sending quit");
-    engine.send(gui::Quit)?;
+    engine.send(ruci::Quit)?;
     println!("== Sent. Waiting for info printing thread to finish");
     info_printing_thread.join().unwrap();
     println!("== Program terminated");

@@ -26,9 +26,9 @@ define_message! {
         Uci,
         /// Asks the engine if it is ready.
         ///
-        /// Once ready, engine replies with [`ReadyOk`](crate::engine::ReadyOk).
+        /// Once ready, engine replies with [`ReadyOk`](crate::ReadyOk).
         IsReady,
-        /// Tells the engine to start a new game with the next [`Position`](super::Position) or [`Go`](super::Go).
+        /// Tells the engine to start a new game with the next [`Position`](crate::Position) or [`Go`](crate::Go).
         UciNewGame,
         /// Tells the engine to stop calculating.
         Stop,

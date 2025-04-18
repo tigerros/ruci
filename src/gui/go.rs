@@ -9,6 +9,7 @@ use shakmaty::uci::UciMove;
 use crate::{parsing, uci_moves, OptionReplaceIf};
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::gui::pointers::GoParameterPointer;
+use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]

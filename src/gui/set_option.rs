@@ -7,6 +7,7 @@ use crate::errors::MessageParseError;
 use crate::gui::pointers::{SetOptionParameterPointer};
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::parsing;
+use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

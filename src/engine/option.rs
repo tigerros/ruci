@@ -7,8 +7,9 @@ use core::fmt::{Display, Formatter};
 use core::str::FromStr;
 use crate::engine::pointers::OptionParameterPointer;
 use crate::errors::MessageParseError;
-use crate::dev_macros::{from_str_parts, message_from_impl};
+use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::{parsing, OptionReplaceIf};
+use super::{pointers, traits};
 
 enum BlankOptionType {
     Check,
@@ -149,6 +150,7 @@ pub struct Option<'a> {
     pub r#type: OptionType<'a>,
 }
 
+impl_message!(Option<'_>);
 message_from_impl!(engine Option<'a>);
 from_str_parts!(impl Option<'a> for parts -> Result {
     let mut name = None::<String>;
