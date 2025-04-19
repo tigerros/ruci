@@ -100,7 +100,7 @@ impl EngineAsync {
     #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a [`engine::Message`].
     /// Skips lines which are only composed of whitespace.
-    pub async fn read(&mut self) -> Result<engine::Message<'static>, ReadError> {
+    pub async fn read<'m>(&mut self) -> Result<engine::Message<'m>, ReadError> {
         let mut line = String::new();
 
         if self.strict {
@@ -140,10 +140,10 @@ impl EngineAsync {
     /// once the [`UciOk`](engine::UciOk) message is received.
     ///
     /// When an [`Option`](engine::Option) is encountered, the `option_receiver` function is called.
-    pub async fn use_uci(
+    pub async fn use_uci<'m>(
         &mut self,
-        mut option_receiver: impl FnMut(crate::Option<'static>),
-    ) -> Result<Option<Id<'static>>, ReadWriteError> {
+        mut option_receiver: impl FnMut(crate::Option<'m>),
+    ) -> Result<Option<Id<'m>>, ReadWriteError> {
         self.send(crate::Uci).await.map_err(ReadWriteError::Write)?;
 
         let mut id = None::<Id>;
@@ -173,10 +173,10 @@ impl EngineAsync {
     ///
     /// There's examples at the [repo](https://github.com/tigerros/ruci) that show this
     /// function being used concurrently.
-    pub async fn go(
+    pub async fn go<'m>(
         &mut self,
         message: &Go<'_>,
-        mut info_receiver: impl AsyncFnMut(Info<'static>),
+        mut info_receiver: impl AsyncFnMut(Info<'m>),
     ) -> Result<BestMove, ReadWriteError> {
         self.send(message).await.map_err(ReadWriteError::Write)?;
 
@@ -234,6 +234,18 @@ mod tests {
         let mut engine_conn = engine_conn();
 
         engine_conn.is_ready().await.unwrap();
+    }
+    
+    // CLIPPY: It's literally used???
+    #[tokio::test]
+    #[allow(clippy::extra_unused_lifetimes)]
+    async fn lifetimes<'a>() {
+        let mut engine_conn = engine_conn();
+        
+        if engine_conn.read().await.unwrap() == engine::Message::Option(crate::Option {
+            name: Cow::Borrowed::<'a>(""),
+            r#type: OptionType::Button
+        }) {}
     }
 
     #[tokio::test]
