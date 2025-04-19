@@ -297,24 +297,26 @@ mod tests {
     fn engine_conn() -> Engine {
         Engine::from_path(ENGINE_EXE).unwrap()
     }
-    
+
     #[test]
     fn is_ready() {
         let mut engine_conn = engine_conn();
 
         engine_conn.is_ready().unwrap();
     }
-    
+
     // CLIPPY: It's literally used???
     #[test]
     #[allow(clippy::extra_unused_lifetimes)]
     fn lifetimes<'a>() {
         let mut engine_conn = engine_conn();
 
-        if engine_conn.read().unwrap() == engine::Message::Option(crate::Option {
-            name: Cow::Borrowed::<'a>(""),
-            r#type: OptionType::Button
-        }) {}
+        if engine_conn.read().unwrap()
+            == engine::Message::Option(crate::Option {
+                name: Cow::Borrowed::<'a>(""),
+                r#type: OptionType::Button,
+            })
+        {}
     }
 
     #[test]

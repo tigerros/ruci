@@ -235,17 +235,19 @@ mod tests {
 
         engine_conn.is_ready().await.unwrap();
     }
-    
+
     // CLIPPY: It's literally used???
     #[tokio::test]
     #[allow(clippy::extra_unused_lifetimes)]
     async fn lifetimes<'a>() {
         let mut engine_conn = engine_conn();
-        
-        if engine_conn.read().await.unwrap() == engine::Message::Option(crate::Option {
-            name: Cow::Borrowed::<'a>(""),
-            r#type: OptionType::Button
-        }) {}
+
+        if engine_conn.read().await.unwrap()
+            == engine::Message::Option(crate::Option {
+                name: Cow::Borrowed::<'a>(""),
+                r#type: OptionType::Button,
+            })
+        {}
     }
 
     #[tokio::test]
