@@ -84,14 +84,14 @@ impl Engine {
     /// See [`BufRead::read_until`].
     pub fn skip_lines(&mut self, count: usize) -> io::Result<()> {
         let mut buf = Vec::with_capacity(512);
-        
+
         for _ in 0..count {
             let bytes = self.stdout.read_until(b'\n', &mut buf)?;
-            
+
             if bytes == 0 {
                 break;
             }
-            
+
             buf.clear();
         }
 

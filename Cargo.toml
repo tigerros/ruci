@@ -36,8 +36,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 pretty_assertions = { version = "1", features = ["unstable"] }
 shakmaty-uci = { version = "~0.1" }
 tokio = { workspace = true, features = ["full"] }
-vampirc-uci = { version = "~0.11" }
 trybuild = "1"
+vampirc-uci = { version = "~0.11" }
 
 [[bench]]
 name = "to_str"

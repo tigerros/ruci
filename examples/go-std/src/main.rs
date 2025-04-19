@@ -17,7 +17,7 @@ fn main() -> anyhow::Result<()> {
     println!("== Options: {options:?}");
 
     println!("== Sending custom FEN with an extra move");
-    
+
     // You can also use a reference
     engine.send(ruci::Position::Fen {
         fen: Cow::Owned(Fen::from_ascii(
