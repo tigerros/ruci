@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744997910871,
+  "lastUpdate": 1745022651556,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -629,6 +629,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 42.16,
             "range": "± 0.79",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "996e76bf6d0ec06dd9271addb7d19b600820ee11",
+          "message": "fmt sort",
+          "timestamp": "2025-04-19T02:29:38+02:00",
+          "tree_id": "59e943229bc6a966550ce342a7d714e52d8edb0d",
+          "url": "https://github.com/tigerros/ruci/commit/996e76bf6d0ec06dd9271addb7d19b600820ee11"
+        },
+        "date": 1745022648749,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 1021.38,
+            "range": "± 21.37",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3116.75,
+            "range": "± 46.21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 27905.81,
+            "range": "± 413.64",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 22.68,
+            "range": "± 0.21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 647.32,
+            "range": "± 21.35",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2319.63,
+            "range": "± 36.63",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 196.24,
+            "range": "± 3.27",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 208.01,
+            "range": "± 3.98",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 395.03,
+            "range": "± 5.69",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 480.45,
+            "range": "± 14.80",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 97.04,
+            "range": "± 1.82",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 148.25,
+            "range": "± 64.45",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 262.62,
+            "range": "± 3.11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 291.79,
+            "range": "± 4.89",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.44,
+            "range": "± 0.29",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.34,
+            "range": "± 0.52",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 42.09,
+            "range": "± 0.83",
             "unit": "ns/iter"
           }
         ]
