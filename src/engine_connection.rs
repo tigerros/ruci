@@ -305,11 +305,12 @@ mod tests {
         engine_conn.is_ready().unwrap();
     }
 
+    /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
-    #[test]
     #[allow(clippy::extra_unused_lifetimes)]
-    fn lifetimes<'a>() {
+    fn _lifetimes<'a>() {
         let mut engine_conn = engine_conn();
+        engine_conn.is_ready().unwrap();
 
         if engine_conn.read().unwrap()
             == engine::Message::Option(crate::Option {

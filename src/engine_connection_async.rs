@@ -236,11 +236,12 @@ mod tests {
         engine_conn.is_ready().await.unwrap();
     }
 
+    /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
-    #[tokio::test]
     #[allow(clippy::extra_unused_lifetimes)]
-    async fn lifetimes<'a>() {
+    async fn _lifetimes<'a>() {
         let mut engine_conn = engine_conn();
+        engine_conn.is_ready().await.unwrap();
 
         if engine_conn.read().await.unwrap()
             == engine::Message::Option(crate::Option {
