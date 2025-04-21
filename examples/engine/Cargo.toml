@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ruci = { workspace = true, features = ["engine-sync"] }
 anyhow = { workspace = true }
+ruci = { workspace = true, features = ["engine-sync"] }
 shakmaty = { workspace = true }

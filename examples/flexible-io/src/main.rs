@@ -1,4 +1,4 @@
-//! This example shows the flexibility of the [`Engine`] struct, by: 
+//! This example shows the flexibility of the [`Engine`] struct, by:
 //! - Using other [`BufRead`](std::io::BufRead) and [`Write`](std::io::Write) types rather than
 //!   [`ChildStdout`](std::process::ChildStdout) and [`ChildStdin`](std::process::ChildStdin)
 //!   like in the other examples.
@@ -16,18 +16,21 @@ async fn main() -> anyhow::Result<()> {
     let mut engine = Engine {
         r#in,
         out,
-        strict: false
+        strict: false,
     };
 
     println!("1. Sending uci");
     let id = engine.use_uci(|_| {})?;
     println!("1. Received uciok and id: {id:#?}");
-    assert_eq!(id, Some(Id::NameAndAuthor {
-        name: "stringerton".into(),
-        author: "tigerros".into()
-    }));
+    assert_eq!(
+        id,
+        Some(Id::NameAndAuthor {
+            name: "stringerton".into(),
+            author: "tigerros".into()
+        })
+    );
     println!("1. Output bytes: {:?}", engine.out);
-    
+
     println!();
 
     println!("2. Setting input to readyok");
