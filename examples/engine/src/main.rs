@@ -1,11 +1,11 @@
 //! This example demonstrates a possible implementation of an engine.
-//! All information is done through UCI, using the [`Info`] message when another message is not
+//! All communication is done with UCI, using the [`Info`] message when another message is not
 //! more appropriate.
 //!
 //! Accepts the following messages:
 //! - [`Uci`](ruci::Uci)
 //! - [`Position`](ruci::Position)
-//! - [`Go`](ruci::Go) - no analysis, just outputs the first move.
+//! - [`Go`](ruci::Go) - no analysis, just outputs the first legal move [`shakmaty`] finds.
 //! - [`Quit`](ruci::Quit)
 
 use ruci::gui::Message;
