@@ -6,8 +6,6 @@ use core::fmt::Display;
 use std::ffi::OsStr;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use std::process::Stdio;
 use std::process::{Child, ChildStdin, ChildStdout, Command};
 use std::str::FromStr;
@@ -57,11 +55,6 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
     pub fn from_path(path: impl AsRef<OsStr>, strict: bool) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
-
-        #[cfg(windows)]
-        // CREATE_NO_WINDOW
-        // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
-        let cmd = cmd.creation_flags(0x0800_0000);
 
         let mut process = cmd.spawn().map_err(ConnectionError::Spawn)?;
 
@@ -311,27 +304,27 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine_conn() -> Engine<BufReader<ChildStdout>, ChildStdin> {
+    fn engine() -> Engine<BufReader<ChildStdout>, ChildStdin> {
         Engine::<BufReader<ChildStdout>, ChildStdin>::from_path(ENGINE_EXE, false).unwrap()
     }
 
     #[test]
     fn is_ready() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.is_ready().unwrap();
+        engine.is_ready().unwrap();
     }
 
     /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
     fn _lifetimes<'a>() {
-        let mut engine_conn = engine_conn();
-        engine_conn.is_ready().unwrap();
+        let mut engine = engine();
+        engine.is_ready().unwrap();
 
-        let _: engine::Message<'static> = engine_conn.read::<engine::Message>().unwrap();
+        let _: engine::Message<'static> = engine.read::<engine::Message>().unwrap();
 
-        if engine_conn.read::<engine::Message>().unwrap()
+        if engine.read::<engine::Message>().unwrap()
             == engine::Message::Option(crate::Option {
                 name: Cow::Borrowed::<'a>(""),
                 r#type: OptionType::Button,
@@ -340,15 +333,54 @@ mod tests {
     }
 
     #[test]
+    fn strict() {
+        let mut engine = engine();
+
+        engine.strict = true;
+
+        // Stockfish sends an unrecognized string at the very beginning
+        assert!(matches!(
+            engine.use_uci(|_| {}),
+            Err(ReadWriteError::Read(ReadError::Parse(
+                MessageParseError::NoMessage {
+                    expected: "engine UCI message"
+                }
+            )))
+        ));
+
+        let mut engine = Engine {
+            r#in: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
+            out: Vec::new(),
+            strict: true,
+        };
+
+        engine
+            .use_uci(|option| {
+                assert_eq!(
+                    option,
+                    crate::Option {
+                        name: Cow::Borrowed("Horsey range"),
+                        r#type: OptionType::String {
+                            default: Some(Cow::Borrowed("the biggest!!"))
+                        }
+                    }
+                );
+            })
+            .unwrap();
+
+        assert_eq!(engine.out, b"uci\n");
+    }
+
+    #[test]
     fn skip_lines() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.send(crate::Uci).unwrap();
+        engine.send(crate::Uci).unwrap();
 
-        engine_conn.skip_lines(4).unwrap();
+        engine.skip_lines(4).unwrap();
 
         let mut line = String::new();
-        engine_conn.r#in.read_line(&mut line).unwrap();
+        engine.r#in.read_line(&mut line).unwrap();
 
         assert_eq!(
             line.trim(),
@@ -358,14 +390,14 @@ mod tests {
 
     #[test]
     fn skip_lines_typed() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.send(crate::Uci).unwrap();
+        engine.send(crate::Uci).unwrap();
 
-        engine_conn.skip_lines(4).unwrap();
+        engine.skip_lines(4).unwrap();
 
         assert_eq!(
-            engine_conn.read::<crate::Option>().unwrap(),
+            engine.read::<crate::Option>().unwrap(),
             crate::Option {
                 name: Cow::Borrowed("Debug Log File"),
                 r#type: OptionType::String {
@@ -378,11 +410,11 @@ mod tests {
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
     #[test]
     fn analyze_checkmate() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.send(crate::Uci).unwrap();
+        engine.send(crate::Uci).unwrap();
 
-        engine_conn
+        engine
             .send(crate::Position::Fen {
                 moves: Cow::Borrowed(&[]),
                 fen: Cow::Owned(
@@ -394,7 +426,7 @@ mod tests {
             })
             .unwrap();
 
-        let best_move = engine_conn
+        let best_move = engine
             .go(
                 &Go {
                     depth: Some(5),
@@ -409,9 +441,9 @@ mod tests {
 
     #[test]
     fn go() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        let best_move = engine_conn
+        let best_move = engine
             .go(
                 &Go {
                     depth: Some(15),
@@ -433,14 +465,14 @@ mod tests {
             }
         );
 
-        engine_conn.send(crate::UciNewGame).unwrap();
-        engine_conn
+        engine.send(crate::UciNewGame).unwrap();
+        engine
             .send(crate::Position::StartPos {
                 moves: Cow::Borrowed(&[UciMove::from_ascii(b"d2d4").unwrap()]),
             })
             .unwrap();
 
-        let best_move = engine_conn
+        let best_move = engine
             .go(
                 &Go {
                     depth: Some(25),
@@ -469,10 +501,10 @@ mod tests {
         use crate::{Id, Option};
         use core::fmt::Write;
 
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
         let mut options = Vec::new();
-        let id = engine_conn.use_uci(|option| options.push(option)).unwrap();
+        let id = engine.use_uci(|option| options.push(option)).unwrap();
 
         let mut options_str = String::new();
 

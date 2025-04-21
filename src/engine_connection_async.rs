@@ -12,7 +12,7 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufRea
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 
 impl Engine<BufReader<ChildStdout>, ChildStdin> {
-    /// Creates a new [`EngineAsync`] from an existing process.
+    /// Creates a new [`Engine`] from an existing process.
     ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
@@ -35,15 +35,10 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Creates a new [`EngineAsync`] from the given path.
+    /// Creates a new [`Engine`] from the given path.
     pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
-
-        #[cfg(windows)]
-        // CREATE_NO_WINDOW
-        // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
-        let cmd = cmd.creation_flags(0x0800_0000);
 
         let mut process = cmd.spawn().map_err(ConnectionError::Spawn)?;
 
@@ -228,28 +223,27 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine_conn() -> Engine<BufReader<ChildStdout>, ChildStdin> {
+    fn engine() -> Engine<BufReader<ChildStdout>, ChildStdin> {
         Engine::<BufReader<ChildStdout>, ChildStdin>::from_path(ENGINE_EXE).unwrap()
     }
 
     #[tokio::test]
     async fn is_ready() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.is_ready_async().await.unwrap();
+        engine.is_ready_async().await.unwrap();
     }
 
     /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
     async fn _lifetimes<'a>() {
-        let mut engine_conn = engine_conn();
-        engine_conn.is_ready_async().await.unwrap();
+        let mut engine = engine();
+        engine.is_ready_async().await.unwrap();
 
-        let _: engine::Message<'static> =
-            engine_conn.read_async::<engine::Message>().await.unwrap();
+        let _: engine::Message<'static> = engine.read_async::<engine::Message>().await.unwrap();
 
-        if engine_conn.read_async::<engine::Message>().await.unwrap()
+        if engine.read_async::<engine::Message>().await.unwrap()
             == engine::Message::Option(crate::Option {
                 name: Cow::Borrowed::<'a>(""),
                 r#type: OptionType::Button,
@@ -258,15 +252,55 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn strict() {
+        let mut engine = engine();
+
+        engine.strict = true;
+
+        // Stockfish sends an unrecognized string at the very beginning
+        assert!(matches!(
+            engine.use_uci_async(|_| {}).await,
+            Err(ReadWriteError::Read(ReadError::Parse(
+                MessageParseError::NoMessage {
+                    expected: "engine UCI message"
+                }
+            )))
+        ));
+
+        let mut engine = Engine {
+            r#in: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
+            out: Vec::new(),
+            strict: true,
+        };
+
+        engine
+            .use_uci_async(|option| {
+                assert_eq!(
+                    option,
+                    crate::Option {
+                        name: Cow::Borrowed("Horsey range"),
+                        r#type: OptionType::String {
+                            default: Some(Cow::Borrowed("the biggest!!"))
+                        }
+                    }
+                );
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(engine.out, b"uci\n");
+    }
+
+    #[tokio::test]
     async fn skip_lines() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.send_async(crate::Uci).await.unwrap();
+        engine.send_async(crate::Uci).await.unwrap();
 
-        engine_conn.skip_lines_async(4).await.unwrap();
+        engine.skip_lines_async(4).await.unwrap();
 
         let mut line = String::new();
-        engine_conn.r#in.read_line(&mut line).await.unwrap();
+        engine.r#in.read_line(&mut line).await.unwrap();
 
         assert_eq!(
             line.trim(),
@@ -277,11 +311,11 @@ mod tests {
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
     #[tokio::test]
     async fn analyze_checkmate() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        engine_conn.send_async(crate::Uci).await.unwrap();
+        engine.send_async(crate::Uci).await.unwrap();
 
-        engine_conn
+        engine
             .send_async(Position::Fen {
                 moves: Cow::Borrowed(&[]),
                 fen: Cow::Owned(
@@ -294,7 +328,7 @@ mod tests {
             .await
             .unwrap();
 
-        let best_move = engine_conn
+        let best_move = engine
             .go_async(
                 &Go {
                     depth: Some(5),
@@ -310,9 +344,9 @@ mod tests {
 
     #[tokio::test]
     async fn go() {
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
-        let best_move = engine_conn
+        let best_move = engine
             .go_async(
                 &Go {
                     depth: Some(15),
@@ -335,15 +369,15 @@ mod tests {
             }
         );
 
-        engine_conn.send_async(crate::UciNewGame).await.unwrap();
-        engine_conn
+        engine.send_async(crate::UciNewGame).await.unwrap();
+        engine
             .send_async(Position::StartPos {
                 moves: Cow::Borrowed(&[UciMove::from_ascii(b"d2d4").unwrap()]),
             })
             .await
             .unwrap();
 
-        let best_move = engine_conn
+        let best_move = engine
             .go_async(
                 &Go {
                     depth: Some(25),
@@ -373,10 +407,10 @@ mod tests {
         use crate::{Id, Option};
         use core::fmt::Write;
 
-        let mut engine_conn = engine_conn();
+        let mut engine = engine();
 
         let mut options = Vec::new();
-        let id = engine_conn
+        let id = engine
             .use_uci_async(|option| options.push(option))
             .await
             .unwrap();

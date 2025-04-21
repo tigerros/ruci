@@ -10,9 +10,7 @@
 This crate is a full implementation of the [UCI protocol](https://backscattering.de/chess/uci) using [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
 The UCI protocol is the most widely used way for chess GUI's to communicate with engines and vice versa.
 
-Includes a struct to manage the I/O with an engine, but does not offer the same I/O management for engines.
-This is because the logic of an engine can be more varied, whereas communication with it (typically by a GUI) is more straightforward.
-
+Includes a struct to manage the I/O with an engine, but does not offer the same I/O management for engines themselves.
 However, engines can still take advantage of this library to add strong typing to strings, as is demonstrated in the `engine` example.
 
 `#![no_std]` compatible.
