@@ -1,0 +1,9 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ruci = { workspace = true, features = ["engine-sync"] }
+anyhow = { workspace = true }
+shakmaty = { workspace = true }

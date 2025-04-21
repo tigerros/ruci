@@ -74,9 +74,6 @@ use core::str::FromStr;
 #[cfg(feature = "engine-sync")]
 #[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 pub use engine_connection::*;
-#[cfg(feature = "engine-async")]
-#[cfg_attr(docsrs, doc(cfg(feature = "engine-async")))]
-pub use engine_connection_async::*;
 pub use errors::*;
 pub use {engine::*, gui::*};
 

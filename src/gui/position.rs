@@ -33,11 +33,11 @@ pub enum Position<'a> {
 
 impl_message!(Position<'_>);
 message_from_impl!(gui Position<'a>);
-from_str_parts!(impl Position<'a> for parts -> Result {
+from_str_parts!(impl Position<'_> for parts -> Result {
     let mut startpos = false;
     let mut fen = None::<Fen>;
     let mut moves = Vec::new();
-    let parameter_fn = |parameter, value: &str| match parameter {
+    let parameter_fn = |parameter, _, value: &str, parts| { match parameter {
         PositionParameterPointer::Fen => if !startpos { fen.replace_if(value.parse().ok()); },
         PositionParameterPointer::Moves => {
             let parsed = uci_moves::from_str(value);
@@ -49,7 +49,7 @@ from_str_parts!(impl Position<'a> for parts -> Result {
         PositionParameterPointer::StartPos => if fen.is_none() {
             startpos = true;
         },
-    };
+    } Some(parts) };
 
     let mut value = String::with_capacity(200);
     parsing::apply_parameters(parts, &mut value, parameter_fn);

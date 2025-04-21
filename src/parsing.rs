@@ -12,7 +12,7 @@ use core::str::FromStr;
 pub fn collect_message<'s>(
     target: &'static str,
     s: &'s str,
-) -> Result<impl Iterator<Item = &'s str>, MessageParseError>
+) -> Result<core::str::Split<'s, char>, MessageParseError>
 where
     MessagePointer: FromStr,
 {
@@ -38,7 +38,7 @@ where
 pub fn collect_any_message<'s, M>(
     expected: &'static str,
     s: &'s str,
-) -> Result<(M, impl Iterator<Item = &'s str>), MessageParseError>
+) -> Result<(M, core::str::Split<'s, char>), MessageParseError>
 where
     M: FromStr,
 {
@@ -58,18 +58,30 @@ where
 }
 
 /// Applies a closure to all parameters and their values.
-pub fn apply_parameters<'s, ParameterPointer>(
-    parts: impl Iterator<Item = &'s str>,
-    value: &mut String,
-    mut parameter_fn: impl FnMut(ParameterPointer, &str),
-) -> &str
+///
+/// `parameter_fn` accepts these parameters:
+/// - `ParameterPointer`: the pointer associated with the passed in value.
+/// - `Option<ParameterPointer>`: the next parameter, if there is one.
+/// - `Split<char>`: the parts that this function parses. You should return these, as is given
+///   by the `parameter_fn` signature, unless you want to stop parsing. In that case, return `None`
+///   and keep the parts to yourself.
+pub fn apply_parameters<'p, 'v, ParameterPointer>(
+    mut parts: core::str::Split<'p, char>,
+    value: &'v mut String,
+    mut parameter_fn: impl FnMut(
+        ParameterPointer,
+        Option<ParameterPointer>,
+        &str,
+        core::str::Split<'p, char>,
+    ) -> Option<core::str::Split<'p, char>>,
+) -> Option<&'v str>
 where
-    ParameterPointer: FromStr,
+    ParameterPointer: FromStr + Copy,
 {
     let mut first_parameter_encountered = false;
     let mut last_parameter = None;
 
-    for part in parts {
+    while let Some(part) = parts.next() {
         let Ok(parameter) = ParameterPointer::from_str(part) else {
             value.push_str(part);
             value.push(' ');
@@ -82,7 +94,12 @@ where
         }
 
         if let Some(last_parameter) = last_parameter {
-            parameter_fn(last_parameter, value.trim());
+            if let Some(p) = parameter_fn(last_parameter, Some(parameter), value.trim(), parts) {
+                parts = p;
+            } else {
+                return None;
+            }
+
             value.clear();
         }
 
@@ -92,8 +109,8 @@ where
     let value = value.trim();
 
     if let Some(last_parameter) = last_parameter {
-        parameter_fn(last_parameter, value);
+        parameter_fn(last_parameter, None, value, parts);
     }
 
-    value
+    Some(value)
 }

@@ -1,0 +1,10 @@
+[package]
+name = "flexible-io"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+ruci = { workspace = true, features = ["engine-async"] }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }

@@ -54,28 +54,32 @@ pub struct Go<'a> {
 
 impl_message!(Go<'_>);
 message_from_impl!(gui Go<'a>);
-from_str_parts!(impl Go<'b> for parts -> Self {
+from_str_parts!(impl Go<'_> for parts -> Self {
     let mut this = Self::default();
     let mut search_moves = Vec::new();
-    let parameter_fn = |parameter, value: &str| match parameter {
-        GoParameterPointer::SearchMoves => {
-            let parsed = uci_moves::from_str(value);
-
-            if !parsed.is_empty() {
-                search_moves = parsed;
-            }
-        },
-        GoParameterPointer::Ponder => this.ponder = true,
-        GoParameterPointer::WTime => this.w_time.replace_if(value.parse().ok()),
-        GoParameterPointer::BTime => this.b_time.replace_if(value.parse().ok()),
-        GoParameterPointer::WInc => this.w_inc.replace_if(value.parse().ok()),
-        GoParameterPointer::BInc => this.b_inc.replace_if(value.parse().ok()),
-        GoParameterPointer::MovesToGo => this.moves_to_go.replace_if(value.parse().ok()),
-        GoParameterPointer::Depth => this.depth.replace_if(value.parse().ok()),
-        GoParameterPointer::Nodes => this.nodes.replace_if(value.parse().ok()),
-        GoParameterPointer::Mate => this.mate.replace_if(value.parse().ok()),
-        GoParameterPointer::MoveTime => this.move_time.replace_if(value.parse().ok()),
-        GoParameterPointer::Infinite => this.infinite = true
+    let parameter_fn = |parameter, _, value: &str, parts| {
+        match parameter {
+            GoParameterPointer::SearchMoves => {
+                let parsed = uci_moves::from_str(value);
+    
+                if !parsed.is_empty() {
+                    search_moves = parsed;
+                }
+            },
+            GoParameterPointer::Ponder => this.ponder = true,
+            GoParameterPointer::WTime => this.w_time.replace_if(value.parse().ok()),
+            GoParameterPointer::BTime => this.b_time.replace_if(value.parse().ok()),
+            GoParameterPointer::WInc => this.w_inc.replace_if(value.parse().ok()),
+            GoParameterPointer::BInc => this.b_inc.replace_if(value.parse().ok()),
+            GoParameterPointer::MovesToGo => this.moves_to_go.replace_if(value.parse().ok()),
+            GoParameterPointer::Depth => this.depth.replace_if(value.parse().ok()),
+            GoParameterPointer::Nodes => this.nodes.replace_if(value.parse().ok()),
+            GoParameterPointer::Mate => this.mate.replace_if(value.parse().ok()),
+            GoParameterPointer::MoveTime => this.move_time.replace_if(value.parse().ok()),
+            GoParameterPointer::Infinite => this.infinite = true
+        }
+        
+        Some(parts)
     };
     
     let mut value = String::with_capacity(200);

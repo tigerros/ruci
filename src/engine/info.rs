@@ -255,50 +255,82 @@ impl<'a> From<Info<'a>> for crate::engine::Message<'a> {
 }
 
 impl_message!(Info<'_>);
-from_str_parts!(impl Info<'a> for parts -> Self {
+from_str_parts!(impl Info<'_> for parts<'p> -> Self {
     let mut this = Self::default();
     // Need to handle depth like this in case the seldepth argument comes before the depth argument.
     let mut depth = None::<usize>;
     let mut seldepth = None::<usize>;
     let mut pv = Vec::new();
-    let parameter_fn = |parameter, value: &str| match parameter {
-        InfoParameterPointer::Depth => depth.replace_if(value.parse().ok()),
-        InfoParameterPointer::SelDepth => seldepth.replace_if(value.parse().ok()),
-        InfoParameterPointer::Time => this.time.replace_if(value.parse().ok()),
-        InfoParameterPointer::Nodes => this.nodes.replace_if(value.parse().ok()),
-        InfoParameterPointer::PV => {
-            let parsed = uci_moves::from_str(value);
+    let mut string = String::new();
 
-            if !parsed.is_empty() {
-                pv = parsed;
-            }
-        },
-        InfoParameterPointer::MultiPV => this.multi_pv.replace_if(value.parse().ok()),
-        InfoParameterPointer::Score => this.score.replace_if(ScoreWithBound::from_str(value)),
-        InfoParameterPointer::CurrMove => this.curr_move.replace_if(value.parse().ok()),
-        InfoParameterPointer::CurrMoveNumber => this.curr_move_number.replace_if(value.parse().ok()),
-        InfoParameterPointer::HashFull => this.hash_full.replace_if(value.parse().ok()),
-        InfoParameterPointer::Nps => this.nps.replace_if(value.parse().ok()),
-        InfoParameterPointer::TbHits => this.tb_hits.replace_if(value.parse().ok()),
-        InfoParameterPointer::SbHits => this.sb_hits.replace_if(value.parse().ok()),
-        InfoParameterPointer::CpuLoad => this.cpu_load.replace_if(value.parse().ok()),
-        InfoParameterPointer::String => this.string = Some(Cow::Owned(value.to_string())),
-        InfoParameterPointer::Refutation => this.refutation.replace_if(Refutation::from_str(value)),
-        InfoParameterPointer::CurrLine => this.curr_line.replace_if(CurrLine::from_str(value)),
+    let parameter_fn = |parameter, next_parameter: Option<InfoParameterPointer>, value: &str, parts: core::str::Split<'p, char>| {
+        match parameter {
+            InfoParameterPointer::Depth => depth.replace_if(value.parse().ok()),
+            InfoParameterPointer::SelDepth => seldepth.replace_if(value.parse().ok()),
+            InfoParameterPointer::Time => this.time.replace_if(value.parse().ok()),
+            InfoParameterPointer::Nodes => this.nodes.replace_if(value.parse().ok()),
+            InfoParameterPointer::PV => {
+                let parsed = uci_moves::from_str(value);
+
+                if !parsed.is_empty() {
+                    pv = parsed;
+                }
+            },
+            InfoParameterPointer::MultiPV => this.multi_pv.replace_if(value.parse().ok()),
+            InfoParameterPointer::Score => this.score.replace_if(ScoreWithBound::from_str(value)),
+            InfoParameterPointer::CurrMove => this.curr_move.replace_if(value.parse().ok()),
+            InfoParameterPointer::CurrMoveNumber => this.curr_move_number.replace_if(value.parse().ok()),
+            InfoParameterPointer::HashFull => this.hash_full.replace_if(value.parse().ok()),
+            InfoParameterPointer::Nps => this.nps.replace_if(value.parse().ok()),
+            InfoParameterPointer::TbHits => this.tb_hits.replace_if(value.parse().ok()),
+            InfoParameterPointer::SbHits => this.sb_hits.replace_if(value.parse().ok()),
+            InfoParameterPointer::CpuLoad => this.cpu_load.replace_if(value.parse().ok()),
+            InfoParameterPointer::String => {
+                string = value.to_string();
+                let size_hint = parts.size_hint();
+                string.reserve(size_hint.1.unwrap_or(size_hint.0).saturating_mul(20));
+
+                if let Some(next_parameter) = next_parameter {
+                    string.push_str(next_parameter.as_str_spaced());
+                }
+
+                let mut first = true;
+
+                for part in parts {
+                    if first {
+                        first = false;
+                    } else {
+                        string.push(' ');
+                    }
+
+                    string.push_str(part);
+                }
+
+                return None;
+            },
+            InfoParameterPointer::Refutation => this.refutation.replace_if(Refutation::from_str(value)),
+            InfoParameterPointer::CurrLine => this.curr_line.replace_if(CurrLine::from_str(value)),
+        }
+
+        Some(parts)
     };
-    
+
     let mut value = String::with_capacity(200);
     parsing::apply_parameters(parts, &mut value, parameter_fn);
-    
+
     this.pv = Cow::Owned(pv);
-    
+
     if let Some(depth) = depth {
         this.depth = Some(Depth {
             depth,
             seldepth
         });
     }
-    
+
+    if !string.is_empty() {
+        this.string = Some(Cow::Owned(string));
+    }
+
     this
 });
 
@@ -378,10 +410,6 @@ impl Display for Info<'_> {
             write!(f, " cpuload {cpu_load}")?;
         }
 
-        if let Some(string) = &self.string {
-            write!(f, " string {string}")?;
-        }
-
         if let Some(refutation) = &self.refutation {
             write!(f, " refutation {} ", refutation.refuted_move)?;
             uci_moves::fmt(&refutation.refutation, f)?;
@@ -399,6 +427,10 @@ impl Display for Info<'_> {
                 f.write_char(' ')?;
                 uci_moves::fmt(&current_line.line, f)?;
             }
+        }
+
+        if let Some(string) = &self.string {
+            write!(f, " string {string}")?;
         }
 
         Ok(())
@@ -474,8 +506,8 @@ mod tests {
                 line: Cow::Borrowed(&curr_line),
             }),
         }.into();
-        let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5";
-
+        let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 string blabla";
+        
         assert_eq!(repr.to_string(), str_repr);
         assert_eq!(Message::from_str(str_repr), Ok(repr));
     }
@@ -516,7 +548,23 @@ mod tests {
             }),
         }.into();
 
-        assert_eq!(repr.to_string(), "info depth 20 seldepth 31 time 12 nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5");
-        assert_eq!(engine::Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 string blabla refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4"), Ok(repr));
+        assert_eq!(repr.to_string(), "info depth 20 seldepth 31 time 12 nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 string blabla");
+        assert_eq!(engine::Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4 string blabla"), Ok(repr));
+    }
+
+    #[test]
+    fn to_from_str_string() {
+        let repr = Info {
+            depth: Some(Depth {
+                depth: 13,
+                seldepth: None
+            }),
+            string: Some(Cow::Borrowed("the parameters in this string should be ignored! depth 20 (psych) time 2 nodes 4 score cp 22 lowerbound")),
+            ..Default::default()
+        };
+        let str_repr = "info depth 13 string the parameters in this string should be ignored! depth 20 (psych) time 2 nodes 4 score cp 22 lowerbound";
+
+        assert_eq!(repr.to_string(), str_repr);
+        assert_eq!(Message::from_str(str_repr), Ok(repr.into()));
     }
 }

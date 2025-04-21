@@ -23,12 +23,16 @@ pub struct SetOption<'a> {
 
 impl_message!(SetOption<'_>);
 message_from_impl!(gui SetOption<'a>);
-from_str_parts!(impl SetOption<'a> for parts -> Result {
+from_str_parts!(impl SetOption<'_> for parts -> Result {
     let mut name = None;
     let mut value_parameter = None;
-    let parameter_fn = |parameter: SetOptionParameterPointer, value: &str| match parameter {
-        SetOptionParameterPointer::Name => name = Some(value.to_owned()),
-        SetOptionParameterPointer::Value => value_parameter = Some(Cow::Owned(value.to_owned())),
+    let parameter_fn = |parameter, _, value: &str, parts| {
+        match parameter {
+            SetOptionParameterPointer::Name => name = Some(value.to_owned()),
+            SetOptionParameterPointer::Value => value_parameter = Some(Cow::Owned(value.to_owned())),
+        }
+        
+        Some(parts)
     };
     
     let mut value = String::with_capacity(200);

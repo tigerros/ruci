@@ -82,12 +82,16 @@ impl Id<'_> {
 
 impl_message!(Id<'_>);
 message_from_impl!(engine Id<'a>);
-from_str_parts!(impl Id<'a> for parts -> Result {
+from_str_parts!(impl Id<'_> for parts -> Result {
     let mut name = None::<String>;
     let mut author = None::<String>;
-    let parameter_fn = |parameter, value: &str| match parameter {
-        IdParameterPointer::Name => name = Some(value.to_owned()),
-        IdParameterPointer::Author => author = Some(value.to_owned()),
+    let parameter_fn = |parameter, _, value: &str, parts| {
+        match parameter {
+            IdParameterPointer::Name => name = Some(value.to_owned()),
+            IdParameterPointer::Author => author = Some(value.to_owned()),
+        }
+        
+        Some(parts)
     };
     
     let mut value = String::with_capacity(200);

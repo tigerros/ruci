@@ -24,16 +24,22 @@ pub enum Register<'a> {
 
 impl_message!(Register<'_>);
 message_from_impl!(gui Register<'a>);
-from_str_parts!(impl Register<'a> for parts -> Result {
+from_str_parts!(impl Register<'_> for parts -> Result {
     let mut name = None;
     let mut code = None;
-    let parameter_fn = |parameter, value: &str| match parameter {
-        RegisterParameterPointer::Name => name = Some(value.to_owned()),
-        RegisterParameterPointer::Code => code = Some(value.to_owned()),
+    let parameter_fn = |parameter, _, value: &str, parts| {
+        match parameter {
+            RegisterParameterPointer::Name => name = Some(value.to_owned()),
+            RegisterParameterPointer::Code => code = Some(value.to_owned()),
+        }
+        
+        Some(parts)
     };
 
     let mut value = String::with_capacity(200);
-    let value = parsing::apply_parameters(parts, &mut value, parameter_fn);
+    // CLIPPY: closure always returns Some so the final value will be Some too
+    #[allow(clippy::unwrap_used)]
+    let value = parsing::apply_parameters(parts, &mut value, parameter_fn).unwrap();
 
     // CLIPPY: It is less readable and doesn't work
     #[allow(clippy::option_if_let_else)]
@@ -81,10 +87,10 @@ mod tests {
     #[test]
     fn to_from_str() {
         let m: Message = Register::NameAndCode {
-            name: Cow::Borrowed("john smith"),
+            name: Cow::Borrowed("john later smith"),
             code: Cow::Borrowed("31 tango")
         }.into();
-        let str = "register name john smith code 31 tango";
+        let str = "register name john later smith code 31 tango";
 
         assert_eq!(m.to_string(), str);
         assert_eq!(Message::from_str(str), Ok(m));

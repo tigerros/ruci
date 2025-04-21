@@ -7,13 +7,17 @@
 # ruci
 **R**ust **U**niversal **C**hess **I**nterface.
 
-This crate parses and creates UCI messages.
-It follows the [UCI protocol](https://backscattering.de/chess/uci) and uses [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
-The UCI protocol is the most widely used way for GUI's to communicate with engines and vice versa.
+This crate is a full implementation of the [UCI protocol](https://backscattering.de/chess/uci) using [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
+The UCI protocol is the most widely used way for chess GUI's to communicate with engines and vice versa.
+
+Includes a struct to manage the I/O with an engine, but does not offer the same I/O management for engines.
+This is because the logic of an engine can be more varied, whereas communication with it (typically by a GUI) is more straightforward.
+
+However, engines can still take advantage of this library to add strong typing to strings, as is demonstrated in the `engine` example.
 
 `#![no_std]` compatible.
 
-See the [examples](https://github.com/tigerros/ruci/tree/master/examples) for demos on how to send and receive messages.
+See also the [examples](https://github.com/tigerros/ruci/tree/master/examples).
 You can run each one with `cargo run --package <example-name>`.
 
 ## Comparison
@@ -30,8 +34,8 @@ There's two other crates that I'm aware of which serve a similar purpose; [`vamp
 ## Benches
 `ruci` has more benches per scenario than the other two. This is because it uses `Cow`s to allow for borrowed or owned data. So, the suffix `borrowed` in bench names means that it is using a statically borrowed type rather than the owned type, e.g. `&'static str` instead of `String`. The flip side is the suffix `owned`.
 
-## Feature flags
+## Features
 - `default`: no features are enabled by default.
 - `engine-sync`: adds the `Engine` struct for communicating with an engine. Requires `std`.
-- `engine-async`: adds the `EngineAsync` struct for communicating with an engine using [`tokio`](https://crates.io/crates/tokio). Also enables the `engine-sync` feature because of shared error types.
+- `engine-async`: enables the `engine-sync` feature and adds async versions of all functions using [`tokio`](https://crates.io/crates/tokio).
 - `serde`: enables serde support for most types. All implementations are derived with no parameters. Requires `std`.

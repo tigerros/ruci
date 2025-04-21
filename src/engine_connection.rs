@@ -1,7 +1,7 @@
 use crate::errors::{ConnectionError, ReadError, ReadWriteError};
-use crate::Go;
 use crate::{engine, gui};
 use crate::{BestMove, Id, Info};
+use crate::{Go, MessageParseError};
 use core::fmt::Display;
 use std::ffi::OsStr;
 use std::io;
@@ -14,9 +14,9 @@ use std::str::FromStr;
 
 /// Communicate with a Chess engine.
 #[derive(Debug)]
-pub struct Engine {
-    pub stdout: BufReader<ChildStdout>,
-    pub stdin: ChildStdin,
+pub struct Engine<I, O> {
+    pub r#in: I,
+    pub out: O,
     /// Whether message parsing errors should be ignored.
     /// This should probably be `false`, because engines do send unrecognized strings.
     ///
@@ -25,12 +25,14 @@ pub struct Engine {
     pub strict: bool,
 }
 
-impl Engine {
+impl Engine<BufReader<ChildStdout>, ChildStdin> {
     /// Creates a new [`Engine`] from an existing process.
+    ///
+    /// See also [`Engine.strict`](Engine#structfield.strict).
     ///
     /// # Errors
     /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(process: &mut Child) -> Result<Self, ConnectionError> {
+    pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, ConnectionError> {
         let Some(stdout) = process.stdout.take() else {
             return Err(ConnectionError::StdoutIsNotCaptured);
         };
@@ -42,15 +44,17 @@ impl Engine {
         let stdout = BufReader::new(stdout);
 
         Ok(Self {
-            stdout,
-            stdin,
-            strict: false,
+            r#in: stdout,
+            out: stdin,
+            strict,
         })
     }
 
     #[allow(clippy::missing_errors_doc)]
     /// Creates a new [`Engine`] from the given path.
-    pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
+    ///
+    /// See also [`Engine.strict`](Engine#structfield.strict).
+    pub fn from_path(path: impl AsRef<OsStr>, strict: bool) -> Result<Self, ConnectionError> {
         let mut cmd = Command::new(path);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -61,9 +65,15 @@ impl Engine {
 
         let mut process = cmd.spawn().map_err(ConnectionError::Spawn)?;
 
-        Self::from_process(&mut process)
+        Self::from_process(&mut process, strict)
     }
+}
 
+impl<I, O> Engine<I, O>
+where
+    I: BufRead,
+    O: Write,
+{
     // CLIPPY: Message is implemented for borrows as well
     #[allow(clippy::needless_pass_by_value)]
     /// Sends a message.
@@ -74,8 +84,7 @@ impl Engine {
     where
         M: gui::traits::Message + Display,
     {
-        self.stdin
-            .write_all((message.to_string() + "\n").as_bytes())
+        self.out.write_all((message.to_string() + "\n").as_bytes())
     }
 
     /// Skips some lines.
@@ -86,7 +95,7 @@ impl Engine {
         let mut buf = Vec::with_capacity(512);
 
         for _ in 0..count {
-            let bytes = self.stdout.read_until(b'\n', &mut buf)?;
+            let bytes = self.r#in.read_until(b'\n', &mut buf)?;
 
             if bytes == 0 {
                 break;
@@ -99,14 +108,22 @@ impl Engine {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Reads a line and attempts to parse it into a [`engine::Message`].
+    /// Reads a line and attempts to parse it into a given engine message.
+    ///
     /// Skips lines which are only composed of whitespace.
-    pub fn read<'m>(&mut self) -> Result<engine::Message<'m>, ReadError> {
+    ///
+    /// Since this accepts the engine trait, not the enum ([`engine::Message`]), you can use a specific
+    /// message type as the generic. Doing this is more performant, but it will treat
+    /// the other valid engine messages the same way as it would treat an unrecognized string.
+    pub fn read<M>(&mut self) -> Result<M, ReadError>
+    where
+        M: engine::traits::Message + FromStr<Err = MessageParseError>,
+    {
         let mut line = String::new();
 
         if self.strict {
             loop {
-                self.stdout.read_line(&mut line).map_err(ReadError::Io)?;
+                self.r#in.read_line(&mut line).map_err(ReadError::Io)?;
 
                 if line.is_empty() || line.chars().all(char::is_whitespace) {
                     line.clear();
@@ -116,12 +133,12 @@ impl Engine {
                 break;
             }
 
-            engine::Message::from_str(&line).map_err(ReadError::Parse)
+            M::from_str(&line).map_err(ReadError::Parse)
         } else {
             loop {
-                self.stdout.read_line(&mut line).map_err(ReadError::Io)?;
+                self.r#in.read_line(&mut line).map_err(ReadError::Io)?;
 
-                if let Ok(message) = engine::Message::from_str(&line) {
+                if let Ok(message) = M::from_str(&line) {
                     return Ok(message);
                 }
 
@@ -294,8 +311,8 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine_conn() -> Engine {
-        Engine::from_path(ENGINE_EXE).unwrap()
+    fn engine_conn() -> Engine<BufReader<ChildStdout>, ChildStdin> {
+        Engine::<BufReader<ChildStdout>, ChildStdin>::from_path(ENGINE_EXE, false).unwrap()
     }
 
     #[test]
@@ -312,7 +329,9 @@ mod tests {
         let mut engine_conn = engine_conn();
         engine_conn.is_ready().unwrap();
 
-        if engine_conn.read().unwrap()
+        let _: engine::Message<'static> = engine_conn.read::<engine::Message>().unwrap();
+
+        if engine_conn.read::<engine::Message>().unwrap()
             == engine::Message::Option(crate::Option {
                 name: Cow::Borrowed::<'a>(""),
                 r#type: OptionType::Button,
@@ -329,11 +348,30 @@ mod tests {
         engine_conn.skip_lines(4).unwrap();
 
         let mut line = String::new();
-        engine_conn.stdout.read_line(&mut line).unwrap();
+        engine_conn.r#in.read_line(&mut line).unwrap();
 
         assert_eq!(
             line.trim(),
             "option name Debug Log File type string default <empty>"
+        );
+    }
+
+    #[test]
+    fn skip_lines_typed() {
+        let mut engine_conn = engine_conn();
+
+        engine_conn.send(crate::Uci).unwrap();
+
+        engine_conn.skip_lines(4).unwrap();
+
+        assert_eq!(
+            engine_conn.read::<crate::Option>().unwrap(),
+            crate::Option {
+                name: Cow::Borrowed("Debug Log File"),
+                r#type: OptionType::String {
+                    default: Some(Cow::Borrowed("<empty>"))
+                },
+            }
         );
     }
 

@@ -25,7 +25,7 @@ default = []
 serde = ["dep:serde", "shakmaty/serde"]
 # Adds the `Engine` struct for communicating with an engine. Requires `std`.
 engine-sync = []
-# Enables the `engine-sync` feature and adds the `EngineAsync` struct for communicating with an engine using tokio.
+# Enables the `engine-sync` feature and adds async versions of all functions using tokio.
 engine-async = ["engine-sync", "dep:tokio"]
 
 [package.metadata.docs.rs]
@@ -46,7 +46,7 @@ name = "to_str"
 name = "from_str"
 
 [workspace]
-members = ["examples/go-std", "examples/go-tokio"]
+members = ["examples/engine", "examples/go-std", "examples/go-tokio", "examples/flexible-io"]
 
 [workspace.dependencies]
 ruci = { version = "0.9.0", path = "." }

@@ -18,44 +18,20 @@ macro_rules! from_str_parts {
         Ok(Self::from_str_parts_message_assumed($parts))
     };
 
-    (impl $message:ident for $parts:ident -> $ret:ident $body:tt) => {
-        impl $message {
+    (impl $message:ident $(<$lt:lifetime>)? for $parts:ident $(<$plt:lifetime>)? -> $ret:ident $body:tt) => {
+        impl $message $(<$lt>)? {
+            // CLIPPY: Not public
+            #[allow(clippy::missing_const_for_fn)]
             /// Like the [`FromStr`](::core::str::FromStr) impl, but assumes the message is already parsed.
             /// The `parts` should be the string separated by spaces, *without the message*.
-            pub(crate) fn from_str_parts_message_assumed<'s>(
-                $parts: impl Iterator<Item = &'s str>,
+            pub(crate) fn from_str_parts_message_assumed $(<$plt>)?(
+                $parts: ::core::str::Split<$($plt,) ?char>,
             ) -> $crate::dev_macros::from_str_parts!(@message_assumed_ret=$ret) {
                 $body
             }
         }
 
-        impl ::core::str::FromStr for $message {
-            type Err = $crate::MessageParseError;
-
-            #[allow(clippy::empty_docs)]
-            #[doc = $crate::dev_macros::from_str_parts!(@from_str_docs=$ret)]
-            fn from_str(s: &str) -> Result<Self, $crate::MessageParseError> {
-                let parts = $crate::parsing::collect_message(
-                    pointers::MessagePointer::$message.to_string(),
-                    s,
-                )?;
-                $crate::dev_macros::from_str_parts!(@from_str_ret=$ret(parts))
-            }
-        }
-    };
-
-    (impl $message:ident <$l:lifetime> for $parts:ident -> $ret:ident $body:tt) => {
-        impl<$l> $message<$l> {
-            /// Like the [`FromStr`](::core::str::FromStr) impl, but assumes the message is already parsed.
-            /// The `parts` should be the string separated by spaces, *without the message*.
-            pub(crate) fn from_str_parts_message_assumed<'s>(
-                $parts: impl Iterator<Item = &'s str>,
-            ) -> $crate::dev_macros::from_str_parts!(@message_assumed_ret=$ret) {
-                $body
-            }
-        }
-
-        impl<$l> ::core::str::FromStr for $message<$l> {
+        impl ::core::str::FromStr for $message $(<$lt>)? {
             type Err = $crate::MessageParseError;
 
             #[allow(clippy::empty_docs)]

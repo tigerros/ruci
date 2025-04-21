@@ -131,9 +131,20 @@ macro_rules! define_message {
             }
 
             $($(::paste::paste! {
-                #[derive(Debug, Eq, PartialEq)]
+                #[derive(Debug, Eq, PartialEq, Copy, Clone)]
                 pub enum [< $custom_message_ident ParameterPointer >] {
                     $($parameter_ident),+
+                }
+
+                impl [< $custom_message_ident ParameterPointer >] {
+                    #[allow(dead_code)]
+                    /// Only used for the info message.
+                    /// This is the string representation of the parameter, surrounded by spaces.
+                    pub const fn as_str_spaced(self) -> &'static str {
+                        match self {
+                            $(Self::$parameter_ident => concat!(" ", stringify!([< $parameter_ident:lower >]), " ")),+
+                        }
+                    }
                 }
 
                 impl ::core::str::FromStr for [< $custom_message_ident ParameterPointer >] {

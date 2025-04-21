@@ -1,11 +1,26 @@
+//! This example shows how to:
+//! - Start a UCI engine connection.
+//! - Send it some initial commands.
+//! - Analyze a custom position.
+//! - Analyze a custom position and receive info messages on a separate thread.
+//!
+//! Note that this will print out the (truncated) `Display` impls of the `Info` messages.
+//! That is not a reading from the engine, those are parsed messages converted back into a string
+//! because it is easier to read.
+//!
+//! Requires that you have installed Stockfish.
+
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 use std::borrow::Cow;
+use std::io::BufReader;
+use std::process::{ChildStdin, ChildStdout};
 use std::sync::mpsc;
 use std::thread;
 
 fn main() -> anyhow::Result<()> {
-    let mut engine = ruci::Engine::from_path("stockfish")?;
+    let mut engine =
+        ruci::Engine::<BufReader<ChildStdout>, ChildStdin>::from_path("stockfish", false)?;
 
     println!("== Sending uci, waiting for uciok");
 

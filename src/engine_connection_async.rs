@@ -1,29 +1,17 @@
 use crate::errors::{ConnectionError, ReadError, ReadWriteError};
-use crate::Go;
+use crate::Engine;
 use crate::{engine, gui};
 use crate::{BestMove, Id, Info};
+use crate::{Go, MessageParseError};
 use core::fmt::Display;
 use std::ffi::OsStr;
 use std::process::Stdio;
 use std::str::FromStr;
 use tokio::io;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 
-/// Communicate with a Chess engine.
-#[derive(Debug)]
-pub struct EngineAsync {
-    pub stdout: BufReader<ChildStdout>,
-    pub stdin: ChildStdin,
-    /// Whether message parsing errors should be ignored.
-    /// This should probably be `false`, because engines do send unrecognized strings.
-    ///
-    /// If this is `false`, [`ReadError::Parse`] is guaranteed not to occur, including inside
-    /// of [`ReadWriteError`]s.
-    pub strict: bool,
-}
-
-impl EngineAsync {
+impl Engine<BufReader<ChildStdout>, ChildStdin> {
     /// Creates a new [`EngineAsync`] from an existing process.
     ///
     /// # Errors
@@ -40,8 +28,8 @@ impl EngineAsync {
         let stdout = BufReader::new(stdout);
 
         Ok(Self {
-            stdout,
-            stdin,
+            r#in: stdout,
+            out: stdin,
             strict: false,
         })
     }
@@ -61,18 +49,24 @@ impl EngineAsync {
 
         Self::from_process(&mut process)
     }
+}
 
+impl<I, O> Engine<I, O>
+where
+    I: AsyncBufRead + Unpin,
+    O: AsyncWrite + Unpin,
+{
     // CLIPPY: Message is implemented for borrows as well
     #[allow(clippy::needless_pass_by_value)]
     /// Sends a message.
     ///
     /// # Errors
     /// See [`AsyncWriteExt::write_all`].
-    pub async fn send<M>(&mut self, message: M) -> io::Result<()>
+    pub async fn send_async<M>(&mut self, message: M) -> io::Result<()>
     where
         M: gui::traits::Message + Display,
     {
-        self.stdin
+        self.out
             .write_all((message.to_string() + "\n").as_bytes())
             .await
     }
@@ -81,11 +75,11 @@ impl EngineAsync {
     ///
     /// # Errors
     /// See [`AsyncBufReadExt::read_until`].
-    pub async fn skip_lines(&mut self, count: usize) -> io::Result<()> {
+    pub async fn skip_lines_async(&mut self, count: usize) -> io::Result<()> {
         let mut buf = Vec::with_capacity(512);
 
         for _ in 0..count {
-            let bytes = self.stdout.read_until(b'\n', &mut buf).await?;
+            let bytes = self.r#in.read_until(b'\n', &mut buf).await?;
 
             if bytes == 0 {
                 break;
@@ -100,12 +94,15 @@ impl EngineAsync {
     #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a [`engine::Message`].
     /// Skips lines which are only composed of whitespace.
-    pub async fn read<'m>(&mut self) -> Result<engine::Message<'m>, ReadError> {
+    pub async fn read_async<M>(&mut self) -> Result<M, ReadError>
+    where
+        M: crate::traits::Message + FromStr<Err = MessageParseError>,
+    {
         let mut line = String::new();
 
         if self.strict {
             loop {
-                self.stdout
+                self.r#in
                     .read_line(&mut line)
                     .await
                     .map_err(ReadError::Io)?;
@@ -118,15 +115,15 @@ impl EngineAsync {
                 break;
             }
 
-            engine::Message::from_str(&line).map_err(ReadError::Parse)
+            M::from_str(&line).map_err(ReadError::Parse)
         } else {
             loop {
-                self.stdout
+                self.r#in
                     .read_line(&mut line)
                     .await
                     .map_err(ReadError::Io)?;
 
-                if let Ok(message) = engine::Message::from_str(&line) {
+                if let Ok(message) = M::from_str(&line) {
                     return Ok(message);
                 }
 
@@ -140,16 +137,18 @@ impl EngineAsync {
     /// once the [`UciOk`](engine::UciOk) message is received.
     ///
     /// When an [`Option`](engine::Option) is encountered, the `option_receiver` function is called.
-    pub async fn use_uci<'m>(
+    pub async fn use_uci_async<'m>(
         &mut self,
         mut option_receiver: impl FnMut(crate::Option<'m>),
     ) -> Result<Option<Id<'m>>, ReadWriteError> {
-        self.send(crate::Uci).await.map_err(ReadWriteError::Write)?;
+        self.send_async(crate::Uci)
+            .await
+            .map_err(ReadWriteError::Write)?;
 
         let mut id = None::<Id>;
 
         loop {
-            match self.read().await.map_err(ReadWriteError::Read)? {
+            match self.read_async().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Option(option) => option_receiver(option),
                 engine::Message::Id(new_id) => {
                     id = Some(if let Some(id) = id {
@@ -173,15 +172,17 @@ impl EngineAsync {
     ///
     /// There's examples at the [repo](https://github.com/tigerros/ruci) that show this
     /// function being used concurrently.
-    pub async fn go<'m>(
+    pub async fn go_async<'m>(
         &mut self,
         message: &Go<'_>,
         mut info_receiver: impl AsyncFnMut(Info<'m>),
     ) -> Result<BestMove, ReadWriteError> {
-        self.send(message).await.map_err(ReadWriteError::Write)?;
+        self.send_async(message)
+            .await
+            .map_err(ReadWriteError::Write)?;
 
         loop {
-            match self.read().await.map_err(ReadWriteError::Read)? {
+            match self.read_async().await.map_err(ReadWriteError::Read)? {
                 engine::Message::Info(info) => info_receiver(*info).await,
                 engine::Message::BestMove(best_move) => {
                     return Ok(best_move);
@@ -193,13 +194,15 @@ impl EngineAsync {
 
     #[allow(clippy::missing_errors_doc)]
     /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
-    pub async fn is_ready(&mut self) -> Result<(), ReadWriteError> {
-        self.send(crate::IsReady)
+    pub async fn is_ready_async(&mut self) -> Result<(), ReadWriteError> {
+        self.send_async(crate::IsReady)
             .await
             .map_err(ReadWriteError::Write)?;
 
         loop {
-            if let engine::Message::ReadyOk(_) = self.read().await.map_err(ReadWriteError::Read)? {
+            if let engine::Message::ReadyOk(_) =
+                self.read_async().await.map_err(ReadWriteError::Read)?
+            {
                 return Ok(());
             }
         }
@@ -225,15 +228,15 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine_conn() -> EngineAsync {
-        EngineAsync::from_path(ENGINE_EXE).unwrap()
+    fn engine_conn() -> Engine<BufReader<ChildStdout>, ChildStdin> {
+        Engine::<BufReader<ChildStdout>, ChildStdin>::from_path(ENGINE_EXE).unwrap()
     }
 
     #[tokio::test]
     async fn is_ready() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.is_ready().await.unwrap();
+        engine_conn.is_ready_async().await.unwrap();
     }
 
     /// Don't run! Just makes sure that compilation is correct.
@@ -241,9 +244,12 @@ mod tests {
     #[allow(clippy::extra_unused_lifetimes)]
     async fn _lifetimes<'a>() {
         let mut engine_conn = engine_conn();
-        engine_conn.is_ready().await.unwrap();
+        engine_conn.is_ready_async().await.unwrap();
 
-        if engine_conn.read().await.unwrap()
+        let _: engine::Message<'static> =
+            engine_conn.read_async::<engine::Message>().await.unwrap();
+
+        if engine_conn.read_async::<engine::Message>().await.unwrap()
             == engine::Message::Option(crate::Option {
                 name: Cow::Borrowed::<'a>(""),
                 r#type: OptionType::Button,
@@ -255,12 +261,12 @@ mod tests {
     async fn skip_lines() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(crate::Uci).await.unwrap();
+        engine_conn.send_async(crate::Uci).await.unwrap();
 
-        engine_conn.skip_lines(4).await.unwrap();
+        engine_conn.skip_lines_async(4).await.unwrap();
 
         let mut line = String::new();
-        engine_conn.stdout.read_line(&mut line).await.unwrap();
+        engine_conn.r#in.read_line(&mut line).await.unwrap();
 
         assert_eq!(
             line.trim(),
@@ -273,10 +279,10 @@ mod tests {
     async fn analyze_checkmate() {
         let mut engine_conn = engine_conn();
 
-        engine_conn.send(crate::Uci).await.unwrap();
+        engine_conn.send_async(crate::Uci).await.unwrap();
 
         engine_conn
-            .send(Position::Fen {
+            .send_async(Position::Fen {
                 moves: Cow::Borrowed(&[]),
                 fen: Cow::Owned(
                     Fen::from_ascii(
@@ -289,7 +295,7 @@ mod tests {
             .unwrap();
 
         let best_move = engine_conn
-            .go(
+            .go_async(
                 &Go {
                     depth: Some(5),
                     ..Default::default()
@@ -307,7 +313,7 @@ mod tests {
         let mut engine_conn = engine_conn();
 
         let best_move = engine_conn
-            .go(
+            .go_async(
                 &Go {
                     depth: Some(15),
                     ..Default::default()
@@ -329,16 +335,16 @@ mod tests {
             }
         );
 
-        engine_conn.send(crate::UciNewGame).await.unwrap();
+        engine_conn.send_async(crate::UciNewGame).await.unwrap();
         engine_conn
-            .send(Position::StartPos {
+            .send_async(Position::StartPos {
                 moves: Cow::Borrowed(&[UciMove::from_ascii(b"d2d4").unwrap()]),
             })
             .await
             .unwrap();
 
         let best_move = engine_conn
-            .go(
+            .go_async(
                 &Go {
                     depth: Some(25),
                     ..Default::default()
@@ -371,7 +377,7 @@ mod tests {
 
         let mut options = Vec::new();
         let id = engine_conn
-            .use_uci(|option| options.push(option))
+            .use_uci_async(|option| options.push(option))
             .await
             .unwrap();
 

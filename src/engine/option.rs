@@ -152,20 +152,24 @@ pub struct Option<'a> {
 
 impl_message!(Option<'_>);
 message_from_impl!(engine Option<'a>);
-from_str_parts!(impl Option<'a> for parts -> Result {
+from_str_parts!(impl Option<'_> for parts -> Result {
     let mut name = None::<String>;
     let mut r#type = None::<BlankOptionType>;
     let mut default = None::<String>;
     let mut min = None::<i64>;
     let mut max = None::<i64>;
     let mut var = Vec::new();
-    let parameter_fn = |parameter, value: &str| match parameter {
-        OptionParameterPointer::Name => name = Some(value.to_string()),
-        OptionParameterPointer::Type => r#type.replace_if(value.parse().ok()),
-        OptionParameterPointer::Default => default = Some(value.to_string()),
-        OptionParameterPointer::Min => min.replace_if(value.parse().ok()),
-        OptionParameterPointer::Max => max.replace_if(value.parse().ok()),
-        OptionParameterPointer::Var => var.push(Cow::Owned(value.to_string())),
+    let parameter_fn = |parameter, _, value: &str, parts| {
+        match parameter {
+            OptionParameterPointer::Name => name = Some(value.to_string()),
+            OptionParameterPointer::Type => r#type.replace_if(value.parse().ok()),
+            OptionParameterPointer::Default => default = Some(value.to_string()),
+            OptionParameterPointer::Min => min.replace_if(value.parse().ok()),
+            OptionParameterPointer::Max => max.replace_if(value.parse().ok()),
+            OptionParameterPointer::Var => var.push(Cow::Owned(value.to_string())),
+        }
+        
+        Some(parts)
     };
 
     let mut value = String::with_capacity(200);
