@@ -16,7 +16,7 @@ dry-mods = { workspace = true }
 paste = { workspace = true }
 serde = { workspace = true, optional = true, features = ["derive"] }
 shakmaty = { workspace = true }
-tokio = { workspace = true, optional = true, features = ["io-util", "process"] }
+tokio = { workspace = true, optional = true, features = ["io-util"] }
 
 [features]
 # No features are turned on by default.
@@ -27,6 +27,8 @@ serde = ["dep:serde", "shakmaty/serde"]
 engine-sync = []
 # Enables the `engine-sync` feature and adds async versions of all functions using tokio.
 engine-async = ["engine-sync", "dep:tokio"]
+# Enables the `engine-async` and `tokio/process` features and adds a tokio version of `Engine::from_process`.
+tokio-process = ["engine-async", "tokio/process"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -35,7 +37,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dev-dependencies]
 pretty_assertions = { version = "1", features = ["unstable"] }
 shakmaty-uci = { version = "~0.1" }
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 trybuild = "1"
 vampirc-uci = { version = "~0.11" }
 

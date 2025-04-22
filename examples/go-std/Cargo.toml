@@ -6,5 +6,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-ruci = { workspace = true, features = ["engine-sync", "serde"] }
+ruci = { workspace = true, features = ["engine-sync"] }
 shakmaty = { workspace = true, features = ["std"] }

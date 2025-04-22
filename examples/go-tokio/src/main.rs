@@ -3,15 +3,29 @@
 //!
 //! Requires that you have installed Stockfish.
 
+use ruci::Engine;
+use std::process::Stdio;
 use tokio::io::BufReader;
-use tokio::process::{ChildStdin, ChildStdout};
+use tokio::process::Command;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let mut engine = ruci::Engine::<BufReader<ChildStdout>, ChildStdin>::from_path("stockfish")?;
+    let mut process = Command::new("stockfish")
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .spawn()?;
+    let stdout = process.stdout.take().unwrap();
+    let stdin = process.stdin.take().unwrap();
 
-    println!("== Sending quit message");
+    let mut engine = Engine {
+        r#in: BufReader::new(stdout),
+        out: stdin,
+        strict: false,
+    };
+
+    println!("== Sending quit message and waiting for engine process");
     engine.send_async(ruci::Quit).await?;
+    process.wait().await?;
     println!("== Sent. Program terminated");
 
     Ok(())

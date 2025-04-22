@@ -10,17 +10,28 @@
 //!
 //! Requires that you have installed Stockfish.
 
+use ruci::Engine;
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 use std::borrow::Cow;
 use std::io::BufReader;
-use std::process::{ChildStdin, ChildStdout};
+use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 
 fn main() -> anyhow::Result<()> {
-    let mut engine =
-        ruci::Engine::<BufReader<ChildStdout>, ChildStdin>::from_path("stockfish", false)?;
+    let mut process = Command::new("stockfish")
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .spawn()?;
+    let stdout = process.stdout.take().unwrap();
+    let stdin = process.stdin.take().unwrap();
+
+    let mut engine = Engine {
+        r#in: BufReader::new(stdout),
+        out: stdin,
+        strict: false,
+    };
 
     println!("== Sending uci, waiting for uciok");
 
@@ -85,8 +96,9 @@ fn main() -> anyhow::Result<()> {
 
     println!("== Sending quit");
     engine.send(ruci::Quit)?;
-    println!("== Sent. Waiting for info printing thread to finish");
+    println!("== Sent. Waiting for engine process and info printing thread to finish");
     info_printing_thread.join().unwrap();
+    process.wait()?;
     println!("== Program terminated");
 
     Ok(())

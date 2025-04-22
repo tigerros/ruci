@@ -52,37 +52,6 @@ impl Error for MessageParseError {}
 #[cfg(feature = "engine-sync")]
 #[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 #[derive(Debug)]
-/// Initiating the engine process failed.
-pub enum ConnectionError {
-    Spawn(io::Error),
-    /// See [`std::process::Child.stdout`](std::process::Child#structfield.stdout).
-    StdoutIsNotCaptured,
-    /// See [`std::process::Child.stdin`](std::process::Child#structfield.stdin).
-    StdinIsNotCaptured,
-}
-
-#[cfg(feature = "engine-sync")]
-impl Display for ConnectionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Spawn(e) => write!(f, "failed to spawn UCI engine connection: {e}"),
-            Self::StdoutIsNotCaptured => {
-                write!(f, "UCI engine connection process stdout is not captured")
-            }
-            Self::StdinIsNotCaptured => {
-                write!(f, "UCI engine connection process stdin is not captured")
-            }
-        }
-    }
-}
-
-#[cfg(feature = "engine-sync")]
-#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
-impl Error for ConnectionError {}
-
-#[cfg(feature = "engine-sync")]
-#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
-#[derive(Debug)]
 /// Reading a message from the engine failed.
 pub enum ReadError {
     /// Reading failed due to an I/O error.
@@ -127,3 +96,25 @@ impl Display for ReadWriteError {
 
 #[cfg(feature = "engine-sync")]
 impl Error for ReadWriteError {}
+
+#[cfg(feature = "engine-sync")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum FromProcessError {
+    /// See [`Child.stdout`](std::process::Child#structfield.stdout).
+    StdoutNotCaptured,
+    /// See [`Child.stdin`](std::process::Child#structfield.stdin).
+    StdinNotCaptured,
+}
+
+#[cfg(feature = "engine-sync")]
+impl Display for FromProcessError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StdoutNotCaptured => write!(f, "UCI process stdout is not captured"),
+            Self::StdinNotCaptured => write!(f, "UCI process stdin is not captured"),
+        }
+    }
+}
+
+#[cfg(feature = "engine-sync")]
+impl Error for FromProcessError {}

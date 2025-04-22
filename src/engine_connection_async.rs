@@ -1,28 +1,32 @@
-use crate::errors::{ConnectionError, ReadError, ReadWriteError};
+use crate::errors::{ReadError, ReadWriteError};
 use crate::Engine;
+#[cfg(feature = "tokio-process")]
+use crate::FromProcessError;
 use crate::{engine, gui};
 use crate::{BestMove, Id, Info};
 use crate::{Go, MessageParseError};
 use core::fmt::Display;
-use std::ffi::OsStr;
-use std::process::Stdio;
 use std::str::FromStr;
 use tokio::io;
-use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
-use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+#[cfg(feature = "tokio-process")]
+use tokio::io::BufReader;
+use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt};
+#[cfg(feature = "tokio-process")]
+use tokio::process::{Child, ChildStdin, ChildStdout};
 
+#[cfg(feature = "tokio-process")]
 impl Engine<BufReader<ChildStdout>, ChildStdin> {
-    /// Creates a new [`Engine`] from an existing process.
+    #[allow(clippy::missing_errors_doc)]
+    /// Uses the `stdin` and `stdout` from an existing process.
     ///
-    /// # Errors
-    /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(process: &mut Child) -> Result<Self, ConnectionError> {
+    /// See also [`Engine.strict`](Engine#structfield.strict).
+    pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, FromProcessError> {
         let Some(stdout) = process.stdout.take() else {
-            return Err(ConnectionError::StdoutIsNotCaptured);
+            return Err(FromProcessError::StdoutNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(ConnectionError::StdinIsNotCaptured);
+            return Err(FromProcessError::StdinNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -30,19 +34,8 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
         Ok(Self {
             r#in: stdout,
             out: stdin,
-            strict: false,
+            strict,
         })
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    /// Creates a new [`Engine`] from the given path.
-    pub fn from_path(path: impl AsRef<OsStr>) -> Result<Self, ConnectionError> {
-        let mut cmd = Command::new(path);
-        let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
-
-        let mut process = cmd.spawn().map_err(ConnectionError::Spawn)?;
-
-        Self::from_process(&mut process)
     }
 }
 
@@ -134,7 +127,7 @@ where
     /// When an [`Option`](engine::Option) is encountered, the `option_receiver` function is called.
     pub async fn use_uci_async<'m>(
         &mut self,
-        mut option_receiver: impl FnMut(crate::Option<'m>),
+        mut option_receiver: impl AsyncFnMut(crate::Option<'m>),
     ) -> Result<Option<Id<'m>>, ReadWriteError> {
         self.send_async(crate::Uci)
             .await
@@ -144,7 +137,7 @@ where
 
         loop {
             match self.read_async().await.map_err(ReadWriteError::Read)? {
-                engine::Message::Option(option) => option_receiver(option),
+                engine::Message::Option(option) => option_receiver(option).await,
                 engine::Message::Id(new_id) => {
                     id = Some(if let Some(id) = id {
                         id.updated(new_id)
@@ -204,7 +197,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "tokio-process"))]
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
@@ -214,6 +207,9 @@ mod tests {
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
     use shakmaty::uci::UciMove;
+    use std::process::Stdio;
+    use tokio::io::BufReader;
+    use tokio::process::{ChildStdin, ChildStdout, Command};
 
     const ENGINE_EXE: &str = if cfg!(target_os = "windows") {
         "resources/stockfish-windows-x86-64-avx2.exe"
@@ -223,43 +219,63 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine() -> Engine<BufReader<ChildStdout>, ChildStdin> {
-        Engine::<BufReader<ChildStdout>, ChildStdin>::from_path(ENGINE_EXE).unwrap()
+    /// Use the second variable in the tuple to wait on the process.
+    fn engine() -> (
+        Engine<BufReader<ChildStdout>, ChildStdin>,
+        impl AsyncFnMut(),
+    ) {
+        let mut cmd = Command::new(ENGINE_EXE);
+        let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
+        let mut process = cmd.spawn().unwrap();
+
+        (
+            Engine::<BufReader<ChildStdout>, ChildStdin>::from_process(&mut process, false)
+                .unwrap(),
+            async move || {
+                process.kill().await.unwrap();
+                process.wait().await.unwrap();
+            },
+        )
     }
 
     #[tokio::test]
     async fn is_ready() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.is_ready_async().await.unwrap();
+        wait().await;
     }
 
     /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
+    // CLIPPY: It's private
+    #[allow(clippy::future_not_send)]
     async fn _lifetimes<'a>() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
         engine.is_ready_async().await.unwrap();
 
         let _: engine::Message<'static> = engine.read_async::<engine::Message>().await.unwrap();
 
+        #[allow(clippy::needless_if)]
         if engine.read_async::<engine::Message>().await.unwrap()
             == engine::Message::Option(crate::Option {
                 name: Cow::Borrowed::<'a>(""),
                 r#type: OptionType::Button,
             })
         {}
+        wait().await;
     }
 
     #[tokio::test]
     async fn strict() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.strict = true;
 
         // Stockfish sends an unrecognized string at the very beginning
         assert!(matches!(
-            engine.use_uci_async(|_| {}).await,
+            engine.use_uci_async(async |_| {}).await,
             Err(ReadWriteError::Read(ReadError::Parse(
                 MessageParseError::NoMessage {
                     expected: "engine UCI message"
@@ -274,7 +290,7 @@ mod tests {
         };
 
         engine
-            .use_uci_async(|option| {
+            .use_uci_async(async |option| {
                 assert_eq!(
                     option,
                     crate::Option {
@@ -289,11 +305,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(engine.out, b"uci\n");
+        wait().await;
     }
 
     #[tokio::test]
     async fn skip_lines() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.send_async(crate::Uci).await.unwrap();
 
@@ -306,12 +323,13 @@ mod tests {
             line.trim(),
             "option name Debug Log File type string default <empty>"
         );
+        wait().await;
     }
 
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
     #[tokio::test]
     async fn analyze_checkmate() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.send_async(crate::Uci).await.unwrap();
 
@@ -340,11 +358,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(best_move, BestMove::Other);
+        wait().await;
     }
 
     #[tokio::test]
     async fn go() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         let best_move = engine
             .go_async(
@@ -399,6 +418,7 @@ mod tests {
                 ponder: Some(UciMove::from_ascii(b"c2c4").unwrap())
             }
         );
+        wait().await;
     }
 
     #[allow(clippy::too_many_lines)]
@@ -407,11 +427,11 @@ mod tests {
         use crate::{Id, Option};
         use core::fmt::Write;
 
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         let mut options = Vec::new();
         let id = engine
-            .use_uci_async(|option| options.push(option))
+            .use_uci_async(async |option| options.push(option))
             .await
             .unwrap();
 
@@ -670,5 +690,6 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
                 }
             })
         );
+        wait().await;
     }
 }

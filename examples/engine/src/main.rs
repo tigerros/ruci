@@ -6,6 +6,7 @@
 //! - [`Uci`](ruci::Uci)
 //! - [`Position`](ruci::Position)
 //! - [`Go`](ruci::Go) - no analysis, just outputs the first legal move [`shakmaty`] finds.
+//!   Parameters are ignored except [`infinite`](ruci::Go#structfield.infinite).
 //! - [`Quit`](ruci::Quit)
 
 use ruci::gui::Message;

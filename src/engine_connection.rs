@@ -1,13 +1,11 @@
-use crate::errors::{ConnectionError, ReadError, ReadWriteError};
-use crate::{engine, gui};
+use crate::errors::{ReadError, ReadWriteError};
+use crate::{engine, gui, FromProcessError};
 use crate::{BestMove, Id, Info};
 use crate::{Go, MessageParseError};
 use core::fmt::Display;
-use std::ffi::OsStr;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
-use std::process::Stdio;
-use std::process::{Child, ChildStdin, ChildStdout, Command};
+use std::process::{Child, ChildStdin, ChildStdout};
 use std::str::FromStr;
 
 /// Communicate with a Chess engine.
@@ -24,19 +22,17 @@ pub struct Engine<I, O> {
 }
 
 impl Engine<BufReader<ChildStdout>, ChildStdin> {
-    /// Creates a new [`Engine`] from an existing process.
+    #[allow(clippy::missing_errors_doc)]
+    /// Uses the `stdin` and `stdout` from an existing process.
     ///
     /// See also [`Engine.strict`](Engine#structfield.strict).
-    ///
-    /// # Errors
-    /// [`ConnectionError::Spawn`] is guaranteed not to occur here.
-    pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, ConnectionError> {
+    pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, FromProcessError> {
         let Some(stdout) = process.stdout.take() else {
-            return Err(ConnectionError::StdoutIsNotCaptured);
+            return Err(FromProcessError::StdoutNotCaptured);
         };
 
         let Some(stdin) = process.stdin.take() else {
-            return Err(ConnectionError::StdinIsNotCaptured);
+            return Err(FromProcessError::StdinNotCaptured);
         };
 
         let stdout = BufReader::new(stdout);
@@ -46,19 +42,6 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
             out: stdin,
             strict,
         })
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    /// Creates a new [`Engine`] from the given path.
-    ///
-    /// See also [`Engine.strict`](Engine#structfield.strict).
-    pub fn from_path(path: impl AsRef<OsStr>, strict: bool) -> Result<Self, ConnectionError> {
-        let mut cmd = Command::new(path);
-        let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
-
-        let mut process = cmd.spawn().map_err(ConnectionError::Spawn)?;
-
-        Self::from_process(&mut process, strict)
     }
 }
 
@@ -295,6 +278,8 @@ mod tests {
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
     use shakmaty::uci::UciMove;
+    use std::io::BufReader;
+    use std::process::{ChildStdin, ChildStdout, Command, Stdio};
 
     const ENGINE_EXE: &str = if cfg!(target_os = "windows") {
         "resources/stockfish-windows-x86-64-avx2.exe"
@@ -304,37 +289,52 @@ mod tests {
         panic!("Unsupported OS");
     };
 
-    fn engine() -> Engine<BufReader<ChildStdout>, ChildStdin> {
-        Engine::<BufReader<ChildStdout>, ChildStdin>::from_path(ENGINE_EXE, false).unwrap()
+    /// Use the second variable in the tuple to wait on the process.
+    fn engine() -> (Engine<BufReader<ChildStdout>, ChildStdin>, impl FnMut()) {
+        let mut cmd = Command::new(ENGINE_EXE);
+        let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
+        let mut process = cmd.spawn().unwrap();
+
+        (
+            Engine::<BufReader<ChildStdout>, ChildStdin>::from_process(&mut process, false)
+                .unwrap(),
+            move || {
+                process.kill().unwrap();
+                process.wait().unwrap();
+            },
+        )
     }
 
     #[test]
     fn is_ready() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.is_ready().unwrap();
+        wait();
     }
 
     /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
     fn _lifetimes<'a>() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
         engine.is_ready().unwrap();
 
         let _: engine::Message<'static> = engine.read::<engine::Message>().unwrap();
 
+        #[allow(clippy::needless_if)]
         if engine.read::<engine::Message>().unwrap()
             == engine::Message::Option(crate::Option {
                 name: Cow::Borrowed::<'a>(""),
                 r#type: OptionType::Button,
             })
         {}
+        wait();
     }
 
     #[test]
     fn strict() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.strict = true;
 
@@ -369,11 +369,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(engine.out, b"uci\n");
+        wait();
     }
 
     #[test]
     fn skip_lines() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.send(crate::Uci).unwrap();
 
@@ -386,11 +387,12 @@ mod tests {
             line.trim(),
             "option name Debug Log File type string default <empty>"
         );
+        wait();
     }
 
     #[test]
     fn skip_lines_typed() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.send(crate::Uci).unwrap();
 
@@ -405,12 +407,13 @@ mod tests {
                 },
             }
         );
+        wait();
     }
 
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
     #[test]
     fn analyze_checkmate() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         engine.send(crate::Uci).unwrap();
 
@@ -437,11 +440,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(best_move, BestMove::Other);
+        wait();
     }
 
     #[test]
     fn go() {
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         let best_move = engine
             .go(
@@ -493,6 +497,7 @@ mod tests {
                 ponder: Some(UciMove::from_ascii(b"c2c4").unwrap())
             }
         );
+        wait();
     }
 
     #[allow(clippy::too_many_lines)]
@@ -501,7 +506,7 @@ mod tests {
         use crate::{Id, Option};
         use core::fmt::Write;
 
-        let mut engine = engine();
+        let (mut engine, mut wait) = engine();
 
         let mut options = Vec::new();
         let id = engine.use_uci(|option| options.push(option)).unwrap();
@@ -761,5 +766,6 @@ option name EvalFileSmall type string default nn-37f18f62d772.nnue"
                 }
             })
         );
+        wait();
     }
 }
