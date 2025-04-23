@@ -99,6 +99,7 @@ impl Error for ReadWriteError {}
 
 #[cfg(feature = "engine-sync")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+/// Converting a process to an engine failed.
 pub enum FromProcessError {
     /// See [`Child.stdout`](std::process::Child#structfield.stdout).
     StdoutNotCaptured,
