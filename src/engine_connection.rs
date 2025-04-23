@@ -2,7 +2,6 @@ use crate::errors::{ReadError, ReadWriteError};
 use crate::{engine, gui, FromProcessError};
 use crate::{BestMove, Id, Info};
 use crate::{Go, MessageParseError};
-use core::fmt::Display;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout};
@@ -10,9 +9,14 @@ use std::str::FromStr;
 
 /// Communicate with a Chess engine.
 #[derive(Debug)]
-pub struct Engine<I, O> {
-    pub r#in: I,
-    pub out: O,
+pub struct Engine<E, G> {
+    /// The output of the engine.
+    pub engine: E,
+    /// The output of the GUI.
+    ///
+    /// Doesn't have to be a GUI, it's anything that controls the engine.
+    /// It's called `gui` for brevity and clarity because that's how it's referred to in the UCI protocol.
+    pub gui: G,
     /// Whether message parsing errors should be ignored.
     /// This should probably be `false`, because engines do send unrecognized strings.
     ///
@@ -38,17 +42,17 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
         let stdout = BufReader::new(stdout);
 
         Ok(Self {
-            r#in: stdout,
-            out: stdin,
+            engine: stdout,
+            gui: stdin,
             strict,
         })
     }
 }
 
-impl<I, O> Engine<I, O>
+impl<E, G> Engine<E, G>
 where
-    I: BufRead,
-    O: Write,
+    E: BufRead,
+    G: Write,
 {
     // CLIPPY: Message is implemented for borrows as well
     #[allow(clippy::needless_pass_by_value)]
@@ -58,9 +62,9 @@ where
     /// See [`Write::write_all`].
     pub fn send<M>(&mut self, message: M) -> io::Result<()>
     where
-        M: gui::traits::Message + Display,
+        M: gui::traits::Message,
     {
-        self.out.write_all((message.to_string() + "\n").as_bytes())
+        self.gui.write_all((message.to_string() + "\n").as_bytes())
     }
 
     /// Skips some lines.
@@ -71,7 +75,7 @@ where
         let mut buf = Vec::with_capacity(512);
 
         for _ in 0..count {
-            let bytes = self.r#in.read_until(b'\n', &mut buf)?;
+            let bytes = self.engine.read_until(b'\n', &mut buf)?;
 
             if bytes == 0 {
                 break;
@@ -99,7 +103,7 @@ where
 
         if self.strict {
             loop {
-                self.r#in.read_line(&mut line).map_err(ReadError::Io)?;
+                self.engine.read_line(&mut line).map_err(ReadError::Io)?;
 
                 if line.is_empty() || line.chars().all(char::is_whitespace) {
                     line.clear();
@@ -112,7 +116,7 @@ where
             M::from_str(&line).map_err(ReadError::Parse)
         } else {
             loop {
-                self.r#in.read_line(&mut line).map_err(ReadError::Io)?;
+                self.engine.read_line(&mut line).map_err(ReadError::Io)?;
 
                 if let Ok(message) = M::from_str(&line) {
                     return Ok(message);
@@ -318,8 +322,8 @@ mod tests {
     #[test]
     fn _lifetimes<'a>() {
         let mut engine = Engine {
-            r#in: b"uciok\noption name n type button".as_slice(),
-            out: Vec::new(),
+            engine: b"uciok\noption name n type button".as_slice(),
+            gui: Vec::new(),
             strict: false,
         };
 
@@ -351,8 +355,8 @@ mod tests {
         ));
 
         let mut engine = Engine {
-            r#in: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
-            out: Vec::new(),
+            engine: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
+            gui: Vec::new(),
             strict: true,
         };
 
@@ -370,7 +374,7 @@ mod tests {
             })
             .unwrap();
 
-        assert_eq!(engine.out, b"uci\n");
+        assert_eq!(engine.gui, b"uci\n");
         wait();
     }
 
@@ -383,7 +387,7 @@ mod tests {
         engine.skip_lines(4).unwrap();
 
         let mut line = String::new();
-        engine.r#in.read_line(&mut line).unwrap();
+        engine.engine.read_line(&mut line).unwrap();
 
         assert_eq!(
             line.trim(),

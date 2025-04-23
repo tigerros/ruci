@@ -24,12 +24,12 @@ fn main() -> anyhow::Result<()> {
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .spawn()?;
-    let stdout = process.stdout.take().unwrap();
-    let stdin = process.stdin.take().unwrap();
+    let engine = process.stdout.take().unwrap();
+    let gui = process.stdin.take().unwrap();
 
     let mut engine = Engine {
-        r#in: BufReader::new(stdout),
-        out: stdin,
+        engine: BufReader::new(engine),
+        gui,
         strict: false,
     };
 

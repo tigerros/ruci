@@ -69,7 +69,15 @@ macro_rules! define_message {
 
             /// Marks [`super`] message types and their references.
             /// Intentionally sealed.
-            pub trait Message: sealed::Message {}
+            pub trait Message:
+                sealed::Message
+                + ::core::fmt::Display
+                + ::core::fmt::Debug
+                + ::core::cmp::PartialEq
+                + ::core::cmp::Eq
+                + ::core::hash::Hash
+                + ::core::clone::Clone
+            {}
         }
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]

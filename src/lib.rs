@@ -104,7 +104,16 @@ pub mod traits {
 
     /// Marks all message types and their references.
     /// Intentionally sealed.
-    pub trait Message: sealed::Message {}
+    pub trait Message:
+        sealed::Message
+        + core::fmt::Display
+        + core::fmt::Debug
+        + PartialEq
+        + Eq
+        + core::hash::Hash
+        + Clone
+    {
+    }
 }
 
 impl traits::sealed::Message for Message<'_> {}

@@ -10,12 +10,12 @@ use ruci::{Engine, Id};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     println!("1. Setting input to id and uciok");
-    let r#in = &mut b"id name stringerton author tigerros\nuciok\n".as_slice();
-    let out = Vec::<u8>::new();
+    let engine = &mut b"id name stringerton author tigerros\nuciok\n".as_slice();
+    let gui = Vec::<u8>::new();
 
     let mut engine = Engine {
-        r#in,
-        out,
+        engine,
+        gui,
         strict: false,
     };
 
@@ -29,16 +29,16 @@ async fn main() -> anyhow::Result<()> {
             author: "tigerros".into()
         })
     );
-    println!("1. Output bytes: {:?}", engine.out);
+    println!("1. Output bytes: {:?}", engine.gui);
 
     println!();
 
     println!("2. Setting input to readyok");
-    *engine.r#in = b"readyok\n";
+    *engine.engine = b"readyok\n";
     println!("2. Sending isready");
     engine.is_ready_async().await?;
     println!("2. Received readyok");
-    println!("2. Output bytes: {:?}", engine.out);
+    println!("2. Output bytes: {:?}", engine.gui);
 
     Ok(())
 }

@@ -5,7 +5,6 @@ use crate::FromProcessError;
 use crate::{engine, gui};
 use crate::{BestMove, Id, Info};
 use crate::{Go, MessageParseError};
-use core::fmt::Display;
 use std::str::FromStr;
 use tokio::io;
 #[cfg(feature = "tokio-process")]
@@ -32,17 +31,17 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
         let stdout = BufReader::new(stdout);
 
         Ok(Self {
-            r#in: stdout,
-            out: stdin,
+            engine: stdout,
+            gui: stdin,
             strict,
         })
     }
 }
 
-impl<I, O> Engine<I, O>
+impl<E, G> Engine<E, G>
 where
-    I: AsyncBufRead + Unpin,
-    O: AsyncWrite + Unpin,
+    E: AsyncBufRead + Unpin,
+    G: AsyncWrite + Unpin,
 {
     // CLIPPY: Message is implemented for borrows as well
     #[allow(clippy::needless_pass_by_value)]
@@ -52,9 +51,9 @@ where
     /// See [`AsyncWriteExt::write_all`].
     pub async fn send_async<M>(&mut self, message: M) -> io::Result<()>
     where
-        M: gui::traits::Message + Display,
+        M: gui::traits::Message,
     {
-        self.out
+        self.gui
             .write_all((message.to_string() + "\n").as_bytes())
             .await
     }
@@ -67,7 +66,7 @@ where
         let mut buf = Vec::with_capacity(512);
 
         for _ in 0..count {
-            let bytes = self.r#in.read_until(b'\n', &mut buf).await?;
+            let bytes = self.engine.read_until(b'\n', &mut buf).await?;
 
             if bytes == 0 {
                 break;
@@ -90,7 +89,7 @@ where
 
         if self.strict {
             loop {
-                self.r#in
+                self.engine
                     .read_line(&mut line)
                     .await
                     .map_err(ReadError::Io)?;
@@ -106,7 +105,7 @@ where
             M::from_str(&line).map_err(ReadError::Parse)
         } else {
             loop {
-                self.r#in
+                self.engine
                     .read_line(&mut line)
                     .await
                     .map_err(ReadError::Io)?;
@@ -251,8 +250,8 @@ mod tests {
     #[tokio::test]
     async fn _lifetimes<'a>() {
         let mut engine = Engine {
-            r#in: b"uciok\noption name n type button".as_slice(),
-            out: Vec::new(),
+            engine: b"uciok\noption name n type button".as_slice(),
+            gui: Vec::new(),
             strict: false,
         };
 
@@ -284,8 +283,8 @@ mod tests {
         ));
 
         let mut engine = Engine {
-            r#in: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
-            out: Vec::new(),
+            engine: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
+            gui: Vec::new(),
             strict: true,
         };
 
@@ -304,7 +303,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(engine.out, b"uci\n");
+        assert_eq!(engine.gui, b"uci\n");
         wait().await;
     }
 
@@ -317,7 +316,7 @@ mod tests {
         engine.skip_lines_async(4).await.unwrap();
 
         let mut line = String::new();
-        engine.r#in.read_line(&mut line).await.unwrap();
+        engine.engine.read_line(&mut line).await.unwrap();
 
         assert_eq!(
             line.trim(),
