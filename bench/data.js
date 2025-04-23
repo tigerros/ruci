@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745352700577,
+  "lastUpdate": 1745439575852,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -2015,6 +2015,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 42.09,
             "range": "± 0.39",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "4a4f2988e7b2e8fcc6448bf52c0bab37e5a1b3f5",
+          "message": "improve error messages + bump coverage\n\nmake the `_lifetimes` compile time check a test, and test errors. kind pointless cause the logic is so simple, but eh. it did make me scrutinize the messages a bit more. now they're shorter, clearer",
+          "timestamp": "2025-04-23T22:18:29+02:00",
+          "tree_id": "c6a39fcab1164c76092ae9de11eec8605b131ed8",
+          "url": "https://github.com/tigerros/ruci/commit/4a4f2988e7b2e8fcc6448bf52c0bab37e5a1b3f5"
+        },
+        "date": 1745439573617,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 951.41,
+            "range": "± 25.86",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3078.42,
+            "range": "± 59.56",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 27869.3,
+            "range": "± 367.10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 23.62,
+            "range": "± 0.55",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 615.21,
+            "range": "± 23.21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2361.2,
+            "range": "± 25.10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 194.98,
+            "range": "± 1.76",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 210.95,
+            "range": "± 9.07",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 404.84,
+            "range": "± 24.39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 487.16,
+            "range": "± 8.39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 97.62,
+            "range": "± 0.95",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 158.15,
+            "range": "± 4.15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 257.79,
+            "range": "± 2.31",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 278.99,
+            "range": "± 15.96",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.29,
+            "range": "± 0.36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.39,
+            "range": "± 0.48",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 42.11,
+            "range": "± 0.42",
             "unit": "ns/iter"
           }
         ]
