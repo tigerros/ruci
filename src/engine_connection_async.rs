@@ -246,25 +246,25 @@ mod tests {
         wait().await;
     }
 
-    /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
-    // CLIPPY: It's private
-    #[allow(clippy::future_not_send)]
+    #[tokio::test]
     async fn _lifetimes<'a>() {
-        let (mut engine, mut wait) = engine();
-        engine.is_ready_async().await.unwrap();
+        let mut engine = Engine {
+            r#in: b"uciok\noption name n type button".as_slice(),
+            out: Vec::new(),
+            strict: false,
+        };
 
         let _: engine::Message<'static> = engine.read_async::<engine::Message>().await.unwrap();
 
-        #[allow(clippy::needless_if)]
-        if engine.read_async::<engine::Message>().await.unwrap()
-            == engine::Message::Option(crate::Option {
-                name: Cow::Borrowed::<'a>(""),
+        assert_eq!(
+            engine.read_async::<engine::Message>().await.unwrap(),
+            engine::Message::Option(crate::Option {
+                name: Cow::Borrowed::<'a>("n"),
                 r#type: OptionType::Button,
             })
-        {}
-        wait().await;
+        );
     }
 
     #[tokio::test]

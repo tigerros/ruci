@@ -313,23 +313,25 @@ mod tests {
         wait();
     }
 
-    /// Don't run! Just makes sure that compilation is correct.
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
+    #[test]
     fn _lifetimes<'a>() {
-        let (mut engine, mut wait) = engine();
-        engine.is_ready().unwrap();
+        let mut engine = Engine {
+            r#in: b"uciok\noption name n type button".as_slice(),
+            out: Vec::new(),
+            strict: false,
+        };
 
         let _: engine::Message<'static> = engine.read::<engine::Message>().unwrap();
 
-        #[allow(clippy::needless_if)]
-        if engine.read::<engine::Message>().unwrap()
-            == engine::Message::Option(crate::Option {
-                name: Cow::Borrowed::<'a>(""),
+        assert_eq!(
+            engine.read::<engine::Message>().unwrap(),
+            engine::Message::Option(crate::Option {
+                name: Cow::Borrowed::<'a>("n"),
                 r#type: OptionType::Button,
             })
-        {}
-        wait();
+        );
     }
 
     #[test]
