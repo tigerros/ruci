@@ -136,7 +136,7 @@ mod tests {
         );
 
         let io_str = "i feel like the ErrorKind should be shown too :/";
-        let read = ReadError::Io(io::Error::new(io::ErrorKind::Other, io_str));
+        let read = ReadError::Io(io::Error::other(io_str));
         let read_str = "I/O error reading UCI message: ".to_string() + io_str;
 
         assert_eq!(read.to_string(), read_str);
