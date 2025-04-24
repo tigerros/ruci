@@ -19,7 +19,7 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
     /// Uses the `stdin` and `stdout` from an existing process.
     ///
     /// See also [`Engine.strict`](Engine#structfield.strict).
-    pub fn from_process(process: &mut Child, strict: bool) -> Result<Self, FromProcessError> {
+    pub fn from_process_async(process: &mut Child, strict: bool) -> Result<Self, FromProcessError> {
         let Some(stdout) = process.stdout.take() else {
             return Err(FromProcessError::StdoutNotCaptured);
         };
@@ -228,7 +228,7 @@ mod tests {
         let mut process = cmd.spawn().unwrap();
 
         (
-            Engine::<BufReader<ChildStdout>, ChildStdin>::from_process(&mut process, false)
+            Engine::<BufReader<ChildStdout>, ChildStdin>::from_process_async(&mut process, false)
                 .unwrap(),
             async move || {
                 process.kill().await.unwrap();

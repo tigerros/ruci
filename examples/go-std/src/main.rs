@@ -14,7 +14,6 @@ use ruci::Engine;
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 use std::borrow::Cow;
-use std::io::BufReader;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
@@ -24,14 +23,8 @@ fn main() -> anyhow::Result<()> {
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .spawn()?;
-    let engine = process.stdout.take().unwrap();
-    let gui = process.stdin.take().unwrap();
 
-    let mut engine = Engine {
-        engine: BufReader::new(engine),
-        gui,
-        strict: false,
-    };
+    let mut engine = Engine::from_process(&mut process, false)?;
 
     println!("== Sending uci, waiting for uciok");
 
