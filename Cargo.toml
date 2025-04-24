@@ -51,7 +51,7 @@ name = "from_str"
 members = ["examples/engine", "examples/flexible-io", "examples/go-std", "examples/go-tokio"]
 
 [workspace.dependencies]
-ruci = { version = "0.9.0", path = "." }
+ruci = { version = "1", path = "." }
 tokio = { version = "1", default-features = false }
 serde = { version = "1", default-features = false }
 paste = { version = "1", default-features = false }
