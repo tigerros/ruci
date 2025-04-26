@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745537891572,
+  "lastUpdate": 1745699344133,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -3023,6 +3023,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 42.94,
             "range": "± 0.21",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "76173380+tigerros@users.noreply.github.com",
+            "name": "Leonard",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f8ec6f9bbfa3d7f93d02505f25b04c14766ae7e2",
+          "message": "scan vulnerabilities with OSV\n\nusing osv.dev instead of rustsec.org because osv.dev actually has rustsec.org as a source",
+          "timestamp": "2025-04-26T22:27:54+02:00",
+          "tree_id": "6c038c9e59855b775d2444c5886ff36d1fa838c6",
+          "url": "https://github.com/tigerros/ruci/commit/f8ec6f9bbfa3d7f93d02505f25b04c14766ae7e2"
+        },
+        "date": 1745699341853,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 967.23,
+            "range": "± 24.25",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3267.24,
+            "range": "± 38.93",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 27771.41,
+            "range": "± 508.61",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 22.39,
+            "range": "± 0.26",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 658.02,
+            "range": "± 26.01",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2398.86,
+            "range": "± 43.49",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 194.16,
+            "range": "± 2.71",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 214.12,
+            "range": "± 86.83",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 398.21,
+            "range": "± 5.20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 495.71,
+            "range": "± 11.81",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 99.35,
+            "range": "± 0.48",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 153.63,
+            "range": "± 5.19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 259.51,
+            "range": "± 3.36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 278.79,
+            "range": "± 19.08",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.2,
+            "range": "± 0.45",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.32,
+            "range": "± 0.84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 43,
+            "range": "± 0.71",
             "unit": "ns/iter"
           }
         ]
