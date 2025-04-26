@@ -17,7 +17,10 @@ permissions:
   security-events: write
   # Read commit contents
   contents: read
+  actions: read
 
 jobs:
-  scan-scheduled:
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2"
+  scan:
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.0.0"
+    with:
+      scan-args: '--lockfile=Cargo.lock'
