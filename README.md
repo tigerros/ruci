@@ -37,4 +37,6 @@ There's two other crates that I'm aware of which serve a similar purpose; [`vamp
 - `engine-sync`: adds the `Engine` struct for communicating with an engine. Requires `std`.
 - `engine-async`: enables the `engine-sync` feature and adds async versions of all functions using [`tokio`](https://crates.io/crates/tokio).
 - `tokio-process`: enables the `engine-async` and `tokio/process` features and adds a `tokio` version of `Engine::from_process`.
+- `gui-sync`: enables the `engine-sync` feature for shared error types and adds the `Gui` struct for communicating with a GUI.
+- `gui-async`: enables the `gui-sync` feature and adds async versions of all functions using tokio.
 - `serde`: enables serde support for most types. All implementations are derived with no parameters. Requires `std`.

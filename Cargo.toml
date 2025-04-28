@@ -29,6 +29,10 @@ engine-sync = []
 engine-async = ["engine-sync", "dep:tokio"]
 # Enables the `engine-async` and `tokio/process` features and adds a tokio version of `Engine::from_process`.
 tokio-process = ["engine-async", "tokio/process"]
+# Enables the `engine-sync` feature for shared error types and adds the `Gui` struct for communicating with a GUI.
+gui-sync = ["engine-sync"]
+# Enables the `gui-sync` feature and adds async versions of all functions using tokio.
+gui-async = ["gui-sync", "dep:tokio"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -48,7 +52,7 @@ name = "to_str"
 name = "from_str"
 
 [workspace]
-members = ["examples/engine", "examples/flexible-io", "examples/go-std", "examples/go-tokio"]
+members = ["examples/engine", "examples/engine-client", "examples/engine-server", "examples/flexible-io", "examples/go-std", "examples/go-tokio"]
 
 [workspace.dependencies]
 ruci = { version = "1", path = "." }

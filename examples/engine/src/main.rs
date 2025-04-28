@@ -1,6 +1,11 @@
 //! This example demonstrates a possible implementation of an engine.
+//!
 //! All communication is done with UCI, using the [`Info`] message when another message is not
 //! more appropriate.
+//!
+//! > *I wish engines did this instead of sending random strings.
+//! > Please.
+//! > Just add `info string ` to the start of the message. Follow the standard.*
 //!
 //! Accepts the following messages:
 //! - [`Uci`](ruci::Uci)
@@ -9,54 +14,35 @@
 //!   Parameters are ignored except [`infinite`](ruci::Go#structfield.infinite).
 //! - [`Quit`](ruci::Quit)
 
+use ruci::Gui;
 use ruci::gui::Message;
-use ruci::{BestMove, Depth, Id, Info, NormalBestMove, UciOk, gui};
+use ruci::{BestMove, Depth, Id, Info, NormalBestMove, UciOk};
 use shakmaty::Chess;
 use shakmaty::uci::{IllegalUciMoveError, UciMove};
 use shakmaty::{CastlingMode, Position};
 use std::borrow::Cow;
-use std::io;
-use std::io::{BufRead, StdoutLock, Write};
-use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
-
-fn info_string(stdout: &mut StdoutLock, s: Cow<str>) -> io::Result<()> {
-    let info = Info {
-        string: Some(s),
-        ..Default::default()
-    };
-
-    writeln!(stdout, "{info}")
-}
-
-fn not_supported(stdout: &mut StdoutLock, message: &str) -> io::Result<()> {
-    info_string(stdout, format!("{message} not supported").into())
-}
 
 struct State {
     position: Chess,
 }
 
 fn main() -> anyhow::Result<()> {
-    let mut stdin = io::stdin().lock();
-    let mut stdout = io::stdout().lock();
-    let mut line = String::with_capacity(128);
+    let mut gui = Gui::from_stdio();
     let mut state = State {
         position: Chess::new(),
     };
 
-    info_string(&mut stdout, "engine started".into())?;
+    gui.send_string("engine started")?;
 
     loop {
-        stdin.read_line(&mut line)?;
-        let message = gui::Message::from_str(&line);
-        line.clear();
+        let message = gui.read();
 
         let message = match message {
             Ok(m) => m,
             Err(e) => {
-                info_string(&mut stdout, format!("error parsing message: {e}").into())?;
+                gui.send_string(&e.to_string())?;
                 continue;
             }
         };
@@ -70,7 +56,7 @@ fn main() -> anyhow::Result<()> {
                         match fen.into_owned().into_position(CastlingMode::Standard) {
                             Ok(p) => (p, moves),
                             Err(e) => {
-                                info_string(&mut stdout, format!("error parsing FEN: {e}").into())?;
+                                gui.send_string(&format!("error parsing FEN: {e}"))?;
                                 continue;
                             }
                         }
@@ -84,13 +70,10 @@ fn main() -> anyhow::Result<()> {
                 }) {
                     Ok(position) => {
                         state.position = position;
-                        info_string(&mut stdout, "position set".into())?;
+                        gui.send_string("position set")?;
                     }
                     Err(e) => {
-                        info_string(
-                            &mut stdout,
-                            format!("error converting UCI move to valid move: {e}").into(),
-                        )?;
+                        gui.send_string(&format!("error converting UCI move to valid move: {e}"))?;
                     }
                 }
             }
@@ -111,14 +94,14 @@ fn main() -> anyhow::Result<()> {
                         ponder: None,
                     });
 
-                    writeln!(stdout, "{info}")?;
-                    writeln!(stdout, "{best_move}")?;
+                    gui.send(info)?;
+                    gui.send(best_move)?;
                 } else {
                     let null = BestMove::Normal(NormalBestMove {
                         r#move: UciMove::Null,
                         ponder: None,
                     });
-                    writeln!(stdout, "{null}")?;
+                    gui.send(null)?;
                 }
 
                 depth += 1;
@@ -133,7 +116,7 @@ fn main() -> anyhow::Result<()> {
                             string: Some("pretend that I'm doing something...".into()),
                             ..Default::default()
                         };
-                        writeln!(stdout, "{info}")?;
+                        gui.send(info)?;
                         depth += 1;
                         sleep(Duration::from_secs(5));
                     }
@@ -145,16 +128,10 @@ fn main() -> anyhow::Result<()> {
                     author: Cow::Borrowed("tigerros"),
                 };
 
-                writeln!(stdout, "{id}")?;
-                writeln!(stdout, "{UciOk}")?;
+                gui.send(id)?;
+                gui.send(UciOk)?;
             }
-            Message::Debug(_) => not_supported(&mut stdout, "debug")?,
-            Message::SetOption(_) => not_supported(&mut stdout, "setoption")?,
-            Message::Register(_) => not_supported(&mut stdout, "register")?,
-            Message::IsReady(_) => not_supported(&mut stdout, "isread")?,
-            Message::UciNewGame(_) => not_supported(&mut stdout, "ucinewgame")?,
-            Message::Stop(_) => not_supported(&mut stdout, "stop")?,
-            Message::PonderHit(_) => not_supported(&mut stdout, "ponderhit")?,
+            _ => gui.send_string("unsupported message")?,
         }
     }
 }

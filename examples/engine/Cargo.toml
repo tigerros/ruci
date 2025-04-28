@@ -2,8 +2,9 @@
 name = "engine"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-ruci = { workspace = true, features = ["engine-sync"] }
+ruci = { workspace = true, features = ["gui-sync"] }
 shakmaty = { workspace = true }

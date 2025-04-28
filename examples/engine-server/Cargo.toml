@@ -1,0 +1,11 @@
+[package]
+name = "engine-server"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = { workspace = true }
+ruci = { workspace = true, features = ["gui-async", "engine-async"] }
+shakmaty = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net"] }

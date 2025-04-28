@@ -29,7 +29,7 @@
     clippy::indexing_slicing,
     clippy::string_slice
 )]
-#![cfg_attr(not(feature = "engine-sync"), no_std)]
+#![cfg_attr(all(not(feature = "engine-sync"), not(feature = "gui-sync")), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
 //! # A note on message enums
@@ -57,6 +57,7 @@
 //! [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
 
 extern crate alloc;
+extern crate core;
 
 mod dev_macros;
 pub mod engine;
@@ -66,6 +67,10 @@ mod engine_connection;
 mod engine_connection_async;
 mod errors;
 pub mod gui;
+#[cfg(feature = "gui-sync")]
+mod gui_connection;
+#[cfg(feature = "gui-async")]
+mod gui_connection_async;
 mod parsing;
 mod uci_moves;
 
@@ -75,6 +80,9 @@ use core::str::FromStr;
 #[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
 pub use engine_connection::*;
 pub use errors::*;
+#[cfg(feature = "gui-sync")]
+#[cfg_attr(docsrs, doc(cfg(feature = "gui-sync")))]
+pub use gui_connection::*;
 pub use {engine::*, gui::*};
 
 pub(crate) trait OptionReplaceIf<T> {
