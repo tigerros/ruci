@@ -21,17 +21,19 @@ tokio = { workspace = true, optional = true, features = ["io-util"] }
 [features]
 # No features are turned on by default.
 default = []
-# Enables serde support for most types. All implementations are derived with no parameters. Requires `std`.
-serde = ["dep:serde", "shakmaty/serde"]
-# Adds the `Engine` struct for communicating with an engine. Requires `std`.
-engine-sync = []
-# Enables the `engine-sync` feature and adds async versions of all functions using tokio.
+# Enables serde support for most types. All implementations are derived with no parameters.
+serde = ["dep:serde", "serde/alloc", "shakmaty/serde", "shakmaty/alloc"]
+# Adds types shared by `engine-sync` and `gui-sync`. Requires `std`. Don't enable this yourself.
+io = []
+# Adds the `Engine` struct for communicating with an engine.
+engine-sync = ["io"]
+# Adds async versions of `Engine` functions.
 engine-async = ["engine-sync", "dep:tokio"]
-# Enables the `engine-async` and `tokio/process` features and adds a tokio version of `Engine::from_process`.
+# Adds a tokio version of `Engine::from_process`.
 tokio-process = ["engine-async", "tokio/process"]
-# Enables the `engine-sync` feature for shared error types and adds the `Gui` struct for communicating with a GUI.
-gui-sync = ["engine-sync"]
-# Enables the `gui-sync` feature and adds async versions of all functions using tokio.
+# Adds the `Gui` struct for communicating with a GUI.
+gui-sync = ["io"]
+# Adds async versions of `Gui` functions.
 gui-async = ["gui-sync", "dep:tokio"]
 
 [package.metadata.docs.rs]

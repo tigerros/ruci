@@ -1,5 +1,3 @@
-#![deny(clippy::unwrap_used)]
-#![deny(clippy::expect_used)]
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 #![deny(clippy::unwrap_used, clippy::expect_used)]
@@ -29,7 +27,7 @@
     clippy::indexing_slicing,
     clippy::string_slice
 )]
-#![cfg_attr(all(not(feature = "engine-sync"), not(feature = "gui-sync")), no_std)]
+#![cfg_attr(not(feature = "io"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
 //! # A note on message enums
@@ -57,7 +55,6 @@
 //! [`Display`] implementations of messages do **not** include the final newline (`\n`) character.
 
 extern crate alloc;
-extern crate core;
 
 mod dev_macros;
 pub mod engine;
@@ -106,6 +103,8 @@ pub enum Message<'a> {
 }
 
 pub mod traits {
+    use core::{hash::Hash, fmt::{Debug, Display}};
+
     pub(crate) mod sealed {
         pub trait Message {}
     }
@@ -114,11 +113,11 @@ pub mod traits {
     /// Intentionally sealed.
     pub trait Message:
         sealed::Message
-        + core::fmt::Display
-        + core::fmt::Debug
+        + Display
+        + Debug
         + PartialEq
         + Eq
-        + core::hash::Hash
+        + Hash
         + Clone
     {
     }

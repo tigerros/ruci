@@ -90,3 +90,137 @@ where
         self.engine.write_all(s.as_bytes())
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::{Depth, Go, Info, Score, ScoreBound, ScoreWithBound, UciOk};
+    use pretty_assertions::assert_eq;
+    use shakmaty::uci::UciMove;
+    use shakmaty::{Role, Square};
+    use std::io::empty;
+
+    #[test]
+    fn send() {
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: empty(),
+        };
+
+        gui.send(UciOk).unwrap();
+        assert_eq!(gui.engine, b"uciok\n");
+
+        gui.send(UciOk).unwrap();
+        assert_eq!(gui.engine, b"uciok\nuciok\n");
+
+        let info = Info {
+            depth: Some(Depth {
+                depth: 12,
+                seldepth: Some(5),
+            }),
+            time: Some(7),
+            nodes: Some(usize::MAX),
+            pv: (&[
+                UciMove::Normal {
+                    from: Square::A1,
+                    to: Square::A2,
+                    promotion: None,
+                },
+                UciMove::Normal {
+                    from: Square::E6,
+                    to: Square::E8,
+                    promotion: Some(Role::Queen),
+                },
+            ])
+                .into(),
+            multi_pv: Some(0),
+            score: Some(ScoreWithBound {
+                kind: Score::MateIn(5),
+                bound: Some(ScoreBound::LowerBound),
+            }),
+            curr_move: Some(UciMove::Normal {
+                from: Square::A1,
+                to: Square::G6,
+                promotion: None,
+            }),
+            curr_move_number: Some(2),
+            hash_full: None,
+            nps: None,
+            tb_hits: None,
+            sb_hits: None,
+            cpu_load: None,
+            string: None,
+            refutation: None,
+            curr_line: None,
+        };
+
+        gui.engine.clear();
+        gui.send(&info).unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&gui.engine),
+            info.to_string() + "\n"
+        );
+    }
+
+    #[test]
+    fn send_string() {
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: empty(),
+        };
+
+        let s = "นดินฮั่นเสื่อมโทร መካ የአሞራᛖ ᚩᚾ ᚦᚫᛗ ⠑⠁⠝ ⠞⠕ ⠎⠁⠹   ∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β),
+
+  ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
+
+  2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm";
+        gui.send_string(s).unwrap();
+
+        assert_eq!(
+            String::from_utf8_lossy(&gui.engine),
+            Info {
+                string: Some(s.into()),
+                ..Default::default()
+            }
+            .to_string()
+                + "\n"
+        );
+    }
+
+    #[cfg(feature = "engine-sync")]
+    #[test]
+    fn read() {
+        use crate::Engine;
+
+        let mut engine = Engine {
+            engine: [].as_slice(),
+            gui: Vec::<u8>::new(),
+            strict: true,
+        };
+
+        let go_send = gui::Message::from(Go {
+            search_moves: (&[UciMove::Put {
+                to: Square::C7,
+                role: Role::Pawn,
+            }])
+                .into(),
+            mate: Some(196),
+            infinite: true,
+            ..Default::default()
+        });
+
+        engine.send(&go_send).unwrap();
+
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: [].as_slice(),
+        };
+
+        gui.gui = engine.gui.as_slice();
+
+        let go_read = gui.read().unwrap();
+
+        assert_eq!(go_send, go_read);
+    }
+}

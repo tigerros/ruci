@@ -1,4 +1,3 @@
-// TODO: change docs of async functions to just link to the original function
 use crate::errors::{ReadError, ReadWriteError};
 use crate::Engine;
 #[cfg(feature = "tokio-process")]
@@ -17,9 +16,7 @@ use tokio::process::{Child, ChildStdin, ChildStdout};
 #[cfg(feature = "tokio-process")]
 impl Engine<BufReader<ChildStdout>, ChildStdin> {
     #[allow(clippy::missing_errors_doc)]
-    /// Uses the `stdin` and `stdout` from an existing process.
-    ///
-    /// See also [`Engine.strict`](Engine#structfield.strict).
+    /// See [`Self::from_process`].
     pub fn from_process_async(process: &mut Child, strict: bool) -> Result<Self, FromProcessError> {
         let Some(stdout) = process.stdout.take() else {
             return Err(FromProcessError::StdoutNotCaptured);
@@ -44,12 +41,8 @@ where
     E: AsyncBufRead + Unpin,
     G: AsyncWrite + Unpin,
 {
-    // CLIPPY: Message is implemented for borrows as well
-    #[allow(clippy::needless_pass_by_value)]
-    /// Sends a message.
-    ///
-    /// # Errors
-    /// See [`AsyncWriteExt::write_all`].
+    #[allow(clippy::missing_errors_doc)]
+    /// See [`Self::send`].
     pub async fn send_async<M>(&mut self, message: M) -> io::Result<()>
     where
         M: gui::traits::Message,
@@ -59,10 +52,8 @@ where
             .await
     }
 
-    /// Skips some lines.
-    ///
-    /// # Errors
-    /// See [`AsyncBufReadExt::read_until`].
+    #[allow(clippy::missing_errors_doc)]
+    /// See [`Self::skip_lines`].
     pub async fn skip_lines_async(&mut self, count: usize) -> io::Result<()> {
         let mut buf = Vec::with_capacity(512);
 
@@ -80,8 +71,7 @@ where
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Reads a line and attempts to parse it into a [`engine::Message`].
-    /// Skips lines which are only composed of whitespace.
+    /// See [`Self::read`].
     pub async fn read_async<M>(&mut self) -> Result<M, ReadError>
     where
         M: crate::traits::Message + FromStr<Err = MessageParseError>,
@@ -121,10 +111,7 @@ where
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`]
-    /// once the [`UciOk`](engine::UciOk) message is received.
-    ///
-    /// When an [`Option`](engine::Option) is encountered, the `option_receiver` function is called.
+    /// See [`Self::use_uci`].
     pub async fn use_uci_async<'m>(
         &mut self,
         mut option_receiver: impl AsyncFnMut(crate::Option<'m>),
@@ -152,14 +139,7 @@ where
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Sends [`Go`] to the engine and waits for [`BestMove`].
-    /// You pass in a function through which [`Info`]s will be sent.
-    ///
-    /// Note that the engine will only send [`BestMove`]
-    /// if you configure the message to set a constraint on the engine's calculation.
-    ///
-    /// There's examples at the [repo](https://github.com/tigerros/ruci) that show this
-    /// function being used concurrently.
+    /// See [`Self::go`].
     pub async fn go_async<'m>(
         &mut self,
         message: &Go<'_>,
@@ -181,7 +161,7 @@ where
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
+    /// See [`Self::is_ready`].
     pub async fn is_ready_async(&mut self) -> Result<(), ReadWriteError> {
         self.send_async(crate::IsReady)
             .await
@@ -249,7 +229,7 @@ mod tests {
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
     #[tokio::test]
-    async fn _lifetimes<'a>() {
+    async fn lifetimes<'a>() {
         let mut engine = Engine {
             engine: b"uciok\noption name n type button".as_slice(),
             gui: Vec::new(),

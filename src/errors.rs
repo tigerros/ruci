@@ -49,8 +49,8 @@ impl Display for MessageParseError {
 
 impl Error for MessageParseError {}
 
-#[cfg(feature = "engine-sync")]
-#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
+#[cfg(feature = "io")]
+#[cfg_attr(docsrs, doc(cfg(feature = "io")))]
 #[derive(Debug)]
 /// Reading a message from the engine failed.
 pub enum ReadError {
@@ -60,7 +60,7 @@ pub enum ReadError {
     Parse(MessageParseError),
 }
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 impl Display for ReadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -70,11 +70,11 @@ impl Display for ReadError {
     }
 }
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 impl Error for ReadError {}
 
-#[cfg(feature = "engine-sync")]
-#[cfg_attr(docsrs, doc(cfg(feature = "engine-sync")))]
+#[cfg(feature = "io")]
+#[cfg_attr(docsrs, doc(cfg(feature = "io")))]
 #[derive(Debug)]
 /// Reading/sending a message from/to the engine failed.
 pub enum ReadWriteError {
@@ -84,7 +84,7 @@ pub enum ReadWriteError {
     Read(ReadError),
 }
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 impl Display for ReadWriteError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -94,10 +94,10 @@ impl Display for ReadWriteError {
     }
 }
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 impl Error for ReadWriteError {}
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Converting a process to an engine failed.
 pub enum FromProcessError {
@@ -107,7 +107,7 @@ pub enum FromProcessError {
     StdinNotCaptured,
 }
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 impl Display for FromProcessError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -117,10 +117,10 @@ impl Display for FromProcessError {
     }
 }
 
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 impl Error for FromProcessError {}
 
-#[cfg(all(test, feature = "engine-sync"))]
+#[cfg(all(test, feature = "io"))]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
@@ -159,7 +159,7 @@ mod tests {
             READ_WRITE_ERROR_READ_STR.to_string() + &read_str
         );
 
-        let expected = "looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong message cause why noooooooooooooooooot? i'm not doing great. my life is hanging on by a thread, and here i am writing this pointless library. how many times am i going to update it? i wish having OCD would make me organized, but it makes me obsess over things that don't matter. initially working on this made sense, but now it really doesn't. i'm happy doing it, but it's just impulsive. i know i'm neglecting other aspects of my life. if i was sitting on a pile of cash i wouldn't be worried, but i'm not. and here i am, with my dumbass brain doing only what it wants in the short term. not like my future matters. i do think about it, but i don't have the control to stop \"living in the moment\". sounds a lot cooler than it is. maybe some people like it, but my brain is torn between doing what it wants RIGHT NOW, and constantly worrying about the consequences. and i'm told im talented, but my academic performance would beg to differ. \"oh you're so smart\", well i wish i could put it to use. it's so painful to be told something like that only to turn out being a complete failure. i might be smart (or am i??), but i'm stuck in a body which i do not control, so i'm doing much worse than if i was stupid and disciplined. or maybe i'm just stupid and a failure but everyone around says i'm talented. even with a diagnosis and meds i have no control. maybe i belong in an institution.";
+        let expected = "�������";
         let message_parse = MessageParseError::MissingParameters { expected };
         let read = ReadError::Parse(message_parse);
         let read_str =

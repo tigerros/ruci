@@ -320,7 +320,7 @@ mod tests {
     // CLIPPY: It's literally used???
     #[allow(clippy::extra_unused_lifetimes)]
     #[test]
-    fn _lifetimes<'a>() {
+    fn lifetimes<'a>() {
         let mut engine = Engine {
             engine: b"uciok\noption name n type button".as_slice(),
             gui: Vec::new(),
