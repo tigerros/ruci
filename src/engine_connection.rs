@@ -185,7 +185,7 @@ where
 
     #[allow(clippy::missing_errors_doc)]
     /// Sends [`IsReady`](gui::IsReady) and waits for [`ReadyOk`](engine::ReadyOk).
-    pub fn is_ready2(&mut self) -> Result<(), ReadWriteError> {
+    pub fn is_ready(&mut self) -> Result<(), ReadWriteError> {
         self.send(crate::IsReady).map_err(ReadWriteError::Write)?;
 
         loop {
@@ -313,7 +313,7 @@ mod tests {
     fn is_ready() {
         let (mut engine, mut wait) = engine();
 
-        engine.is_ready2().unwrap();
+        engine.is_ready().unwrap();
         wait();
     }
 
