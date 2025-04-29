@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
 
     println!("== Sending isready, waiting for readyok");
 
-    engine.is_ready()?;
+    engine.is_ready2()?;
 
     println!("== Received readyok, sending go");
 

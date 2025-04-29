@@ -161,7 +161,7 @@ where
     }
 
     #[allow(clippy::missing_errors_doc)]
-    /// See [`Self::is_ready`].
+    /// See [`Self::is_ready2`].
     pub async fn is_ready_async(&mut self) -> Result<(), ReadWriteError> {
         self.send_async(crate::IsReady)
             .await
