@@ -210,7 +210,9 @@ mod tests {
             ..Default::default()
         });
 
+        engine.gui.extend_from_slice(b"  \n\t\n  ");
         engine.send(&go_send).unwrap();
+        engine.gui.extend_from_slice(b"\n\t\n  ");
 
         let mut gui = Gui {
             engine: Vec::<u8>::new(),

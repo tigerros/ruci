@@ -54,7 +54,7 @@ where
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::{Depth, Go, Info, Score, ScoreBound, ScoreWithBound, UciOk};
+    use crate::{Depth, Info, Score, ScoreBound, ScoreWithBound, UciOk};
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
     use shakmaty::{Role, Square};
@@ -150,7 +150,7 @@ mod tests {
     #[cfg(feature = "engine-async")]
     #[tokio::test]
     async fn read() {
-        use crate::Engine;
+        use crate::{Engine, Go};
 
         let mut engine = Engine {
             engine: [].as_slice(),
@@ -169,8 +169,10 @@ mod tests {
             ..Default::default()
         });
 
+        engine.gui.extend_from_slice(b"  \n\t\n  ");
         engine.send_async(&go_send).await.unwrap();
-
+        engine.gui.extend_from_slice(b"\n\t\n  ");
+        
         let mut gui = Gui {
             engine: Vec::<u8>::new(),
             gui: [].as_slice(),
