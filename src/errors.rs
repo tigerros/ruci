@@ -1,6 +1,6 @@
 use core::error::Error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "engine-sync")]
+#[cfg(feature = "io")]
 use std::io;
 
 /// Something went wrong with parsing a message.
