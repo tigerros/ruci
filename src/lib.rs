@@ -103,7 +103,10 @@ pub enum Message<'a> {
 }
 
 pub mod traits {
-    use core::{hash::Hash, fmt::{Debug, Display}};
+    use core::{
+        fmt::{Debug, Display},
+        hash::Hash,
+    };
 
     pub(crate) mod sealed {
         pub trait Message {}
@@ -111,16 +114,7 @@ pub mod traits {
 
     /// Marks all message types and their references.
     /// Intentionally sealed.
-    pub trait Message:
-        sealed::Message
-        + Display
-        + Debug
-        + PartialEq
-        + Eq
-        + Hash
-        + Clone
-    {
-    }
+    pub trait Message: sealed::Message + Display + Debug + PartialEq + Eq + Hash + Clone {}
 }
 
 impl traits::sealed::Message for Message<'_> {}

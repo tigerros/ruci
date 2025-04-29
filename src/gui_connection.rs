@@ -95,7 +95,7 @@ where
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::{Depth, Go, Info, Score, ScoreBound, ScoreWithBound, UciOk};
+    use crate::{Depth, Info, Score, ScoreBound, ScoreWithBound, UciOk};
     use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
     use shakmaty::{Role, Square};
@@ -191,7 +191,7 @@ mod tests {
     #[cfg(feature = "engine-sync")]
     #[test]
     fn read() {
-        use crate::Engine;
+        use crate::{Engine, Go};
 
         let mut engine = Engine {
             engine: [].as_slice(),
