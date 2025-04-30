@@ -1,4 +1,4 @@
-//! This is the client of the engine server. See the `server` example docs.
+//! See `engine-server`.
 
 use engine_server::ADDRESS;
 use std::io::{stdin, stdout};

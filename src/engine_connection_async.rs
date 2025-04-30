@@ -38,7 +38,6 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
 
 impl<E, G> Engine<E, G>
 where
-    E: AsyncBufRead + Unpin,
     G: AsyncWrite + Unpin,
 {
     #[allow(clippy::missing_errors_doc)]
@@ -51,7 +50,12 @@ where
             .write_all((message.to_string() + "\n").as_bytes())
             .await
     }
+}
 
+impl<E, G> Engine<E, G>
+where
+    E: AsyncBufRead + Unpin,
+{
     #[allow(clippy::missing_errors_doc)]
     /// See [`Self::skip_lines`].
     pub async fn skip_lines_async(&mut self, count: usize) -> io::Result<()> {
@@ -76,7 +80,7 @@ where
     where
         M: crate::traits::Message + FromStr<Err = MessageParseError>,
     {
-        let mut line = String::new();
+        let mut line = String::with_capacity(100);
 
         if self.strict {
             loop {
@@ -109,7 +113,13 @@ where
             }
         }
     }
+}
 
+impl<E, G> Engine<E, G>
+where
+    E: AsyncBufRead + Unpin,
+    G: AsyncWrite + Unpin,
+{
     #[allow(clippy::missing_errors_doc)]
     /// See [`Self::use_uci`].
     pub async fn use_uci_async<'m>(
@@ -200,27 +210,32 @@ mod tests {
     };
 
     /// Use the second variable in the tuple to wait on the process.
-    fn engine() -> (
+    async fn engine() -> (
         Engine<BufReader<ChildStdout>, ChildStdin>,
         impl AsyncFnMut(),
     ) {
         let mut cmd = Command::new(ENGINE_EXE);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
         let mut process = cmd.spawn().unwrap();
+        let mut engine = Engine::from_process_async(&mut process, true).unwrap();
 
-        (
-            Engine::<BufReader<ChildStdout>, ChildStdin>::from_process_async(&mut process, false)
-                .unwrap(),
-            async move || {
-                process.kill().await.unwrap();
-                process.wait().await.unwrap();
-            },
-        )
+        let mut line = String::new();
+        engine.engine.read_line(&mut line).await.unwrap();
+
+        assert_eq!(
+            line.trim(),
+            "Stockfish 17 by the Stockfish developers (see AUTHORS file)"
+        );
+
+        (engine, async move || {
+            process.kill().await.unwrap();
+            process.wait().await.unwrap();
+        })
     }
 
     #[tokio::test]
     async fn is_ready() {
-        let (mut engine, mut wait) = engine();
+        let (mut engine, mut wait) = engine().await;
 
         engine.is_ready_async().await.unwrap();
         wait().await;
@@ -232,7 +247,7 @@ mod tests {
     async fn lifetimes<'a>() {
         let mut engine = Engine {
             engine: b"uciok\noption name n type button".as_slice(),
-            gui: Vec::new(),
+            gui: Vec::<u8>::new(),
             strict: false,
         };
 
@@ -249,22 +264,8 @@ mod tests {
 
     #[tokio::test]
     async fn strict() {
-        let (mut engine, mut wait) = engine();
-
-        engine.strict = true;
-
-        // Stockfish sends an unrecognized string at the very beginning
-        assert!(matches!(
-            engine.use_uci_async(async |_| {}).await,
-            Err(ReadWriteError::Read(ReadError::Parse(
-                MessageParseError::NoMessage {
-                    expected: "engine UCI message"
-                }
-            )))
-        ));
-
         let mut engine = Engine {
-            engine: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
+            engine: b"id name Big Tuna author Fischer\noption   name Horsey range type string default the biggest!!\nuciok\nisready?no".as_slice(),
             gui: Vec::new(),
             strict: true,
         };
@@ -285,16 +286,23 @@ mod tests {
             .unwrap();
 
         assert_eq!(engine.gui, b"uci\n");
-        wait().await;
+        assert_matches!(
+            engine.is_ready_async().await,
+            Err(ReadWriteError::Read(ReadError::Parse(
+                MessageParseError::NoMessage {
+                    expected: "engine UCI message"
+                }
+            )))
+        );
     }
 
     #[tokio::test]
     async fn skip_lines() {
-        let (mut engine, mut wait) = engine();
+        let (mut engine, mut wait) = engine().await;
 
         engine.send_async(crate::Uci).await.unwrap();
 
-        engine.skip_lines_async(4).await.unwrap();
+        engine.skip_lines_async(3).await.unwrap();
 
         let mut line = String::new();
         engine.engine.read_line(&mut line).await.unwrap();
@@ -306,10 +314,30 @@ mod tests {
         wait().await;
     }
 
+    #[tokio::test]
+    async fn skip_lines_typed() {
+        let (mut engine, mut wait) = engine().await;
+
+        engine.send_async(crate::Uci).await.unwrap();
+
+        engine.skip_lines_async(3).await.unwrap();
+
+        assert_eq!(
+            engine.read_async::<crate::Option>().await.unwrap(),
+            crate::Option {
+                name: Cow::Borrowed("Debug Log File"),
+                r#type: OptionType::String {
+                    default: Some(Cow::Borrowed("<empty>"))
+                },
+            }
+        );
+        wait().await;
+    }
+
     /// See the [`BestMove::Other`](BestMove::Other) docs for what this tests.
     #[tokio::test]
     async fn analyze_checkmate() {
-        let (mut engine, mut wait) = engine();
+        let (mut engine, mut wait) = engine().await;
 
         engine.send_async(crate::Uci).await.unwrap();
 
@@ -343,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn go() {
-        let (mut engine, mut wait) = engine();
+        let (mut engine, mut wait) = engine().await;
 
         let best_move = engine
             .go_async(
@@ -407,7 +435,7 @@ mod tests {
         use crate::{Id, Option};
         use core::fmt::Write;
 
-        let (mut engine, mut wait) = engine();
+        let (mut engine, mut wait) = engine().await;
 
         let mut options = Vec::new();
         let id = engine

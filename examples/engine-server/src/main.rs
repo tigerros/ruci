@@ -10,8 +10,8 @@
 //! To start the server, use `cargo run -p engine-server`.
 //!
 //! To start a client (and query the engine), you can use `cargo run -p engine-client`.
-//! All that binary does is redirect `stdin` and `stdout` to the server.
-//! You can just as easily use `netcat` (just check the [`ADDRESS`]).
+//! All that binary does is redirect `stdin` and `stdout`.
+//! You can just as easily use [`ncat`](https://nmap.org/ncat) or something else (just check the [`ADDRESS`]).
 //!
 //! Accepts the following messages:
 //! - [`Uci`](ruci::Uci)
@@ -24,9 +24,15 @@ use ruci::gui::Message;
 use ruci::{BestMove, Gui, Id, NormalBestMove, UciOk};
 use shakmaty::uci::UciMove;
 use shakmaty::{Chess, Move, Position, Role, Square};
+use std::borrow::Cow;
 use tokio::io::BufReader;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpListener;
+
+const ID: Id = Id::NameAndAuthor {
+    name: Cow::Borrowed("serverton"),
+    author: Cow::Borrowed("me"),
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -87,12 +93,7 @@ where
         match message {
             Message::Quit(_) => return Ok(()),
             Message::Uci(_) => {
-                let id = Id::NameAndAuthor {
-                    name: "Streamie McServerton".into(),
-                    author: "Mr. Overthinker".into(),
-                };
-
-                gui.send_async(id).await?;
+                gui.send_async(ID).await?;
                 gui.send_async(UciOk).await?;
             }
             Message::Position(ruci::Position::StartPos { moves }) => {

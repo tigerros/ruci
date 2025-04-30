@@ -1,17 +1,14 @@
-// TODO: tests
 use crate::{engine, gui, ReadError};
 use core::str::FromStr;
 use std::io;
 use std::io::{stdin, stdout, BufRead, StdinLock, StdoutLock, Write};
 
+/// Communicate with a chess GUI.
 #[derive(Debug)]
 pub struct Gui<E, G> {
     /// The output of the engine.
     pub engine: E,
     /// The output of the GUI.
-    ///
-    /// Doesn't have to be a GUI, it's anything that controls the engine.
-    /// It's called `gui` for brevity and clarity because that's how it's referred to in the UCI protocol.
     pub gui: G,
 }
 
@@ -37,7 +34,6 @@ impl Gui<StdoutLock<'_>, StdinLock<'_>> {
 impl<E, G> Gui<E, G>
 where
     E: Write,
-    G: BufRead,
 {
     // CLIPPY: Message is implemented for borrows as well
     #[allow(clippy::needless_pass_by_value)]
@@ -53,6 +49,27 @@ where
             .write_all((message.to_string() + "\n").as_bytes())
     }
 
+    /// Specialized function for sending an [`Info`](crate::Info) message that's only composed
+    /// of a string. More efficient than doing the equivalent with [`Self::send`].
+    ///
+    /// Use when you're trying to send generic information to the GUI that's not better
+    /// conveyed by another message.
+    ///
+    /// # Errors
+    /// See [`Write::write_all`].
+    pub fn send_string(&mut self, info: &str) -> io::Result<()> {
+        let mut s = String::with_capacity(info.len().saturating_add("info string \n".len()));
+        s.push_str("info string ");
+        s.push_str(info);
+        s.push('\n');
+        self.engine.write_all(s.as_bytes())
+    }
+}
+
+impl<E, G> Gui<E, G>
+where
+    G: BufRead,
+{
     #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a given engine message.
     ///
@@ -72,22 +89,6 @@ where
         }
 
         gui::Message::from_str(&line).map_err(ReadError::Parse)
-    }
-
-    /// Specialized function for sending an [`Info`](crate::Info) message that's only composed
-    /// of a string. More efficient than doing the equivalent with [`Self::send`].
-    ///
-    /// Use when you're trying to send generic information to the GUI that's not better
-    /// conveyed by another message.
-    ///
-    /// # Errors
-    /// See [`Write::write_all`].
-    pub fn send_string(&mut self, info: &str) -> io::Result<()> {
-        let mut s = String::with_capacity(info.len().saturating_add("info string \n".len()));
-        s.push_str("info string ");
-        s.push_str(info);
-        s.push('\n');
-        self.engine.write_all(s.as_bytes())
     }
 }
 
@@ -172,9 +173,9 @@ mod tests {
 
         let s = "นดินฮั่นเสื่อมโทร መካ የአሞራᛖ ᚩᚾ ᚦᚫᛗ ⠑⠁⠝ ⠞⠕ ⠎⠁⠹   ∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β),
 
-  ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
-
-  2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm";
+        ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
+        
+        2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm";
         gui.send_string(s).unwrap();
 
         assert_eq!(
@@ -193,9 +194,9 @@ mod tests {
     fn read() {
         use crate::{Engine, Go};
 
-        let mut engine = Engine {
+        let mut engine: Engine<&[u8], _> = Engine {
             engine: [].as_slice(),
-            gui: Vec::<u8>::new(),
+            gui: Vec::new(),
             strict: true,
         };
 

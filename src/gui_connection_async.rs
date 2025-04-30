@@ -1,4 +1,3 @@
-// TODO: tests
 use crate::{engine, gui, Gui, ReadError};
 use core::str::FromStr;
 use std::io;
@@ -7,7 +6,6 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt};
 impl<E, G> Gui<E, G>
 where
     E: AsyncWrite + Unpin,
-    G: AsyncBufRead + Unpin,
 {
     #[allow(clippy::missing_errors_doc)]
     /// See [`Self::send`].
@@ -20,6 +18,21 @@ where
             .await
     }
 
+    #[allow(clippy::missing_errors_doc)]
+    /// See [`Self::send_string`].
+    pub async fn send_string_async(&mut self, info: &str) -> io::Result<()> {
+        let mut s = String::with_capacity(info.len().saturating_add("info string \n".len()));
+        s.push_str("info string ");
+        s.push_str(info);
+        s.push('\n');
+        self.engine.write_all(s.as_bytes()).await
+    }
+}
+
+impl<E, G> Gui<E, G>
+where
+    G: AsyncBufRead + Unpin,
+{
     #[allow(clippy::missing_errors_doc)]
     /// See [`Self::read`].
     pub async fn read_async<'m>(&mut self) -> Result<gui::Message<'m>, ReadError> {
@@ -37,16 +50,6 @@ where
         }
 
         gui::Message::from_str(&line).map_err(ReadError::Parse)
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    /// See [`Self::send_string`].
-    pub async fn send_string_async(&mut self, info: &str) -> io::Result<()> {
-        let mut s = String::with_capacity(info.len().saturating_add("info string \n".len()));
-        s.push_str("info string ");
-        s.push_str(info);
-        s.push('\n');
-        self.engine.write_all(s.as_bytes()).await
     }
 }
 
@@ -152,7 +155,7 @@ mod tests {
     async fn read() {
         use crate::{Engine, Go};
 
-        let mut engine = Engine {
+        let mut engine: Engine<&[u8], _> = Engine {
             engine: [].as_slice(),
             gui: Vec::<u8>::new(),
             strict: true,

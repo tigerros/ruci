@@ -7,18 +7,41 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout};
 use std::str::FromStr;
 
-/// Communicate with a Chess engine.
+/// Communicate with a chess engine.
+///
+/// # Important warning
+/// This struct contains convenience functions for messages like [`Go`], which follow the UCI
+/// protocol, but engines might not follow it completely.
+/// If that's the case, the functions might fail inappropriately or hang.
+///
+/// Some engines send unrecognized messages, which can safely be ignored, but since this crate
+/// can't parse them, they will result in an error.
+///
+/// If you're dealing with an engine like that, you can set [`Engine.strict`](Engine#structfield.strict)
+/// to `false`. **Keep reading.**
+///
+/// Engines are not the only ones to blame.
+/// A major crutch of the protocol is that there's no way for the engine to tell the GUI
+/// about errors. So, engines will probably send a string, which this crate cannot recognize,
+/// which will result in a parsing error if [`Engine.strict`](Engine#structfield.strict) is `true`,
+/// but if it's `false`, the function will hang.
+///
+/// For this reason, you should leave [`Engine.strict`](Engine#structfield.strict) set to `true`
+/// if possible. If you know when the engine sends an unrecognized string, set it to `false`
+/// temporarily, or better yet, read a line and discard the unrecognized string, while keeping
+/// [`Engine.strict`](Engine#structfield.strict) set to `true`.
+///
+/// You can see this discarding in the examples when working with Stockfish,
+/// because Stockfish sends an unrecognized string when started.
 #[derive(Debug)]
 pub struct Engine<E, G> {
     /// The output of the engine.
     pub engine: E,
     /// The output of the GUI.
-    ///
-    /// Doesn't have to be a GUI, it's anything that controls the engine.
-    /// It's called `gui` for brevity and clarity because that's how it's referred to in the UCI protocol.
     pub gui: G,
     /// Whether message parsing errors should be ignored.
-    /// This should probably be `false`, because engines do send unrecognized strings.
+    ///
+    /// See [`Engine#important-warning`](Engine#important-warning) for more.
     ///
     /// If this is `false`, [`ReadError::Parse`] is guaranteed not to occur, including inside
     /// of [`ReadWriteError`]s.
@@ -51,7 +74,6 @@ impl Engine<BufReader<ChildStdout>, ChildStdin> {
 
 impl<E, G> Engine<E, G>
 where
-    E: BufRead,
     G: Write,
 {
     // CLIPPY: Message is implemented for borrows as well
@@ -66,7 +88,12 @@ where
     {
         self.gui.write_all((message.to_string() + "\n").as_bytes())
     }
+}
 
+impl<E, G> Engine<E, G>
+where
+    E: BufRead,
+{
     /// Skips some lines.
     ///
     /// # Errors
@@ -99,7 +126,7 @@ where
     where
         M: engine::traits::Message + FromStr<Err = MessageParseError>,
     {
-        let mut line = String::new();
+        let mut line = String::with_capacity(100);
 
         if self.strict {
             loop {
@@ -126,7 +153,13 @@ where
             }
         }
     }
+}
 
+impl<E, G> Engine<E, G>
+where
+    E: BufRead,
+    G: Write,
+{
     #[allow(clippy::missing_errors_doc)]
     /// Sends the [`Uci`](gui::Uci) message and returns the engine's [`Id`]
     /// once the [`UciOk`](engine::UciOk) message is received.
@@ -298,15 +331,20 @@ mod tests {
         let mut cmd = Command::new(ENGINE_EXE);
         let cmd = cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
         let mut process = cmd.spawn().unwrap();
+        let mut engine = Engine::from_process(&mut process, true).unwrap();
 
-        (
-            Engine::<BufReader<ChildStdout>, ChildStdin>::from_process(&mut process, false)
-                .unwrap(),
-            move || {
-                process.kill().unwrap();
-                process.wait().unwrap();
-            },
-        )
+        let mut line = String::new();
+        engine.engine.read_line(&mut line).unwrap();
+
+        assert_eq!(
+            line.trim(),
+            "Stockfish 17 by the Stockfish developers (see AUTHORS file)"
+        );
+
+        (engine, move || {
+            process.kill().unwrap();
+            process.wait().unwrap();
+        })
     }
 
     #[test]
@@ -323,7 +361,7 @@ mod tests {
     fn lifetimes<'a>() {
         let mut engine = Engine {
             engine: b"uciok\noption name n type button".as_slice(),
-            gui: Vec::new(),
+            gui: Vec::<u8>::new(),
             strict: false,
         };
 
@@ -340,22 +378,8 @@ mod tests {
 
     #[test]
     fn strict() {
-        let (mut engine, mut wait) = engine();
-
-        engine.strict = true;
-
-        // Stockfish sends an unrecognized string at the very beginning
-        assert!(matches!(
-            engine.use_uci(|_| {}),
-            Err(ReadWriteError::Read(ReadError::Parse(
-                MessageParseError::NoMessage {
-                    expected: "engine UCI message"
-                }
-            )))
-        ));
-
         let mut engine = Engine {
-            engine: &mut b"id name Big Tuna author Fischer\n\n\n\toption   name Horsey range type string default the biggest!!\nuciok".as_slice(),
+            engine: b"id name Big Tuna author Fischer\noption   name Horsey range type string default the biggest!!\nuciok\nisready?no".as_slice(),
             gui: Vec::new(),
             strict: true,
         };
@@ -375,7 +399,14 @@ mod tests {
             .unwrap();
 
         assert_eq!(engine.gui, b"uci\n");
-        wait();
+        assert_matches!(
+            engine.is_ready(),
+            Err(ReadWriteError::Read(ReadError::Parse(
+                MessageParseError::NoMessage {
+                    expected: "engine UCI message"
+                }
+            )))
+        );
     }
 
     #[test]
@@ -384,7 +415,7 @@ mod tests {
 
         engine.send(crate::Uci).unwrap();
 
-        engine.skip_lines(4).unwrap();
+        engine.skip_lines(3).unwrap();
 
         let mut line = String::new();
         engine.engine.read_line(&mut line).unwrap();
@@ -402,7 +433,7 @@ mod tests {
 
         engine.send(crate::Uci).unwrap();
 
-        engine.skip_lines(4).unwrap();
+        engine.skip_lines(3).unwrap();
 
         assert_eq!(
             engine.read::<crate::Option>().unwrap(),

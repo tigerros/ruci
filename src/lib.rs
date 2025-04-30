@@ -30,6 +30,11 @@
 #![cfg_attr(not(feature = "io"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
+//! # A note on "GUI"
+//! Whenever you see "GUI" in the documentation, it doesn't mean "Graphical User Interface".
+//! It means "whatever controls the engine".
+//! It's called that because that's how it's referred to in the UCI protocol and elsewhere.
+//!
 //! # A note on message enums
 //! If you write something like:
 //! ```rust
