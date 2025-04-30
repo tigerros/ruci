@@ -216,7 +216,7 @@ impl Display for Option<'_> {
 mod tests {
     use alloc::borrow::Cow;
     use alloc::string::ToString;
-    use crate::dev_macros::{assert_from_str_message, assert_message_to_str};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
     use crate::engine::OptionType;
     use super::Option;
 
@@ -272,5 +272,24 @@ mod tests {
             Ok(m.clone())
         );
         assert_message_to_str!(engine m, str_out);
+    }
+
+    #[test]
+    fn button() {
+        let m = Option {
+            name: "Execute   order\t 66".into(),
+            r#type: OptionType::Button
+        };
+
+        assert_from_str_message!(
+            engine
+            "option name   Execute   order\t 66   type button",
+            Ok(m.clone())
+        );
+        assert_message_to_from_str!(
+            engine
+            m,
+            "option name Execute   order\t 66 type button"
+        );
     }
 }

@@ -8,23 +8,23 @@
 **R**ust **U**niversal **C**hess **I**nterface.
 
 This crate is a full implementation of the [UCI protocol](https://backscattering.de/chess/uci) using [`shakmaty`](https://crates.io/crates/shakmaty) for relevant types.
-The UCI protocol is the most widely used way for chess GUI's to communicate with engines and vice versa.
+The UCI protocol is the most widely used way to communicate with chess engines and vice versa.
 
-Includes a struct to manage the I/O with an engine, but does not offer the same I/O management for engines themselves.
-However, engines can still take advantage of this library to add strong typing to strings, as is demonstrated in the `engine` example.
+Specifically, this crate contains:
+- Types to represent every UCI message.
+- The means to convert strings to these types.
+- The means to convert these types to a string.
+- I/O management for both GUI's and engines (check out the [examples](https://github.com/tigerros/ruci/tree/master/examples), run them with `cargo run -p {example_name}`).
 
 `#![no_std]` compatible.
-
-See also the [examples](https://github.com/tigerros/ruci/tree/master/examples).
-You can run each one with `cargo run --package <example-name>`.
 
 ## Comparison
 There's two other crates that I'm aware of which serve a similar purpose; [`vampirc-uci`](https://crates.io/crates/vampirc-uci) and [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci).
 `shakmaty-uci` is basically an improved version of `vampirc-uci`, so I'll only cover `shakmaty-uci`. Anyways, it:
 
-- Doesn't separate the two types of messages (engine, GUI) and specific messages. It has one big enum which mostly uses enum fields for message data. This is inconvenient because you can't represent specific messages, just the whole `UciMessage` enum.
-- Doesn't provide IO communication with an engine.
-- Is 3 or more times slower than `ruci` when deserializing, 2 or more times slower when serializing. Benches don't cover that many types but there's a trend. Results available at [tigerros.github.io/ruci/bench](https://tigerros.github.io/ruci/bench), or you can view a more compact version in the summary of the latest [Bench workflow](https://github.com/tigerros/ruci/actions/workflows/bench.yml) run. Sources at [benches](https://github.com/tigerros/ruci/tree/master/benches).
+- Doesn't separate messages. Instead, it has one enum which (mostly) uses enum fields for message data. This is inconvenient because you can't represent specific messages.
+- Doesn't provide I/O management.
+- Is 3 or more times slower than `ruci` when deserializing, 2 or more times slower when serializing. Results available at [tigerros.github.io/ruci/bench](https://tigerros.github.io/ruci/bench), more compact version in the summary of the latest [Bench workflow](https://github.com/tigerros/ruci/actions/workflows/bench.yml).
 - Has more tests, but I don't know about the coverage.
 - Uses owned versions of non-copy data. This makes for a cleaner API compared to using `Cow`s (which is what `ruci` does), but it hurts performance. Converting a message to a string doesn't require owned data, and seeing as that is half of the functionality of this crate, it would be wasteful to force ownership.
 - Uses [`nom`](https://crates.io/crates/nom) for parsing, whereas `ruci` doesn't pull in anything.

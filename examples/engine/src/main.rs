@@ -14,11 +14,11 @@
 //!   Parameters are ignored except [`infinite`](ruci::Go#structfield.infinite).
 //! - [`Quit`](ruci::Quit)
 
-use ruci::Gui;
 use ruci::gui::Message;
+use ruci::Gui;
 use ruci::{BestMove, Depth, Id, Info, NormalBestMove, UciOk};
-use shakmaty::Chess;
 use shakmaty::uci::{IllegalUciMoveError, UciMove};
+use shakmaty::Chess;
 use shakmaty::{CastlingMode, Position};
 use std::borrow::Cow;
 use std::thread::sleep;

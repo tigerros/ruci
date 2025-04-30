@@ -14,6 +14,7 @@ use ruci::Engine;
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
 use std::borrow::Cow;
+use std::io::BufRead;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
@@ -24,7 +25,10 @@ fn main() -> anyhow::Result<()> {
         .stdin(Stdio::piped())
         .spawn()?;
 
-    let mut engine = Engine::from_process(&mut process, false)?;
+    let mut engine = Engine::from_process(&mut process, true)?;
+
+    // Discard first Stockfish line
+    engine.engine.read_line(&mut String::new())?;
 
     println!("== Sending uci, waiting for uciok");
 

@@ -1,17 +1,14 @@
-// TODO: tests
 use crate::{engine, gui, ReadError};
 use core::str::FromStr;
 use std::io;
 use std::io::{stdin, stdout, BufRead, StdinLock, StdoutLock, Write};
 
+/// Communicate with a chess GUI.
 #[derive(Debug)]
 pub struct Gui<E, G> {
     /// The output of the engine.
     pub engine: E,
     /// The output of the GUI.
-    ///
-    /// Doesn't have to be a GUI, it's anything that controls the engine.
-    /// It's called `gui` for brevity and clarity because that's how it's referred to in the UCI protocol.
     pub gui: G,
 }
 
@@ -37,7 +34,6 @@ impl Gui<StdoutLock<'_>, StdinLock<'_>> {
 impl<E, G> Gui<E, G>
 where
     E: Write,
-    G: BufRead,
 {
     // CLIPPY: Message is implemented for borrows as well
     #[allow(clippy::needless_pass_by_value)]
@@ -53,6 +49,27 @@ where
             .write_all((message.to_string() + "\n").as_bytes())
     }
 
+    /// Specialized function for sending an [`Info`](crate::Info) message that's only composed
+    /// of a string. More efficient than doing the equivalent with [`Self::send`].
+    ///
+    /// Use when you're trying to send generic information to the GUI that's not better
+    /// conveyed by another message.
+    ///
+    /// # Errors
+    /// See [`Write::write_all`].
+    pub fn send_string(&mut self, info: &str) -> io::Result<()> {
+        let mut s = String::with_capacity(info.len().saturating_add("info string \n".len()));
+        s.push_str("info string ");
+        s.push_str(info);
+        s.push('\n');
+        self.engine.write_all(s.as_bytes())
+    }
+}
+
+impl<E, G> Gui<E, G>
+where
+    G: BufRead,
+{
     #[allow(clippy::missing_errors_doc)]
     /// Reads a line and attempts to parse it into a given engine message.
     ///
@@ -73,33 +90,17 @@ where
 
         gui::Message::from_str(&line).map_err(ReadError::Parse)
     }
-
-    /// Specialized function for sending an [`Info`](crate::Info) message that's only composed
-    /// of a string. More efficient than doing the equivalent with [`Self::send`].
-    ///
-    /// Use when you're trying to send generic information to the GUI that's not better
-    /// conveyed by another message.
-    ///
-    /// # Errors
-    /// See [`Write::write_all`].
-    pub fn send_string(&mut self, info: &str) -> io::Result<()> {
-        let mut s = String::with_capacity(info.len().saturating_add("info string \n".len()));
-        s.push_str("info string ");
-        s.push_str(info);
-        s.push('\n');
-        self.engine.write_all(s.as_bytes())
-    }
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::{Depth, Info, Score, ScoreBound, ScoreWithBound, UciOk};
-    use pretty_assertions::assert_eq;
+    use crate::{Depth, Go, Info, IsReady, Score, ScoreBound, ScoreWithBound, UciOk};
+    use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::uci::UciMove;
     use shakmaty::{Role, Square};
-    use std::io::empty;
+    use std::io::{empty, BufReader};
 
     #[test]
     fn send() {
@@ -172,9 +173,9 @@ mod tests {
 
         let s = "นดินฮั่นเสื่อมโทร መካ የአሞራᛖ ᚩᚾ ᚦᚫᛗ ⠑⠁⠝ ⠞⠕ ⠎⠁⠹   ∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β),
 
-  ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
-
-  2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm";
+        ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
+        
+        2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm";
         gui.send_string(s).unwrap();
 
         assert_eq!(
@@ -193,9 +194,9 @@ mod tests {
     fn read() {
         use crate::{Engine, Go};
 
-        let mut engine = Engine {
+        let mut engine: Engine<&[u8], _> = Engine {
             engine: [].as_slice(),
-            gui: Vec::<u8>::new(),
+            gui: Vec::new(),
             strict: true,
         };
 
@@ -224,5 +225,133 @@ mod tests {
         let go_read = gui.read().unwrap();
 
         assert_eq!(go_send, go_read);
+    }
+
+    #[test]
+    fn line_ending_handling() {
+        // Test different line ending combinations
+        let endings = ["\n", "\r\n", "\r"];
+        for ending in endings {
+            let command = format!("isready{ending}");
+            let mut test_gui = Gui {
+                engine: Vec::<u8>::new(),
+                gui: command.as_bytes(),
+            };
+
+            assert_eq!(test_gui.read().unwrap(), IsReady.into());
+        }
+    }
+
+    #[test]
+    fn empty_input_handling() {
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: b"\n\n    \n\t\ngo\n".as_slice(),
+        };
+
+        let message = gui.read().unwrap();
+        assert_matches!(message, gui::Message::Go(_));
+    }
+
+    #[test]
+    fn io_error_handling() {
+        struct MockWriter {
+            should_fail: bool,
+        }
+
+        impl Write for MockWriter {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+                if self.should_fail {
+                    Err(io::Error::other("Mock error"))
+                } else {
+                    Ok(buf.len())
+                }
+            }
+
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let mut gui = Gui {
+            engine: MockWriter { should_fail: true },
+            gui: empty(),
+        };
+
+        let result = gui.send(UciOk);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::Other);
+    }
+
+    #[test]
+    fn multiple_commands() {
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: "ucinewgame\nposition startpos\ngo depth 10\n".as_bytes(),
+        };
+
+        // Read all three commands
+        for _ in 0..3 {
+            let result = gui.read();
+            assert!(result.is_ok());
+        }
+
+        let mut line = String::new();
+        assert_eq!(gui.gui.read_line(&mut line).unwrap(), 0);
+    }
+
+    #[test]
+    fn large_message_handling() {
+        let mut gui = Gui {
+            engine: Vec::new(),
+            gui: empty(),
+        };
+
+        // Create a large info message
+        let large_string = "x".repeat(10000);
+        let result = gui.send_string(&large_string);
+        assert!(result.is_ok());
+
+        // Verify the output contains the full message
+        let output = String::from_utf8_lossy(&gui.engine);
+        assert!(output.contains(&large_string));
+        assert!(output.starts_with("info string "));
+        assert!(output.ends_with('\n'));
+    }
+
+    #[test]
+    fn error() {
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: b"invalid_command\n".as_slice(),
+        };
+
+        let result = gui.read();
+        assert_matches!(result, Err(ReadError::Parse(_)));
+    }
+
+    #[test]
+    fn buffered_reading() {
+        let input = b"go\nstop\nucinewgame\n".as_slice();
+        let reader = BufReader::new(input);
+
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: reader,
+        };
+
+        for _ in 0..3 {
+            assert!(gui.read().is_ok());
+        }
+    }
+
+    #[test]
+    fn partial_message_handling() {
+        let mut gui = Gui {
+            engine: Vec::<u8>::new(),
+            gui: b"go depth".as_slice(),
+        };
+
+        assert_eq!(gui.read().unwrap(), Go::default().into());
     }
 }

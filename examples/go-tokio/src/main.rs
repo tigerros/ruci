@@ -5,7 +5,7 @@
 
 use ruci::Engine;
 use std::process::Stdio;
-use tokio::io::BufReader;
+use tokio::io::AsyncBufReadExt;
 use tokio::process::Command;
 
 #[tokio::main]
@@ -14,14 +14,11 @@ async fn main() -> anyhow::Result<()> {
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .spawn()?;
-    let engine = process.stdout.take().unwrap();
-    let gui = process.stdin.take().unwrap();
 
-    let mut engine = Engine {
-        engine: BufReader::new(engine),
-        gui,
-        strict: false,
-    };
+    let mut engine = Engine::from_process_async(&mut process, true)?;
+
+    // Discard first Stockfish line
+    engine.engine.read_line(&mut String::new()).await?;
 
     println!("== Sending quit message and waiting for engine process");
     engine.send_async(ruci::Quit).await?;

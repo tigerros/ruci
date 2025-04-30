@@ -120,7 +120,7 @@ impl Display for Go<'_> {
         }
 
         if let Some(moves_to_go) = self.moves_to_go {
-            write!(f, " moves_to_go {moves_to_go}")?;
+            write!(f, " movestogo {moves_to_go}")?;
         }
 
         if let Some(depth) = self.depth {
@@ -228,6 +228,128 @@ mod tests {
             gui
             m,
             "go"
+        );
+    }
+
+    #[test]
+    fn time_controls() {
+        let m = Go {
+            search_moves: Cow::from(&[]),
+            ponder: false,
+            w_time: Some(1000),
+            b_time: Some(1500),
+            w_inc: Some(NonZeroUsize::new(10).unwrap()),
+            b_inc: Some(NonZeroUsize::new(10).unwrap()),
+            moves_to_go: Some(NonZeroUsize::new(40).unwrap()),
+            depth: None,
+            nodes: None,
+            mate: None,
+            move_time: None,
+            infinite: false,
+        };
+
+        assert_message_to_from_str!(
+            gui
+            m,
+            "go wtime 1000 btime 1500 winc 10 binc 10 movestogo 40"
+        );
+    }
+
+    #[test]
+    fn search_limits() {
+        let m = Go {
+            search_moves: Cow::from(&[]),
+            ponder: false,
+            w_time: None,
+            b_time: None,
+            w_inc: None,
+            b_inc: None,
+            moves_to_go: None,
+            depth: Some(5),
+            nodes: Some(1_000_000),
+            mate: Some(3),
+            move_time: Some(5000),
+            infinite: false,
+        };
+
+        assert_message_to_from_str!(
+            gui
+            m,
+            "go depth 5 nodes 1000000 mate 3 movetime 5000"
+        );
+    }
+
+    #[test]
+    fn search_moves_only() {
+        let search_moves = [
+            UciMove::from_ascii(b"e2e4").unwrap(),
+            UciMove::from_ascii(b"e7e5").unwrap(),
+            UciMove::from_ascii(b"f1c4").unwrap(),
+        ];
+
+        let m = Go {
+            search_moves: Cow::Borrowed(&search_moves),
+            ponder: false,
+            w_time: None,
+            b_time: None,
+            w_inc: None,
+            b_inc: None,
+            moves_to_go: None,
+            depth: None,
+            nodes: None,
+            mate: None,
+            move_time: None,
+            infinite: false,
+        };
+
+        assert_message_to_from_str!(
+            gui
+            m,
+            "go searchmoves e2e4 e7e5 f1c4"
+        );
+    }
+
+    #[test]
+    fn invalid_parameters() {
+        // Test that invalid numeric parameters are ignored
+        assert_from_str_message!(
+            gui
+            "go depth -1 nodes -5 mate abc movetime def",
+            Ok(Go::default())
+        );
+
+        // Test that unknown parameters are ignored
+        assert_from_str_message!(
+            gui
+            "go unknown_param 123 another_param xyz depth 10",
+            Ok(Go {
+                depth: Some(10),
+                ..Go::default()
+            })
+        );
+    }
+
+    #[test]
+    fn movetime_only() {
+        let m = Go {
+            search_moves: Cow::from(&[]),
+            ponder: false,
+            w_time: None,
+            b_time: None,
+            w_inc: None,
+            b_inc: None,
+            moves_to_go: None,
+            depth: None,
+            nodes: None,
+            mate: None,
+            move_time: Some(15000),
+            infinite: false,
+        };
+
+        assert_message_to_from_str!(
+            gui
+            m,
+            "go movetime 15000"
         );
     }
 }
