@@ -94,73 +94,105 @@ impl Display for Position<'_> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use alloc::borrow::Cow;
-    use core::str::FromStr;
     use shakmaty::uci::UciMove;
     use alloc::string::ToString;
     use crate::gui::Position;
-    use crate::{gui, Message};
-    use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
     use crate::errors::MessageParseError;
 
     #[test]
     fn to_from_str_start_pos() {
         let moves = [UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()];
-        let repr: Message = Position::StartPos {
+        let repr = Position::StartPos {
             moves: Cow::Borrowed(&moves),
-        }.into();
+        };
 
-        let str_repr = "position startpos moves d2d4 d7d5";
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_message_to_from_str!(
+            gui 
+            repr,
+            "position startpos moves d2d4 d7d5"
+        );
 
         let moves = [UciMove::from_ascii(b"d2d4").unwrap(), UciMove::from_ascii(b"d7d5").unwrap()];
-        let repr: Message = Position::StartPos {
+        let m = Position::StartPos {
             moves: Cow::Borrowed(&moves),
-        }.into();
+        };
 
-        assert_eq!(repr.to_string(), "position startpos moves d2d4 d7d5");
-        assert_eq!(Message::from_str("position    startpos fen rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 moves \t d2d4 d7d5"), Ok(repr));
+        assert_from_str_message!(
+            gui
+            "position    startpos fen rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 moves \t d2d4 d7d5",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "position startpos moves d2d4 d7d5"
+        );
     }
 
     #[test]
     fn to_from_str_fen() {
         let fen = Fen::from_ascii(b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5").unwrap();
         let moves = [UciMove::from_ascii(b"b1c3").unwrap()];
-        let repr: Message = Position::Fen {
+        let m = Position::Fen {
             fen: Cow::Borrowed(&fen),
             moves: Cow::Borrowed(&moves),
-        }.into();
-
-        let str_repr = "position fen rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 moves b1c3";
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        };
+        
+        assert_message_to_from_str!(
+            gui 
+            m,
+            "position fen rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 moves b1c3"
+        );
 
         let fen = Fen::from_ascii(b"rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5").unwrap();
         let moves = [UciMove::from_ascii(b"b1c3").unwrap()];
-        let repr: Message = Position::Fen {
+        let m = Position::Fen {
             fen: Cow::Borrowed(&fen),
             moves: Cow::Borrowed(&moves),
-        }.into();
+        };
 
-        assert_eq!(repr.to_string(), "position fen rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 moves b1c3");
-        assert_eq!(Message::from_str("position fen   rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 startpos \t moves b1c3"), Ok(repr));
+        assert_from_str_message!(
+            gui
+            "position fen   rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 startpos \t moves b1c3",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "position fen rnbqk2r/ppppp1bp/5np1/5p2/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 1 5 moves b1c3"
+        );
     }
     
     #[test]
     fn invalid_tail() {
         let moves = [UciMove::from_ascii(b"d2d4").unwrap()];
         
-        let m: gui::Message = Position::StartPos {
+        let m = Position::StartPos {
             moves: Cow::Borrowed(&moves),
-        }.into();
+        };
 
-        assert_eq!(m.to_string(), "position startpos moves d2d4");
-        assert_eq!(gui::Message::from_str("position startpos moves d2d4 this ain't a move buddy pal"), Ok(m));
+        assert_from_str_message!(
+            gui
+            "position startpos moves d2d4 this ain't a move buddy pal",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "position startpos moves d2d4"
+        );
     }
 
     #[test]
     fn parse_error() {
-        assert_matches!(Position::from_str("position moves e2e4"), Err(MessageParseError::MissingParameters { .. }));
+        assert_from_str_message!(
+            gui 
+            "position moves e2e4",
+            Err::<Position, MessageParseError>(MessageParseError::MissingParameters {
+                expected: "startpos"
+            })
+        );
     }
 }

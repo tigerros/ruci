@@ -57,29 +57,37 @@ impl Display for SetOption<'_> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use alloc::borrow::Cow;
-    use core::str::FromStr;
     use alloc::string::ToString;
-    use pretty_assertions::assert_eq;
     use crate::gui::SetOption;
-    use crate::{gui, Message};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn to_from_str() {
-        let repr: Message = SetOption {
+        let m = SetOption {
             name: Cow::from("Skill Level"),
             value: Some(Cow::from("1")),
-        }.into();
-        let str_repr = "setoption name Skill Level value 1";
+        };
+        
+        assert_message_to_from_str!(
+            gui 
+            m,
+            "setoption name Skill Level value 1"
+        );
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
-
-        let repr: gui::Message = SetOption {
+        let m = SetOption {
             name: Cow::from("Skill     Level"),
             value: Some(Cow::from("test   \tfoo")),
-        }.into();
+        };
 
-        assert_eq!(repr.to_string(), "setoption name Skill     Level value test   \tfoo");
-        assert_eq!(gui::Message::from_str("setoption value test   \tfoo   \t name     Skill     Level    "), Ok(repr));
+        assert_from_str_message!(
+            gui
+            "setoption value test   \tfoo   \t name     Skill     Level    ",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "setoption name Skill     Level value test   \tfoo"
+        );
     }
 }

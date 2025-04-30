@@ -172,7 +172,7 @@ mod tests {
         engine.gui.extend_from_slice(b"  \n\t\n  ");
         engine.send_async(&go_send).await.unwrap();
         engine.gui.extend_from_slice(b"\n\t\n  ");
-        
+
         let mut gui = Gui {
             engine: Vec::<u8>::new(),
             gui: [].as_slice(),

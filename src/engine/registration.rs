@@ -52,37 +52,36 @@ mod tests {
     extern crate alloc;
 
     use alloc::string::ToString;
-    use core::str::FromStr;
-    use crate::{engine, Message};
     use super::Registration;
     use crate::MessageParseError;
-    use pretty_assertions::{assert_eq, assert_matches};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn to_from_str_checking() {
-        let repr: engine::Message = Registration::Checking.into();
-        let str = "registration checking";
-        assert_eq!(repr.to_string(), str);
-        assert_eq!(engine::Message::from_str(str).unwrap(), repr);
+        assert_message_to_from_str!(engine Registration::Checking, "registration checking");
     }
 
     #[test]
     fn to_from_str_ok() {
-        let repr: Message = Registration::Ok.into();
-        let str = "registration ok";
-        assert_eq!(repr.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), repr);
+        assert_message_to_from_str!(engine Registration::Ok, "registration ok");
     }
 
     #[test]
     fn to_from_str_error() {
-        let repr: Message = Registration::Error.into();
-        assert_eq!(repr.to_string(), "registration error");
-        assert_eq!(Message::from_str("registration tes error\n").unwrap(), repr);
+        let m = Registration::Error;
+
+        assert_from_str_message!(
+            engine
+            "registration tes error\n",
+            Ok(m)
+        );
+        assert_message_to_str!(engine m, "registration error");
     }
 
     #[test]
     fn parse_error() {
-        assert_matches!(Message::from_str("registration invalid"), Err(MessageParseError::ValueParseError { .. }));
+        assert_from_str_message!(engine "registration invalid", Err::<Registration, MessageParseError>(MessageParseError::ValueParseError {
+            expected: "checking, ok or error"
+        }));
     }
 }

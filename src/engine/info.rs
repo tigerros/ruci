@@ -442,13 +442,12 @@ impl Display for Info<'_> {
 mod tests {
     use alloc::borrow::Cow;
     use alloc::string::ToString;
-    use core::str::FromStr;
     use super::Info;
     use shakmaty::uci::UciMove;
     use pretty_assertions::assert_eq;
     use shakmaty::Color;
     use crate::engine::{CurrLine, Depth, Refutation, Score, ScoreBound, ScoreWithBound};
-    use crate::{engine, Message};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn score_kind_standardize() {
@@ -476,7 +475,7 @@ mod tests {
         let refutation = [UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()];
         let curr_line = [UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()];
         
-        let repr: Message = Info {
+        let m = Info {
             depth: Some(Depth {
                 depth: 20,
                 seldepth: Some(31)
@@ -505,11 +504,9 @@ mod tests {
                 used_cpu: Some(1),
                 line: Cow::Borrowed(&curr_line),
             }),
-        }.into();
-        let str_repr = "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 string blabla";
+        };
         
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_message_to_from_str!(engine m, "info depth 20 seldepth 31 time 12 nodes 4 pv e2e4 c7c5 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 string blabla");
     }
 
     #[test]
@@ -517,7 +514,7 @@ mod tests {
         let refutation = [UciMove::from_ascii(b"d7d5").unwrap(), UciMove::from_ascii(b"f1g2").unwrap()];
         let curr_line = [UciMove::from_ascii(b"e2e4").unwrap(), UciMove::from_ascii(b"c7c5").unwrap()];
         
-        let repr: engine::Message = Info {
+        let m = Info {
             depth: Some(Depth {
                 depth: 20,
                 seldepth: Some(31)
@@ -546,15 +543,23 @@ mod tests {
                 used_cpu: Some(1),
                 line: Cow::Borrowed(&curr_line),
             }),
-        }.into();
+        };
 
-        assert_eq!(repr.to_string(), "info depth 20 seldepth 31 time 12 nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 string blabla");
-        assert_eq!(engine::Message::from_str("info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4 string blabla"), Ok(repr));
+        assert_from_str_message!(
+            engine
+            "info depth BAD depth 20 seldepth 31 time 12 depth also bad nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 2 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 tbhits 4 string blabla",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            engine
+            m,
+            "info depth 20 seldepth 31 time 12 nodes 4 multipv 1 score cp 22 lowerbound currmove e2e4 tbhits 4 refutation g2g4 d7d5 f1g2 currline 1 e2e4 c7c5 string blabla"
+        );
     }
 
     #[test]
     fn to_from_str_string() {
-        let repr = Info {
+        let m = Info {
             depth: Some(Depth {
                 depth: 13,
                 seldepth: None
@@ -562,9 +567,11 @@ mod tests {
             string: Some(Cow::Borrowed("the parameters in this string should be ignored! depth 20 (psych) time 2 nodes 4 score cp 22 lowerbound")),
             ..Default::default()
         };
-        let str_repr = "info depth 13 string the parameters in this string should be ignored! depth 20 (psych) time 2 nodes 4 score cp 22 lowerbound";
-
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr.into()));
+        
+        assert_message_to_from_str!(
+            engine
+            m,
+            "info depth 13 string the parameters in this string should be ignored! depth 20 (psych) time 2 nodes 4 score cp 22 lowerbound"
+        );
     }
 }

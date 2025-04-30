@@ -152,12 +152,10 @@ impl Display for Go<'_> {
 mod tests {
     use alloc::string::ToString;
     use alloc::borrow::Cow;
-    use pretty_assertions::assert_eq;
     use shakmaty::uci::UciMove;
     use core::num::NonZeroUsize;
-    use core::str::FromStr;
     use crate::gui::Go;
-    use crate::{gui, Message};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn to_from_str() {
@@ -166,7 +164,7 @@ mod tests {
             UciMove::from_ascii(b"d2d4").unwrap(),
         ];
 
-        let repr: Message = Go {
+        let m = Go {
             search_moves: Cow::Borrowed(&search_moves),
             ponder: true,
             w_time: Some(5),
@@ -179,16 +177,18 @@ mod tests {
             mate: None,
             move_time: None,
             infinite: true,
-        }.into();
-        let str_repr = "go searchmoves e2e4 d2d4 ponder wtime 5 binc 45 depth 20 infinite";
+        };
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_message_to_from_str!(
+            gui
+            m,
+            "go searchmoves e2e4 d2d4 ponder wtime 5 binc 45 depth 20 infinite"
+        );
     }
 
     #[test]
     fn to_from_str_bad_parameters() {
-        let repr: gui::Message = Go {
+        let m = Go {
             search_moves: Cow::from(&[]),
             ponder: true,
             w_time: None,
@@ -201,17 +201,33 @@ mod tests {
             mate: Some(0),
             move_time: None,
             infinite: false,
-        }.into();
-        
-        assert_eq!(repr.to_string(), "go ponder depth 20 nodes 2 mate 0");
-        assert_eq!(gui::Message::from_str("go mate 7 ponder depth 20 depth bad nodes nope nope nodes 2 mate 0"), Ok(repr));
+        };
+
+        assert_from_str_message!(
+            gui
+            "go mate 7 ponder depth 20 depth bad nodes nope nope nodes 2 mate 0",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "go ponder depth 20 nodes 2 mate 0"
+        );
     }
 
     #[test]
     fn to_from_str_empty() {
-        let repr: Message = Go::default().into();
+        let m = Go::default();
 
-        assert_eq!(repr.to_string(), "go");
-        assert_eq!(Message::from_str("     go    this is  empty)"), Ok(repr));
+        assert_from_str_message!(
+            gui
+            "     go    this is  empty)",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "go"
+        );
     }
 }

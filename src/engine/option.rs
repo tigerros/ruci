@@ -216,50 +216,61 @@ impl Display for Option<'_> {
 mod tests {
     use alloc::borrow::Cow;
     use alloc::string::ToString;
-    use core::str::FromStr;
-    use pretty_assertions::assert_eq;
-    use crate::{engine, Message};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_str};
     use crate::engine::OptionType;
     use super::Option;
 
     #[test]
     fn to_from_str_min_max() {
-        let repr: Message = Option {
+        let m = Option {
             name: Cow::Borrowed("Skill Level"),
             r#type: OptionType::Spin {
                 default: Some(20),
                 min: Some(-10),
                 max: Some(20),
             }
-        }.into();
+        };
+        
+        assert_from_str_message!(
+            engine
+            "option name Skill Level type spin type INVALID default 20 min -10 max 20",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(engine m, "option name Skill Level type spin default 20 min -10 max 20");
 
-        assert_eq!(repr.to_string(), "option name Skill Level type spin default 20 min -10 max 20");
-        assert_eq!(Message::from_str("option name Skill Level type spin type INVALID default 20 min -10 max 20"), Ok(repr));
-
-        let repr: Message = Option {
+        let m = Option {
             name: Cow::Borrowed("Personality"),
             r#type: OptionType::String { default: Some(Cow::Borrowed("Aggressive")) }
-        }.into();
-
-        assert_eq!(repr.to_string(), "option name Personality type string default Aggressive");
-        assert_eq!(Message::from_str("option name Personality type spin type string default Aggressive"), Ok(repr));
+        };
+        
+        assert_from_str_message!(
+            engine
+            "option name Personality type spin type string default Aggressive",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(engine m, "option name Personality type string default Aggressive");
     }
 
     #[test]
     fn to_from_str_var() {
         let var = &[Cow::Borrowed("Foo bar fighter"), Cow::Borrowed("Aggressive p"), Cow::Borrowed("Defensive p"), Cow::Borrowed("Positional"), Cow::Borrowed("Endgame")];
         
-        let repr: engine::Message = Option {
+        let m = Option {
             name: Cow::Borrowed("K Personality"),
             r#type: OptionType::Combo {
                 default: Some(Cow::Borrowed("Default p")),
                 var: Cow::Borrowed(var),
             }
-        }.into();
+        };
         let str_in = "option var Foo bar fighter name K Personality type combo default Default p var Aggressive p var Defensive p var Positional var Endgame";
         // Output has a different order, which is fine, but can't use the same string.
         let str_out = "option name K Personality type combo default Default p var Foo bar fighter var Aggressive p var Defensive p var Positional var Endgame";
-        assert_eq!(repr.to_string(), str_out);
-        assert_eq!(engine::Message::from_str(str_in), Ok(repr));
+
+        assert_from_str_message!(
+            engine
+            str_in,
+            Ok(m.clone())
+        );
+        assert_message_to_str!(engine m, str_out);
     }
 }

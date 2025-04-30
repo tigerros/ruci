@@ -46,31 +46,29 @@ impl Display for CopyProtection {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use core::str::FromStr;
-    use crate::{engine, Message};
     use super::CopyProtection;
     use alloc::string::ToString;
     use crate::MessageParseError;
-    use pretty_assertions::{assert_eq, assert_matches};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str};
 
     #[test]
     fn to_from_str_ok() {
-        let m: Message = CopyProtection::Ok.into();
+        let m = CopyProtection::Ok;
         let str = "copyprotection ok";
-        assert_eq!(m.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), m);
+        assert_message_to_from_str!(engine m, str);
     }
 
     #[test]
     fn to_from_str_error() {
-        let m: engine::Message = CopyProtection::Error.into();
+        let m = CopyProtection::Error;
         let str = "copyprotection error";
-        assert_eq!(m.to_string(), str);
-        assert_eq!(engine::Message::from_str(str).unwrap(), m);
+        assert_message_to_from_str!(engine m, str);
     }
 
     #[test]
     fn parse_error() {
-        assert_matches!(Message::from_str("copyprotection why   \t are you here? 🤨\n\n"), Err(MessageParseError::ValueParseError { .. }));
+        assert_from_str_message!(engine "copyprotection why   \t are you here? 🤨\n\n", Err::<CopyProtection, MessageParseError>(MessageParseError::ValueParseError {
+            expected: "ok or error",
+        }));
     }
 }

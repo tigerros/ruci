@@ -111,49 +111,45 @@ impl Display for BestMove {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use core::str::FromStr;
     use alloc::string::ToString;
     use shakmaty::uci::UciMove;
-    use pretty_assertions::{assert_eq};
     use crate::engine::{BestMove, NormalBestMove};
-    use crate::{engine, Message};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn to_from_str() {
-        let repr: Message = NormalBestMove {
-            r#move: UciMove::from_ascii(b"e2e4").unwrap(),
-            ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
-        }.into();
-        let str_repr = "bestmove e2e4 ponder c7c5";
-
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
-
-        let repr: Message = NormalBestMove {
-            r#move: UciMove::from_ascii(b"d2d4").unwrap(),
-            ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
-        }.into();
-
-        assert_eq!(repr.to_string(), "bestmove d2d4 ponder c7c5");
-        assert_eq!(Message::from_str("bestmove oops d2d4 ponder c7c5 ignorethis"), Ok(repr));
-    }
-
-    #[test]
-    fn to_from_str_bad_value() {
-        let repr: engine::Message = NormalBestMove {
+        let m: BestMove = NormalBestMove {
             r#move: UciMove::from_ascii(b"e2e4").unwrap(),
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
         
-        assert_eq!(repr.to_string(), "bestmove e2e4 ponder c7c5");
-        assert_eq!(engine::Message::from_str("bestmove junk e2e4 ponder c7c5\n"), Ok(repr));
+        assert_message_to_from_str!(engine m, "bestmove e2e4 ponder c7c5");
+        
+        let m: BestMove = NormalBestMove {
+            r#move: UciMove::from_ascii(b"d2d4").unwrap(),
+            ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
+        }.into();
+
+        assert_from_str_message!(engine "bestmove oops d2d4 ponder c7c5 ignorethis", Ok(m.clone()));
+        assert_message_to_str!(engine m, "bestmove d2d4 ponder c7c5");
+    }
+
+    #[test]
+    fn to_from_str_bad_value() {
+        let m: BestMove = NormalBestMove {
+            r#move: UciMove::from_ascii(b"e2e4").unwrap(),
+            ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
+        }.into();
+
+        assert_from_str_message!(engine "bestmove junk e2e4 ponder c7c5\n", Ok(m.clone()));
+        assert_message_to_str!(engine m, "bestmove e2e4 ponder c7c5");
     }
 
     #[test]
     fn to_from_str_other() {
-        let repr: engine::Message = BestMove::Other.into();
+        let m: BestMove = BestMove::Other;
 
-        assert_eq!(repr.to_string(), "bestmove");
-        assert_eq!(engine::Message::from_str("bestmove (none)\n"), Ok(repr));
+        assert_from_str_message!(engine "bestmove (none)\n", Ok(m.clone()));
+        assert_message_to_str!(engine m, "bestmove");
     }
 }

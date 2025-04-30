@@ -78,36 +78,53 @@ impl Display for Register<'_> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use alloc::borrow::Cow;
-    use core::str::FromStr;
-    use pretty_assertions::{assert_eq};
     use crate::gui::Register;
-    use crate::{gui, Message};
     use alloc::string::ToString;
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn to_from_str() {
-        let m: Message = Register::NameAndCode {
+        let m = Register::NameAndCode {
             name: Cow::Borrowed("john later smith"),
             code: Cow::Borrowed("31 tango")
-        }.into();
-        let str = "register name john later smith code 31 tango";
-
-        assert_eq!(m.to_string(), str);
-        assert_eq!(Message::from_str(str), Ok(m));
+        };
+        
+        assert_message_to_from_str!(
+            gui 
+            m,
+            "register name john later smith code 31 tango"
+        );
     }
 
     #[test]
     fn to_from_str_later() {
-        let m: Message = Register::Later.into();
+        let m = Register::Later;
 
-        assert_eq!(m.to_string(), "register later");
-        assert_eq!(Message::from_str("register   later   ff\n\n"), Ok(m));
+        assert_from_str_message!(
+            gui
+            "register   later   ff\n\n",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "register later"
+        );
     }
 
     #[test]
     fn invalid_parameter() {
-        let m: gui::Message = Register::Name(Cow::Borrowed("a l o t o f s p a c e s")).into();
-        assert_eq!(m.to_string(), "register name a l o t o f s p a c e s");
-        assert_eq!(gui::Message::from_str("register blahblah woo name a l o t o f s p a c e s\n").unwrap(), m);
+        let m = Register::Name(Cow::Borrowed("a l o t o f s p a c e s"));
+
+        assert_from_str_message!(
+            gui
+            "register blahblah woo name a l o t o f s p a c e s\n",
+            Ok(m.clone())
+        );
+        assert_message_to_str!(
+            gui
+            m,
+            "register name a l o t o f s p a c e s"
+        );
     }
 }

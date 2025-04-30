@@ -43,34 +43,25 @@ mod tests {
     extern crate alloc;
 
     use alloc::string::ToString;
-    use core::str::FromStr;
-    use crate::{gui, Message};
     use super::Debug;
     use crate::MessageParseError;
-    use pretty_assertions::{assert_eq, assert_matches};
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str};
 
     #[test]
     fn to_from_str_on() {
-        let m: Message = Debug(true).into();
-        let str = "debug on";
-        assert_eq!(m.to_string(), str);
-        assert_eq!(Message::from_str(str).unwrap(), m);
+        assert_message_to_from_str!(gui Debug(true), "debug on");
     }
 
     #[test]
     fn to_from_str_off() {
-        let m: gui::Message = Debug(false).into();
-        let str = "debug off";
-        assert_eq!(m.to_string(), str);
-        assert_eq!(gui::Message::from_str(str).unwrap(), m);
-
-        let m: gui::Message = Debug(false).into();
-        assert_eq!(m.to_string(), "debug off");
-        assert_eq!(gui::Message::from_str("debug blah   off asffd"), Ok(m));
+        assert_message_to_from_str!(gui Debug(false), "debug off");
+        assert_from_str_message!(gui "debug blah    off asffd\n", Ok(Debug(false)));
     }
 
     #[test]
     fn parse_error() {
-        assert_matches!(Message::from_str("debug why   \t are you here? 🤨"), Err(MessageParseError::ValueParseError { .. }));
+        assert_from_str_message!(gui "debug why   \t are you \nhere? 🤨", Err::<Debug, MessageParseError>(MessageParseError::ValueParseError {
+            expected: "on or off"
+        }));
     }
 }

@@ -133,27 +133,22 @@ impl Display for Id<'_> {
 #[cfg(test)]
 mod tests {
     use alloc::borrow::Cow;
-    use core::str::FromStr;
-    use pretty_assertions::assert_eq;
-    use crate::{engine, Message};
     use super::Id;
     use alloc::string::ToString;
+    use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
     fn to_from_str() {
-        let repr: Message = Id::NameAndAuthor {
+        let m = Id::NameAndAuthor {
             name: Cow::from("Stockfish 16.1"),
             author: Cow::from("The stockfish developers"),
-        }.into();
-        let str_repr = "id name Stockfish 16.1 author The stockfish developers";
+        };
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(Message::from_str(str_repr), Ok(repr));
+        assert_message_to_from_str!(engine m, "id name Stockfish 16.1 author The stockfish developers");
 
-        let repr: engine::Message = Id::Name(Cow::from("Stockfish 16.1")).into();
-        let str_repr = "id name Stockfish 16.1";
+        let m = Id::Name(Cow::from("Stockfish 16.1"));
 
-        assert_eq!(repr.to_string(), str_repr);
-        assert_eq!(engine::Message::from_str(str_repr), Ok(repr));
+        assert_from_str_message!(engine "id name Stockfish 16.1 \n ignored", Ok(m.clone()));
+        assert_message_to_str!(engine m, "id name Stockfish 16.1");
     }
 }

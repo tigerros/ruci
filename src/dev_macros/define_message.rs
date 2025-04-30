@@ -38,26 +38,29 @@ macro_rules! define_message {
         #[cfg(test)]
         mod tests {$(::paste::paste! {
             mod [< $empty_message_ident:snake >] {
-                extern crate alloc;
-                use alloc::string::ToString;
-                use crate::{Message, errors::MessageParseError};
+                use crate::errors::MessageParseError;
+                use super::super::$empty_message_ident;
                 use pretty_assertions::{assert_eq, assert_matches};
                 use core::str::FromStr;
-                use super::super::$empty_message_ident;
-                
+
                 #[test]
                 fn to_from_str() {
-                    let repr: Message = $empty_message_ident.into();
-                    assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
-                    assert_eq!(Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), " ddd")), Ok(repr));
-                    let repr: super::super::super::Message = $empty_message_ident.into();
-                    assert_eq!(repr.to_string(), stringify!([< $empty_message_ident:lower >]));
-                    assert_eq!(super::super::super::Message::from_str(concat!(stringify!([< $empty_message_ident:lower >]), "  \t foo\n\n")), Ok(repr));
+                    $crate::dev_macros::assert_message_to_from_str!([< $ident:lower >] $empty_message_ident, stringify!([< $empty_message_ident:lower >]));
+                    $crate::dev_macros::assert_from_str_message!([< $ident:lower >] concat!(stringify!([< $empty_message_ident:lower >]), " ddd"), Ok($empty_message_ident));
+                    $crate::dev_macros::assert_from_str_message!([< $ident:lower >] concat!("\tggg ", stringify!([< $empty_message_ident:lower >]), " \t f\n\n"), Ok($empty_message_ident));
                 }
                 
                 #[test]
                 fn parse_error() {
-                    assert_matches!($empty_message_ident::from_str("nope"), Err(MessageParseError::NoMessage { .. }))
+                    assert_eq!($empty_message_ident::from_str("nope"), Err(MessageParseError::NoMessage {
+                        expected: stringify!([< $empty_message_ident:lower >]),
+                    }));
+                    assert_matches!(super::super::Message::from_str("\n\nnuh uh"), Err(MessageParseError::NoMessage {
+                        expected: _,
+                    }));
+                    assert_eq!(crate::Message::from_str("𓉌𓊦   𓐧 "), Err(MessageParseError::NoMessage {
+                        expected: "any UCI message",
+                    }));
                 }
             }
         })*}
