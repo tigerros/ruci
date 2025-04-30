@@ -38,10 +38,13 @@ macro_rules! define_message {
         #[cfg(test)]
         mod tests {$(::paste::paste! {
             mod [< $empty_message_ident:snake >] {
+                extern crate alloc;
+                
                 use crate::errors::MessageParseError;
                 use super::super::$empty_message_ident;
                 use pretty_assertions::{assert_eq, assert_matches};
                 use core::str::FromStr;
+                use alloc::string::ToString;
 
                 #[test]
                 fn to_from_str() {
