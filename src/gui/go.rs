@@ -120,7 +120,7 @@ impl Display for Go<'_> {
         }
 
         if let Some(moves_to_go) = self.moves_to_go {
-            write!(f, " moves_to_go {moves_to_go}")?;
+            write!(f, " movestogo {moves_to_go}")?;
         }
 
         if let Some(depth) = self.depth {
