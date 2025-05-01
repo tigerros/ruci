@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1746060236900,
+  "lastUpdate": 1746125446982,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -5921,6 +5921,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 44.12,
             "range": "± 0.83",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "bc709163b5159fd0c9f4b1640b5c7cdee443ce4d",
+          "message": "2.0.0\n\nignore 1.1.0 - made it into 2.0.0\n\nbreaking:\n- lifted `MessageParseError.expected`. Previously it was in all variants, now its a field and the variants are an enum with no fields.\n- `ReadError` now has a `got` field to tell you what caused an error\n- even more flexible I/O, `Engine::send` doesnt require `Read`, `Engine::read` does not require `Write`\n\nother:\n- add `Gui` struct for communicating with a GUI\n- recommend `Engine.strict` to be `true`\n- more tests => fix `movestogo` being serialized as `moves_to_go`\n- docs improvements\n- readme improvements",
+          "timestamp": "2025-05-01T20:49:27+02:00",
+          "tree_id": "80371a0c3bfc91cf5d4c0dff91f5bd7ca972fb91",
+          "url": "https://github.com/tigerros/ruci/commit/bc709163b5159fd0c9f4b1640b5c7cdee443ce4d"
+        },
+        "date": 1746125444664,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 961.04,
+            "range": "± 9.63",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 2997.72,
+            "range": "± 47.43",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 28890.36,
+            "range": "± 478.18",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 22.4,
+            "range": "± 0.22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 609.85,
+            "range": "± 13.38",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2438.77,
+            "range": "± 31.01",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 197.14,
+            "range": "± 4.39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 234.27,
+            "range": "± 4.12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 398.72,
+            "range": "± 7.25",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 470.56,
+            "range": "± 10.43",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 113.47,
+            "range": "± 1.82",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 130,
+            "range": "± 2.02",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 235.18,
+            "range": "± 4.58",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 230.2,
+            "range": "± 2.62",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.75,
+            "range": "± 1.77",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.74,
+            "range": "± 0.19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 43.92,
+            "range": "± 0.17",
             "unit": "ns/iter"
           }
         ]
