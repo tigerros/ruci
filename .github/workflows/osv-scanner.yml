@@ -2,13 +2,10 @@ name: OSV scanner
 
 on:
   pull_request:
-    branches: [ "master" ]
   merge_group:
-    branches: [ "master" ]
   schedule:
     - cron: '30 10 * * 1'
   push:
-    branches: [ "master" ]
 
 permissions:
   security-events: write

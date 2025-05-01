@@ -1,6 +1,10 @@
 name: Coverage
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+
 jobs:
   test:
     name: coverage

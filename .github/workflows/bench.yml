@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - cow-rework
 
 permissions:
   contents: write
