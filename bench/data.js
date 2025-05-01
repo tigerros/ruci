@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1746056539142,
+  "lastUpdate": 1746060236900,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -5795,6 +5795,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 44.78,
             "range": "± 0.28",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "4eed1ecdddbe9722200add50d967755cef722fb7",
+          "message": "Merge branch 'master' of https://github.com/tigerros/ruci",
+          "timestamp": "2025-05-01T02:42:41+02:00",
+          "tree_id": "c6e33fe0efeee16149d3802faecadc12b27a1eca",
+          "url": "https://github.com/tigerros/ruci/commit/4eed1ecdddbe9722200add50d967755cef722fb7"
+        },
+        "date": 1746060233902,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 951.67,
+            "range": "± 14.60",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3159.42,
+            "range": "± 739.77",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 27383.27,
+            "range": "± 319.06",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 22.71,
+            "range": "± 0.14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 628.37,
+            "range": "± 8.84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2383.14,
+            "range": "± 32.53",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 196.85,
+            "range": "± 4.51",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 231.62,
+            "range": "± 9.66",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 401.38,
+            "range": "± 4.57",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 506.94,
+            "range": "± 7.30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 109.83,
+            "range": "± 7.54",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 136.94,
+            "range": "± 2.10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 229.22,
+            "range": "± 4.03",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 253.06,
+            "range": "± 3.86",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.41,
+            "range": "± 0.09",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.74,
+            "range": "± 0.44",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 44.12,
+            "range": "± 0.83",
             "unit": "ns/iter"
           }
         ]
