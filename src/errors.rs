@@ -3,44 +3,44 @@ use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "io")]
 use std::io;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum MessageParseErrorKind {
+    /// No message in the string was found.
+    NoMessage,
+    /// Required parameters are missing.
+    MissingParameters,
+    /// A required parameter could not be parsed.
+    ParameterParseError,
+    /// The required value of the message could not be parsed.
+    ValueParseError,
+}
+
 /// Something went wrong with parsing a message.
 ///
 /// Note that the parsing is very liberal and ignores errors unless they're critical.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MessageParseError {
-    /// No message in the string was found.
-    NoMessage { expected: &'static str },
-    /// Required parameters are missing.
-    MissingParameters { expected: &'static str },
-    /// A required parameter could not be parsed.
-    ParameterParseError { expected: &'static str },
-    /// The required value of the message could not be parsed.
-    ValueParseError { expected: &'static str },
-}
-
-impl MessageParseError {
-    pub const fn expected(self) -> &'static str {
-        match self {
-            Self::NoMessage { expected }
-            | Self::MissingParameters { expected }
-            | Self::ParameterParseError { expected }
-            | Self::ValueParseError { expected } => expected,
-        }
-    }
+pub struct MessageParseError {
+    pub expected: &'static str,
+    pub kind: MessageParseErrorKind,
 }
 
 impl Display for MessageParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::NoMessage { expected } => write!(f, "missing UCI message, expected {expected}"),
-            Self::MissingParameters { expected } => {
+        let expected = self.expected;
+
+        match self.kind {
+            MessageParseErrorKind::NoMessage => {
+                write!(f, "missing UCI message, expected {expected}")
+            }
+            MessageParseErrorKind::MissingParameters => {
                 write!(f, "missing UCI parameters, expected {expected}")
             }
-            Self::ParameterParseError { expected } => {
+            MessageParseErrorKind::ParameterParseError => {
                 write!(f, "invalid UCI parameters, expected {expected}")
             }
-            Self::ValueParseError { expected } => {
+            MessageParseErrorKind::ValueParseError => {
                 write!(f, "invalid UCI value, expected {expected}")
             }
         }
@@ -57,7 +57,11 @@ pub enum ReadError {
     /// Reading failed due to an I/O error.
     Io(io::Error),
     /// Reading succeeded but parsing to a [`engine::Message`](crate::engine::Message) failed.
-    Parse(MessageParseError),
+    Parse {
+        error: MessageParseError,
+        /// The erroneous string. Includes the newline character (`\n`).
+        got: String,
+    },
 }
 
 #[cfg(feature = "io")]
@@ -65,7 +69,9 @@ impl Display for ReadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(e) => write!(f, "I/O error reading UCI message: {e}"),
-            Self::Parse(e) => write!(f, "error parsing UCI message: {e}"),
+            Self::Parse { error, got } => {
+                write!(f, "error parsing UCI message: {error}. Got: {got}")
+            }
         }
     }
 }
@@ -147,12 +153,20 @@ mod tests {
         );
 
         let expected = "apologies for being informal in these tests 😔 <- UTF-8 test right there, very serious!";
-        let message_parse = MessageParseError::NoMessage { expected };
-        let read = ReadError::Parse(message_parse);
-        let read_str =
-            READ_ERROR_PARSE_STR.to_string() + "missing UCI message, expected " + expected;
+        let message_parse = MessageParseError {
+            expected,
+            kind: MessageParseErrorKind::NoMessage,
+        };
+        let read = ReadError::Parse {
+            error: message_parse,
+            got: "got".to_string(),
+        };
+        let read_str = READ_ERROR_PARSE_STR.to_string()
+            + "missing UCI message, expected "
+            + expected
+            + ". Got: got";
 
-        assert_eq!(message_parse.expected(), expected);
+        assert_eq!(message_parse.expected, expected);
         assert_eq!(read.to_string(), read_str);
         assert_eq!(
             ReadWriteError::Read(read).to_string(),
@@ -160,12 +174,20 @@ mod tests {
         );
 
         let expected = "�������";
-        let message_parse = MessageParseError::MissingParameters { expected };
-        let read = ReadError::Parse(message_parse);
-        let read_str =
-            READ_ERROR_PARSE_STR.to_string() + "missing UCI parameters, expected " + expected;
+        let message_parse = MessageParseError {
+            expected,
+            kind: MessageParseErrorKind::MissingParameters,
+        };
+        let read = ReadError::Parse {
+            error: message_parse,
+            got: String::new(),
+        };
+        let read_str = READ_ERROR_PARSE_STR.to_string()
+            + "missing UCI parameters, expected "
+            + expected
+            + ". Got: ";
 
-        assert_eq!(message_parse.expected(), expected);
+        assert_eq!(message_parse.expected, expected);
         assert_eq!(read.to_string(), read_str);
         assert_eq!(
             ReadWriteError::Read(read).to_string(),
@@ -173,12 +195,20 @@ mod tests {
         );
 
         let expected = "depth DEEP! <- `Go::from_str` wouldn't actually error given this parameter. maybe i should add a strict mode?";
-        let message_parse = MessageParseError::ParameterParseError { expected };
-        let read = ReadError::Parse(message_parse);
-        let read_str =
-            READ_ERROR_PARSE_STR.to_string() + "invalid UCI parameters, expected " + expected;
+        let message_parse = MessageParseError {
+            expected,
+            kind: MessageParseErrorKind::ParameterParseError,
+        };
+        let read = ReadError::Parse {
+            error: message_parse,
+            got: " t".to_string(),
+        };
+        let read_str = READ_ERROR_PARSE_STR.to_string()
+            + "invalid UCI parameters, expected "
+            + expected
+            + ". Got:  t";
 
-        assert_eq!(message_parse.expected(), expected);
+        assert_eq!(message_parse.expected, expected);
         assert_eq!(read.to_string(), read_str);
         assert_eq!(
             ReadWriteError::Read(read).to_string(),
@@ -186,11 +216,20 @@ mod tests {
         );
 
         let expected = "later";
-        let message_parse = MessageParseError::ValueParseError { expected };
-        let read = ReadError::Parse(message_parse);
-        let read_str = READ_ERROR_PARSE_STR.to_string() + "invalid UCI value, expected " + expected;
+        let message_parse = MessageParseError {
+            expected,
+            kind: MessageParseErrorKind::ValueParseError,
+        };
+        let read = ReadError::Parse {
+            error: message_parse,
+            got: " ".to_string(),
+        };
+        let read_str = READ_ERROR_PARSE_STR.to_string()
+            + "invalid UCI value, expected "
+            + expected
+            + ". Got:  ";
 
-        assert_eq!(message_parse.expected(), expected);
+        assert_eq!(message_parse.expected, expected);
         assert_eq!(read.to_string(), read_str);
         assert_eq!(
             ReadWriteError::Read(read).to_string(),

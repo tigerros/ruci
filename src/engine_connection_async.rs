@@ -97,7 +97,7 @@ where
                 break;
             }
 
-            M::from_str(&line).map_err(ReadError::Parse)
+            M::from_str(&line).map_err(|error| ReadError::Parse { error, got: line })
         } else {
             loop {
                 self.engine
@@ -191,7 +191,7 @@ where
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
-    use crate::Position;
+    use crate::{MessageParseErrorKind, Position};
     use crate::{NormalBestMove, OptionType};
     use alloc::borrow::Cow;
     use pretty_assertions::{assert_eq, assert_matches};
@@ -286,14 +286,23 @@ mod tests {
             .unwrap();
 
         assert_eq!(engine.gui, b"uci\n");
-        assert_matches!(
-            engine.is_ready_async().await,
-            Err(ReadWriteError::Read(ReadError::Parse(
-                MessageParseError::NoMessage {
-                    expected: "engine UCI message"
-                }
-            )))
+
+        let ReadWriteError::Read(ReadError::Parse { error, got }) =
+            engine.is_ready_async().await.unwrap_err()
+        else {
+            panic!("expected Parse ReadError");
+        };
+        let target_got = "isready?no".to_string();
+
+        assert_eq!(
+            error,
+            MessageParseError {
+                expected: "engine UCI message",
+                kind: MessageParseErrorKind::NoMessage,
+            },
         );
+
+        assert_eq!(got, target_got);
     }
 
     #[tokio::test]

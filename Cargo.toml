@@ -1,6 +1,6 @@
 [package]
 name = "ruci"
-version = "1.1.0"
+version = "2.0.0"
 description = "A UCI (Universal Chess Interface) crate."
 categories = ["parser-implementations", "game-development", "no-std"]
 keywords = ["chess", "uci", "parser"]
@@ -57,7 +57,7 @@ name = "from_str"
 members = ["examples/engine", "examples/engine-client", "examples/engine-server", "examples/flexible-io", "examples/go-std", "examples/go-tokio"]
 
 [workspace.dependencies]
-ruci = { version = "1", path = "." }
+ruci = { version = "2", path = "." }
 tokio = { version = "1", default-features = false }
 serde = { version = "1", default-features = false }
 paste = { version = "1", default-features = false }

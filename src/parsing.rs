@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::errors::MessageParseError;
-use crate::MessagePointer;
+use crate::{MessageParseErrorKind, MessagePointer};
 use alloc::string::String;
 use core::str::FromStr;
 
@@ -26,7 +26,10 @@ where
     let mut parts = s.split(' ');
     parts
         .find(|&part| part == target)
-        .ok_or(MessageParseError::NoMessage { expected: target })?;
+        .ok_or(MessageParseError {
+            expected: target,
+            kind: MessageParseErrorKind::NoMessage,
+        })?;
 
     Ok(parts)
 }
@@ -52,7 +55,10 @@ where
     let mut parts = s.split(' ');
     let message = parts
         .find_map(|part| M::from_str(part).ok())
-        .ok_or(MessageParseError::NoMessage { expected })?;
+        .ok_or(MessageParseError {
+            expected,
+            kind: MessageParseErrorKind::NoMessage,
+        })?;
 
     Ok((message, parts))
 }

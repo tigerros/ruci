@@ -40,7 +40,7 @@ macro_rules! define_message {
             mod [< $empty_message_ident:snake >] {
                 extern crate alloc;
                 
-                use crate::errors::MessageParseError;
+                use crate::errors::{MessageParseError, MessageParseErrorKind};
                 use super::super::$empty_message_ident;
                 use pretty_assertions::{assert_eq, assert_matches};
                 use core::str::FromStr;
@@ -55,14 +55,17 @@ macro_rules! define_message {
                 
                 #[test]
                 fn parse_error() {
-                    assert_eq!($empty_message_ident::from_str("nope"), Err(MessageParseError::NoMessage {
+                    assert_eq!($empty_message_ident::from_str("nope"), Err(MessageParseError {
                         expected: stringify!([< $empty_message_ident:lower >]),
+                        kind: MessageParseErrorKind::NoMessage
                     }));
-                    assert_matches!(super::super::Message::from_str("\n\nnuh uh"), Err(MessageParseError::NoMessage {
+                    assert_matches!(super::super::Message::from_str("\n\nnuh uh"), Err(MessageParseError {
                         expected: _,
+                        kind: MessageParseErrorKind::NoMessage
                     }));
-                    assert_eq!(crate::Message::from_str("𓉌𓊦   𓐧 "), Err(MessageParseError::NoMessage {
+                    assert_eq!(crate::Message::from_str("𓉌𓊦   𓐧 "), Err(MessageParseError {
                         expected: "any UCI message",
+                        kind: MessageParseErrorKind::NoMessage
                     }));
                 }
             }

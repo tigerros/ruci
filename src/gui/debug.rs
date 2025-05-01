@@ -1,6 +1,7 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
+use crate::MessageParseErrorKind;
 use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
@@ -22,7 +23,10 @@ from_str_parts!(impl Debug for parts -> Result {
         }
     }
 
-    Err(MessageParseError::ValueParseError { expected: "on or off" })
+    Err(MessageParseError {
+        expected: "on or off",
+        kind: MessageParseErrorKind::ValueParseError
+    })
 });
 
 impl Display for Debug {
@@ -44,7 +48,7 @@ mod tests {
 
     use alloc::string::ToString;
     use super::Debug;
-    use crate::MessageParseError;
+    use crate::{MessageParseError, MessageParseErrorKind};
     use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str};
 
     #[test]
@@ -60,8 +64,9 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        assert_from_str_message!(gui "debug why   \t are you \nhere? 🤨", Err::<Debug, MessageParseError>(MessageParseError::ValueParseError {
-            expected: "on or off"
+        assert_from_str_message!(gui "debug why   \t are you \nhere? 🤨", Err::<Debug, MessageParseError>(MessageParseError {
+            expected: "on or off",
+            kind: MessageParseErrorKind::ValueParseError
         }));
     }
 }

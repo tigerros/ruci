@@ -6,7 +6,7 @@ use core::fmt::{Display, Formatter};
 use alloc::string::{String};
 use shakmaty::fen::Fen;
 use shakmaty::uci::UciMove;
-use crate::{parsing, uci_moves, OptionReplaceIf};
+use crate::{parsing, uci_moves, MessageParseErrorKind, OptionReplaceIf};
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::{PositionParameterPointer};
@@ -59,7 +59,10 @@ from_str_parts!(impl Position<'_> for parts -> Result {
     } else if startpos {
         Ok(Self::StartPos { moves: Cow::Owned(moves) })
     } else {
-        Err(MessageParseError::MissingParameters { expected: "startpos" })
+        Err(MessageParseError {
+            expected: "startpos",
+            kind: MessageParseErrorKind::MissingParameters
+        })
     }
 });
 
@@ -100,6 +103,7 @@ mod tests {
     use shakmaty::fen::Fen;
     use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
     use crate::errors::MessageParseError;
+    use crate::MessageParseErrorKind;
 
     #[test]
     fn to_from_str_start_pos() {
@@ -190,8 +194,9 @@ mod tests {
         assert_from_str_message!(
             gui 
             "position moves e2e4",
-            Err::<Position, MessageParseError>(MessageParseError::MissingParameters {
-                expected: "startpos"
+            Err::<Position, MessageParseError>(MessageParseError {
+                expected: "startpos",
+                kind: MessageParseErrorKind::MissingParameters
             })
         );
     }

@@ -6,7 +6,7 @@ use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::{SetOptionParameterPointer};
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
-use crate::parsing;
+use crate::{parsing, MessageParseErrorKind};
 use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
@@ -39,7 +39,10 @@ from_str_parts!(impl SetOption<'_> for parts -> Result {
     parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     Ok(Self {
-        name: Cow::Owned(name.ok_or(MessageParseError::MissingParameters { expected: "name" })?),
+        name: Cow::Owned(name.ok_or(MessageParseError {
+            expected: "name",
+            kind: MessageParseErrorKind::MissingParameters
+        })?),
         value: value_parameter,
     })
 });

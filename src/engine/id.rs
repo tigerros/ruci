@@ -6,7 +6,7 @@ use core::fmt::{Display, Formatter};
 use crate::engine::pointers::IdParameterPointer;
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
-use crate::parsing;
+use crate::{parsing, MessageParseErrorKind};
 use super::{pointers, traits};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -110,7 +110,10 @@ from_str_parts!(impl Id<'_> for parts -> Result {
     } else if let Some(author) = author {
         Ok(Self::Author(Cow::Owned(author)))
     } else {
-        Err(MessageParseError::MissingParameters { expected: "name or author" })
+        Err(MessageParseError {
+            expected: "name or author",
+            kind: MessageParseErrorKind::MissingParameters
+        })
     }
 });
 

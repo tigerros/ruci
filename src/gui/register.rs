@@ -6,7 +6,7 @@ use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::gui::pointers::RegisterParameterPointer;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
-use crate::parsing;
+use crate::{parsing, MessageParseErrorKind};
 use super::{pointers, traits};
 
 #[allow(clippy::module_name_repetitions)]
@@ -57,7 +57,10 @@ from_str_parts!(impl Register<'_> for parts -> Result {
     } else if value.split(' ').any(|s| s == "later") {
         Ok(Self::Later)
     } else {
-        Err(MessageParseError::MissingParameters { expected: "name, code, or the \"later\" value" })
+        Err(MessageParseError {
+            expected: "name, code, or the \"later\" value",
+            kind: MessageParseErrorKind::MissingParameters
+        })
     }
 });
 

@@ -140,7 +140,7 @@ where
                 break;
             }
 
-            M::from_str(&line).map_err(ReadError::Parse)
+            M::from_str(&line).map_err(|error| ReadError::Parse { error, got: line })
         } else {
             loop {
                 self.engine.read_line(&mut line).map_err(ReadError::Io)?;
@@ -310,7 +310,7 @@ where
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
-    use crate::{NormalBestMove, OptionType};
+    use crate::{MessageParseErrorKind, NormalBestMove, OptionType};
     use alloc::borrow::Cow;
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::fen::Fen;
@@ -399,14 +399,21 @@ mod tests {
             .unwrap();
 
         assert_eq!(engine.gui, b"uci\n");
-        assert_matches!(
-            engine.is_ready(),
-            Err(ReadWriteError::Read(ReadError::Parse(
-                MessageParseError::NoMessage {
-                    expected: "engine UCI message"
-                }
-            )))
+        let ReadWriteError::Read(ReadError::Parse { error, got }) = engine.is_ready().unwrap_err()
+        else {
+            panic!("expected Parse ReadError");
+        };
+        let target_got = "isready?no".to_string();
+
+        assert_eq!(
+            error,
+            MessageParseError {
+                expected: "engine UCI message",
+                kind: MessageParseErrorKind::NoMessage,
+            },
         );
+
+        assert_eq!(got, target_got);
     }
 
     #[test]

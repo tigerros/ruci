@@ -1,6 +1,7 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
+use crate::MessageParseErrorKind;
 use super::{pointers, traits};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -27,7 +28,10 @@ from_str_parts!(impl CopyProtection for parts -> Result {
         }
     }
 
-    Err(MessageParseError::ValueParseError { expected: "ok or error" })
+    Err(MessageParseError {
+        expected: "ok or error",
+        kind: MessageParseErrorKind::ValueParseError
+    })
 });
 
 impl Display for CopyProtection {
@@ -48,7 +52,7 @@ impl Display for CopyProtection {
 mod tests {
     use super::CopyProtection;
     use alloc::string::ToString;
-    use crate::MessageParseError;
+    use crate::{MessageParseError, MessageParseErrorKind};
     use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str};
 
     #[test]
@@ -67,8 +71,9 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        assert_from_str_message!(engine "copyprotection why   \t are you here? 🤨\n\n", Err::<CopyProtection, MessageParseError>(MessageParseError::ValueParseError {
+        assert_from_str_message!(engine "copyprotection why   \t are you here? 🤨\n\n", Err::<CopyProtection, MessageParseError>(MessageParseError {
             expected: "ok or error",
+            kind: MessageParseErrorKind::ValueParseError,
         }));
     }
 }

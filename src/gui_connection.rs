@@ -88,7 +88,7 @@ where
             break;
         }
 
-        gui::Message::from_str(&line).map_err(ReadError::Parse)
+        gui::Message::from_str(&line).map_err(|error| ReadError::Parse { error, got: line })
     }
 }
 
@@ -96,7 +96,10 @@ where
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::{Depth, Go, Info, IsReady, Score, ScoreBound, ScoreWithBound, UciOk};
+    use crate::{
+        Depth, Go, Info, IsReady, MessageParseError, MessageParseErrorKind, Score, ScoreBound,
+        ScoreWithBound, UciOk,
+    };
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::uci::UciMove;
     use shakmaty::{Role, Square};
@@ -320,14 +323,27 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::panic)]
     fn error() {
         let mut gui = Gui {
             engine: Vec::<u8>::new(),
             gui: b"invalid_command\n".as_slice(),
         };
 
-        let result = gui.read();
-        assert_matches!(result, Err(ReadError::Parse(_)));
+        let ReadError::Parse { error, got } = gui.read().unwrap_err() else {
+            panic!("expected Parse ReadError");
+        };
+        let target_got = "invalid_command\n".to_string();
+
+        assert_eq!(
+            error,
+            MessageParseError {
+                expected: "GUI UCI message",
+                kind: MessageParseErrorKind::NoMessage,
+            },
+        );
+
+        assert_eq!(got, target_got);
     }
 
     #[test]

@@ -8,7 +8,7 @@ use core::str::FromStr;
 use crate::engine::pointers::OptionParameterPointer;
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
-use crate::{parsing, OptionReplaceIf};
+use crate::{parsing, MessageParseErrorKind, OptionReplaceIf};
 use super::{pointers, traits};
 
 enum BlankOptionType {
@@ -176,11 +176,17 @@ from_str_parts!(impl Option<'_> for parts -> Result {
     parsing::apply_parameters(parts, &mut value, parameter_fn);
 
     let Some(name) = name else {
-        return Err(MessageParseError::MissingParameters { expected: "name" });
+        return Err(MessageParseError {
+            expected: "name",
+            kind: MessageParseErrorKind::MissingParameters
+        });
     };
 
     let Some(r#type) = r#type else {
-        return Err(MessageParseError::MissingParameters { expected: "a type parameter; check, spin, combo, button or string" });
+        return Err(MessageParseError {
+            expected: "a type parameter; check, spin, combo, button or string",
+            kind: MessageParseErrorKind::MissingParameters
+        });
     };
     
     let name = Cow::Owned(name);

@@ -1,6 +1,7 @@
 use core::fmt::{Display, Formatter};
 use crate::errors::MessageParseError;
 use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
+use crate::MessageParseErrorKind;
 use super::{pointers, traits};
 
 /// Engine's registration status.
@@ -29,7 +30,10 @@ from_str_parts!(impl Registration for parts -> Result {
         }
     }
 
-    Err(MessageParseError::ValueParseError { expected: "checking, ok or error" })
+    Err(MessageParseError {
+        expected: "checking, ok or error",
+        kind: MessageParseErrorKind::ValueParseError
+    })
 });
 
 impl Display for Registration {
@@ -53,7 +57,7 @@ mod tests {
 
     use alloc::string::ToString;
     use super::Registration;
-    use crate::MessageParseError;
+    use crate::{MessageParseError, MessageParseErrorKind};
     use crate::dev_macros::{assert_from_str_message, assert_message_to_from_str, assert_message_to_str};
 
     #[test]
@@ -80,8 +84,9 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        assert_from_str_message!(engine "registration invalid", Err::<Registration, MessageParseError>(MessageParseError::ValueParseError {
-            expected: "checking, ok or error"
+        assert_from_str_message!(engine "registration invalid", Err::<Registration, MessageParseError>(MessageParseError {
+            expected: "checking, ok or error",
+            kind: MessageParseErrorKind::ValueParseError
         }));
     }
 }
