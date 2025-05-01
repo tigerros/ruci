@@ -266,6 +266,15 @@ mod tests {
         let mut gui = Gui {
             engine: Vec::<u8>::new(),
             gui: "ucinewgame\nposition startpos\ngo depth 10\n".as_bytes(),
+        };
+
+        // Read all three commands
+        for _ in 0..3 {
+            let result = gui.read_async().await;
+            assert!(result.is_ok());
+        }
+
+        let mut line = String::new();
         assert_eq!(gui.gui.read_line(&mut line).await.unwrap(), 0);
     }
 
