@@ -17,7 +17,7 @@ jobs:
       - run: rustup toolchain update nightly && rustup default nightly
 
       - name: Bench
-        run: cargo +nightly bench --all-features --all-targets --bins --examples --tests --benches | tee benches/output.txt
+        run: cargo +nightly bench --all-features --all-targets | tee benches/output.txt
 
       - name: Store result
         uses: benchmark-action/github-action-benchmark@v1

@@ -12,4 +12,7 @@ jobs:
           tool: cargo-hack
 
       - name: Clippy
-        run: cargo hack clippy --feature-powerset --workspace --bins --examples --benches --tests --all-targets -- --deny warnings
+        run: cargo hack clippy --feature-powerset --workspace --all-targets -- --deny warnings
+      - run: rustup target add thumbv6m-none-eabi
+      - name: Clippy no-std
+        run: cargo hack clippy --feature-powerset --target thumbv6m-none-eabi --workspace --examples --no-private -- --deny warnings
