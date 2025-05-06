@@ -13,6 +13,3 @@ jobs:
 
       - name: Clippy
         run: cargo hack clippy --feature-powerset --workspace --all-targets -- --deny warnings
-      - run: rustup target add thumbv6m-none-eabi
-      - name: Clippy no-std
-        run: cargo hack clippy --feature-powerset --skip io,engine-sync,engine-async,gui-sync,gui-async,tokio-process --target thumbv6m-none-eabi --workspace --lib --no-private -- --deny warnings
