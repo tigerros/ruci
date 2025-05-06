@@ -3,7 +3,7 @@ macro_rules! from_str_parts {
         ""
     };
     (@from_str_docs=Self) => {
-        "# Errors\nGuaranteed to only be [`MessageParseError::NoMessage`](crate::MessageParseError::NoMessage), parsing after that cannot fail."
+        "# Errors\nGuaranteed to only be [`MessageParseErrorKind::NoMessage`](crate::MessageParseErrorKind::NoMessage), parsing after that cannot fail."
     };
     (@message_assumed_ret=Result) => {
         Result<Self, $crate::MessageParseError>
