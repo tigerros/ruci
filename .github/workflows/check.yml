@@ -21,7 +21,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
-          targets: x86_64-unknown-none
 
       - name: Main
         run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --workspace --all-targets ${{ matrix.flags }}
