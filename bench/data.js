@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1746635379725,
+  "lastUpdate": 1746644164735,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -7307,6 +7307,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 42.75,
             "range": "± 0.29",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "aurel.leonard.danel@gmail.com",
+            "name": "tigerros",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "774b5991c4a02f8496923ff2b9b8c77e31025501",
+          "message": "better examples, fix workflow",
+          "timestamp": "2025-05-07T20:54:55+02:00",
+          "tree_id": "7ea431207a094001b401bb928f8e870d4fbf8f72",
+          "url": "https://github.com/tigerros/ruci/commit/774b5991c4a02f8496923ff2b9b8c77e31025501"
+        },
+        "date": 1746644162227,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 1003.64,
+            "range": "± 15.34",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3257.52,
+            "range": "± 45.43",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 28500.33,
+            "range": "± 486.46",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 22.71,
+            "range": "± 0.13",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 639.68,
+            "range": "± 20.91",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2444.17,
+            "range": "± 76.10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 199.2,
+            "range": "± 1.82",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 205.54,
+            "range": "± 2.79",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 395.3,
+            "range": "± 7.30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 465.95,
+            "range": "± 11.75",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 130.62,
+            "range": "± 2.15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 157.85,
+            "range": "± 18.84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 247.33,
+            "range": "± 2.14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 262.52,
+            "range": "± 3.54",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.38,
+            "range": "± 0.56",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 41.15,
+            "range": "± 0.34",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 43.45,
+            "range": "± 0.76",
             "unit": "ns/iter"
           }
         ]
