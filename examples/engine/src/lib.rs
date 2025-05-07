@@ -15,15 +15,15 @@
 //!   Parameters are ignored except [`infinite`](ruci::Go#structfield.infinite).
 //! - [`Quit`](ruci::Quit)
 
+use ruci::gui::Message;
+use ruci::{BestMove, Depth, Gui, Id, Info, NormalBestMove, UciOk};
+use shakmaty::uci::{IllegalUciMoveError, UciMove};
+use shakmaty::{CastlingMode, Chess, Position};
 use std::borrow::Cow;
 use std::io;
 use std::io::{BufRead, Write};
 use std::thread::sleep;
 use std::time::Duration;
-use shakmaty::{CastlingMode, Chess, Position};
-use shakmaty::uci::{IllegalUciMoveError, UciMove};
-use ruci::{BestMove, Depth, Gui, Id, Info, NormalBestMove, UciOk};
-use ruci::gui::Message;
 
 struct State {
     position: Chess,
@@ -35,10 +35,7 @@ where
     E: Write,
     G: BufRead,
 {
-    let mut gui = Gui {
-        engine,
-        gui
-    };
+    let mut gui = Gui { engine, gui };
     let mut state = State {
         position: Chess::new(),
     };

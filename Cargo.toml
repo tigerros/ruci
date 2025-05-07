@@ -5,11 +5,11 @@ description = "A UCI (Universal Chess Interface) crate."
 categories = ["parser-implementations", "game-development", "no-std"]
 keywords = ["chess", "uci", "parser"]
 include = ["src", "README.md", "LICENSE"]
-edition = "2021"
+edition = "2024"
 authors = ["Leonard D. <tigerros.gh@gmail.com>"]
 license = "GPL-3.0"
 repository = "https://github.com/tigerros/ruci"
-rust-version = "1.81.0"
+rust-version = "1.85.1"
 
 [dependencies]
 dry-mods = { workspace = true }

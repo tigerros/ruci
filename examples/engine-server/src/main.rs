@@ -1,7 +1,7 @@
 // TODO: fix(?) having to send two newlines from the client after sending `Quit`.
 //! This example demonstrates a TCP stream based engine, instead of the more standard
 //! [`stdin`](io::stdin) and [`stdout`](io::stdout).
-//! 
+//!
 //! Thanks to [`ruci`]'s generics, we can use TCP streams directly instead of having to spawn
 //! a process and then route that through.
 //!
@@ -11,11 +11,11 @@
 //! All that binary does is redirect `stdin` and `stdout`.
 //! You can just as easily use [`ncat`](https://nmap.org/ncat) or something else (just check the [`ADDRESS`]).
 
+use engine::engine;
+use engine_server::ADDRESS;
 use std::io::BufReader;
 use std::net::TcpListener;
 use std::{io, thread};
-use engine_server::ADDRESS;
-use engine::engine;
 
 fn main() -> io::Result<()> {
     let listener = TcpListener::bind(ADDRESS)?;
