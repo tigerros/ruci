@@ -11,7 +11,7 @@ jobs:
           - "nightly"
         include:
           - toolchain: "nightly"
-            flags: "-Z direct-minimal-versions"
+            flags: "--benches -Z direct-minimal-versions"
 
     runs-on: ubuntu-latest
 
@@ -23,6 +23,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Main
-        run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --workspace --all-targets ${{ matrix.flags }}
+        run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --workspace --lib --bins --tests --examples ${{ matrix.flags }}
       - name: No-std
         run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --skip io,engine-sync,engine-async,gui-sync,gui-async,tokio-process --target x86_64-unknown-none ${{ matrix.flags }}
