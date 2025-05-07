@@ -1,7 +1,7 @@
-use crate::{engine, gui, ReadError};
+use crate::{ReadError, engine, gui};
 use core::str::FromStr;
 use std::io;
-use std::io::{stdin, stdout, BufRead, StdinLock, StdoutLock, Write};
+use std::io::{BufRead, StdinLock, StdoutLock, Write, stdin, stdout};
 
 /// Communicate with a chess GUI.
 #[derive(Debug)]
@@ -103,7 +103,7 @@ mod tests {
     use pretty_assertions::{assert_eq, assert_matches};
     use shakmaty::uci::UciMove;
     use shakmaty::{Role, Square};
-    use std::io::{empty, BufReader};
+    use std::io::{BufReader, empty};
 
     #[test]
     fn send() {

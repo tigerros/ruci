@@ -1,7 +1,7 @@
 extern crate test;
 use pretty_assertions::assert_eq;
-use shakmaty::uci::UciMove;
 use shakmaty::Square;
+use shakmaty::uci::UciMove;
 use std::borrow::Cow;
 use test::Bencher;
 use vampirc_uci::UciSquare;

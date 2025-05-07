@@ -1,10 +1,10 @@
-use crate::errors::{ReadError, ReadWriteError};
 use crate::Engine;
 #[cfg(feature = "tokio-process")]
 use crate::FromProcessError;
-use crate::{engine, gui};
+use crate::errors::{ReadError, ReadWriteError};
 use crate::{BestMove, Id, Info};
 use crate::{Go, MessageParseError};
+use crate::{engine, gui};
 use std::str::FromStr;
 use tokio::io;
 #[cfg(feature = "tokio-process")]

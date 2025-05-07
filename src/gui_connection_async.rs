@@ -1,4 +1,4 @@
-use crate::{engine, gui, Gui, ReadError};
+use crate::{Gui, ReadError, engine, gui};
 use core::str::FromStr;
 use std::io;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt};
@@ -65,7 +65,7 @@ mod tests {
     use shakmaty::uci::UciMove;
     use shakmaty::{Role, Square};
     use std::io;
-    use tokio::io::{empty, BufReader};
+    use tokio::io::{BufReader, empty};
 
     #[tokio::test]
     async fn send() {

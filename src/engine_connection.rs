@@ -1,6 +1,6 @@
 use crate::errors::{ReadError, ReadWriteError};
-use crate::{engine, gui, FromProcessError};
 use crate::{BestMove, Id, Info};
+use crate::{FromProcessError, engine, gui};
 use crate::{Go, MessageParseError};
 use std::io;
 use std::io::{BufRead, BufReader, Write};
