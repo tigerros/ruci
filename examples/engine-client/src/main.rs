@@ -5,7 +5,7 @@ use std::io::{stdin, stdout};
 use std::net::TcpStream;
 use std::{io, thread};
 
-fn main() -> anyhow::Result<()> {
+fn main() -> io::Result<()> {
     let mut engine = TcpStream::connect(ADDRESS)?;
     let mut gui = engine.try_clone()?;
 

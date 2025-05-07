@@ -1,11 +1,12 @@
-//! This example demonstrates a possible implementation of an engine.
+//! This example shows how to make a "portable" engine, which can easily be used in various
+//! I/O situations.
 //!
+//! - See `engine-stdio` for an implementation using [`stdin`](io::stdin) and [`stdout`](io::stdout).
+//! - See `engine-server` for a TCP stream implementation.
+//!
+//! # Specifications
 //! All communication is done with UCI, using the [`Info`] message when another message is not
 //! more appropriate.
-//!
-//! > *I wish engines did this instead of sending random strings.
-//! > Please.
-//! > Just add `info string ` to the start of the message. Follow the standard.*
 //!
 //! Accepts the following messages:
 //! - [`Uci`](ruci::Uci)
@@ -14,22 +15,30 @@
 //!   Parameters are ignored except [`infinite`](ruci::Go#structfield.infinite).
 //! - [`Quit`](ruci::Quit)
 
-use ruci::gui::Message;
-use ruci::Gui;
-use ruci::{BestMove, Depth, Id, Info, NormalBestMove, UciOk};
-use shakmaty::uci::{IllegalUciMoveError, UciMove};
-use shakmaty::Chess;
-use shakmaty::{CastlingMode, Position};
 use std::borrow::Cow;
+use std::io;
+use std::io::{BufRead, Write};
 use std::thread::sleep;
 use std::time::Duration;
+use shakmaty::{CastlingMode, Chess, Position};
+use shakmaty::uci::{IllegalUciMoveError, UciMove};
+use ruci::{BestMove, Depth, Gui, Id, Info, NormalBestMove, UciOk};
+use ruci::gui::Message;
 
 struct State {
     position: Chess,
 }
 
-fn main() -> anyhow::Result<()> {
-    let mut gui = Gui::from_stdio();
+/// Starts a new engine that forever reads messages, unless told to quit.
+pub fn engine<E, G>(engine: E, gui: G) -> io::Result<()>
+where
+    E: Write,
+    G: BufRead,
+{
+    let mut gui = Gui {
+        engine,
+        gui
+    };
     let mut state = State {
         position: Chess::new(),
     };

@@ -5,6 +5,5 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow = { workspace = true }
 ruci = { workspace = true, features = ["gui-sync"] }
 shakmaty = { workspace = true }

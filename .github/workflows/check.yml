@@ -8,10 +8,6 @@ jobs:
         toolchain:
           - "1.81.0" # remember to update rust-version in Cargo.toml
           - "stable"
-          - "nightly"
-        include:
-          - toolchain: "nightly"
-            flags: "--benches -Z direct-minimal-versions"
 
     runs-on: ubuntu-latest
 
@@ -23,6 +19,16 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Main
-        run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --workspace --lib --bins --tests --examples ${{ matrix.flags }}
+        run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --lib --bins --examples
       - name: No-std
-        run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --skip io,engine-sync,engine-async,gui-sync,gui-async,tokio-process --target x86_64-unknown-none ${{ matrix.flags }}
+        run: rustup run ${{ matrix.toolchain }} cargo hack check --feature-powerset --skip io,engine-sync,engine-async,gui-sync,gui-async,tokio-process --target x86_64-unknown-none
+  check-nightly:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@cargo-hack
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - name: Main
+        run: rustup run nightly cargo hack check --feature-powerset --workspace --all-targets

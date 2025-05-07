@@ -1,8 +1,8 @@
 [package]
-name = "engine-client"
+name = "engine-stdio"
 version = "0.0.0"
 edition = "2021"
 publish = false
 
 [dependencies]
-engine-server = { path = "../engine-server" }
+engine = { path = "../engine" }

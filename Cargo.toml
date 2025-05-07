@@ -54,7 +54,7 @@ name = "to_str"
 name = "from_str"
 
 [workspace]
-members = ["examples/engine", "examples/engine-client", "examples/engine-server", "examples/flexible-io", "examples/go-std", "examples/go-tokio"]
+members = ["examples/engine", "examples/engine-client", "examples/engine-server", "examples/engine-stdio", "examples/go-std", "examples/go-tokio"]
 
 [workspace.dependencies]
 ruci = { version = "2", path = "." }
