@@ -29,7 +29,7 @@ jobs:
           auto-push: true
           summary-always: true
           # Show alert with commit comment on detecting possible performance regression
-          alert-threshold: '200%'
+          alert-threshold: '140%'
           comment-on-alert: true
           fail-on-alert: true
           gh-pages-branch: 'bench-page'

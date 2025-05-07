@@ -58,9 +58,9 @@ members = ["examples/engine", "examples/engine-client", "examples/engine-server"
 
 [workspace.dependencies]
 ruci = { version = "2", path = "." }
-tokio = { version = "1", default-features = false }
-serde = { version = "1", default-features = false }
+tokio = { version = "1.18.2", default-features = false }
+serde = { version = "1.0.197", default-features = false }
 paste = { version = "1", default-features = false }
-shakmaty = { version = "~0.27", default-features = false }
-anyhow = { version = "1", default-features = false }
+shakmaty = { version = "0.27.3", default-features = false }
+anyhow = { version = "1.0.87", default-features = false }
 dry-mods = { version = "~0.1", default-features = false }
