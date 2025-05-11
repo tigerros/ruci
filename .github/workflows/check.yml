@@ -32,4 +32,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
 
       - name: Main
-        run: rustup run nightly cargo hack check --feature-powerset --workspace --all-targets
+        run: rustup run nightly cargo hack check --feature-powerset --workspace --all-targets -Z direct-minimal-versions
