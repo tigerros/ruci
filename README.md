@@ -33,7 +33,8 @@ There's two other crates that I'm aware of which serve a similar purpose; [`vamp
 `ruci` has more benches per scenario than the other two. This is because it uses `Cow`s to allow for borrowed or owned data. So, the suffix `borrowed` in bench names means that it is using a statically borrowed type rather than the owned type, e.g. `&'static str` instead of `String`. The flip side is the suffix `owned`.
 
 ## Features
-- `default`: no features are enabled by default.
+No features are enabled by default.
+
 - `engine-sync`: adds the `Engine` struct for communicating with an engine.
 - `engine-async`: adds async versions of `Engine` functions.
 - `tokio-process`: adds a tokio version of `Engine::from_process`.

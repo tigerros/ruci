@@ -19,8 +19,6 @@ shakmaty = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["io-util"] }
 
 [features]
-# No features are turned on by default.
-default = []
 # Enables serde support for most types. All implementations are derived with no parameters.
 serde = ["dep:serde", "serde/alloc", "shakmaty/serde", "shakmaty/alloc"]
 # Adds types shared by `engine-sync` and `gui-sync`. Requires `std`. Don't enable this yourself.
