@@ -41,3 +41,6 @@ No features are enabled by default.
 - `gui-sync`: adds the `Gui` struct for communicating with a GUI.
 - `gui-async`: adds async versions of `Gui` functions.
 - `serde`: enables serde support for most types. All implementations are derived with no parameters.
+
+## Safety
+`ruci` declares `#![forbid(unsafe_code)]`.
