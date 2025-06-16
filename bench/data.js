@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749332572698,
+  "lastUpdate": 1750095132092,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -8567,6 +8567,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 44.22,
             "range": "± 0.87",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "76173380+tigerros@users.noreply.github.com",
+            "name": "Leonard",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "76173380+tigerros@users.noreply.github.com",
+            "name": "Leonard",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "91816e8148aeef2e1db3f2ba836e0fa16db935c6",
+          "message": "update to shakmaty 0.28.0, remove BestMove::take_normal\n\ntake_normal no longer necessary since UciMove is now Copy",
+          "timestamp": "2025-06-16T19:31:02+02:00",
+          "tree_id": "e7aafcfcf72ea47c619437585c109d47ebb2e9f5",
+          "url": "https://github.com/tigerros/ruci/commit/91816e8148aeef2e1db3f2ba836e0fa16db935c6"
+        },
+        "date": 1750095129656,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 963.19,
+            "range": "± 18.39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3021.47,
+            "range": "± 57.63",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 28517.61,
+            "range": "± 477.48",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 23.32,
+            "range": "± 12.84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 611.36,
+            "range": "± 18.84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2385.92,
+            "range": "± 37.23",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 195.86,
+            "range": "± 2.53",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 249.29,
+            "range": "± 4.87",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 453,
+            "range": "± 13.92",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 481.12,
+            "range": "± 7.53",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 105.68,
+            "range": "± 1.58",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 129.86,
+            "range": "± 1.79",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 226.24,
+            "range": "± 2.03",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 227.24,
+            "range": "± 2.59",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 22.41,
+            "range": "± 0.17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 42.3,
+            "range": "± 0.80",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 43.23,
+            "range": "± 0.83",
             "unit": "ns/iter"
           }
         ]
