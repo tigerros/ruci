@@ -28,7 +28,7 @@ define_message! {
         ///
         /// Once ready, engine replies with [`ReadyOk`](crate::ReadyOk).
         IsReady,
-        /// Tells the engine to start a new game with the next [`Position`](crate::Position) or [`Go`](crate::Go).
+        /// Tells the engine to start a new game with the next [`Position`] or [`Go`].
         UciNewGame,
         /// Tells the engine to stop calculating.
         Stop,

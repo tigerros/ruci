@@ -1,19 +1,18 @@
 extern crate test;
 use pretty_assertions::assert_eq;
 use shakmaty::Square;
-use shakmaty::uci::UciMove;
 use std::borrow::Cow;
 use test::Bencher;
 use vampirc_uci::UciSquare;
 
-fn shakmaty_search_moves() -> &'static [UciMove; 2] {
+fn shakmaty_search_moves() -> &'static [shakmaty::uci::UciMove; 2] {
     &[
-        UciMove::Normal {
+        shakmaty::uci::UciMove::Normal {
             from: Square::E2,
             to: Square::E4,
             promotion: None,
         },
-        UciMove::Normal {
+        shakmaty::uci::UciMove::Normal {
             from: Square::G2,
             to: Square::G4,
             promotion: None,
@@ -21,16 +20,16 @@ fn shakmaty_search_moves() -> &'static [UciMove; 2] {
     ]
 }
 
-fn shakmaty_search_moves_vec() -> Vec<UciMove> {
-    vec![
-        UciMove::Normal {
-            from: Square::E2,
-            to: Square::E4,
+fn shakmaty_0_27_3_search_moves() -> &'static [shakmaty_0_27_3::uci::UciMove; 2] {
+    &[
+        shakmaty_0_27_3::uci::UciMove::Normal {
+            from: shakmaty_0_27_3::Square::E2,
+            to: shakmaty_0_27_3::Square::E4,
             promotion: None,
         },
-        UciMove::Normal {
-            from: Square::G2,
-            to: Square::G4,
+        shakmaty_0_27_3::uci::UciMove::Normal {
+            from: shakmaty_0_27_3::Square::G2,
+            to: shakmaty_0_27_3::Square::G4,
             promotion: None,
         },
     ]
@@ -55,7 +54,7 @@ fn ruci_go_borrowed() -> ruci::gui::Go<'static> {
 
 fn ruci_go_owned() -> ruci::gui::Go<'static> {
     ruci::gui::Go {
-        search_moves: Cow::Owned(shakmaty_search_moves_vec()),
+        search_moves: Cow::Owned(shakmaty_search_moves().to_vec()),
         ponder: true,
         w_time: None,
         b_time: None,
@@ -74,7 +73,7 @@ fn shakmaty_uci_go() -> shakmaty_uci::UciMessage {
     shakmaty_uci::UciMessage::Go {
         time_control: Some(shakmaty_uci::UciTimeControl::Ponder),
         search_control: Some(shakmaty_uci::UciSearchControl {
-            search_moves: shakmaty_search_moves_vec(),
+            search_moves: shakmaty_0_27_3_search_moves().to_vec(),
             mate: Some(0),
             depth: Some(20),
             nodes: Some(57457),

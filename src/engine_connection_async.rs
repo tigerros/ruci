@@ -395,7 +395,7 @@ mod tests {
 
         assert_matches!(best_move, BestMove::Normal(_));
 
-        let best_move = best_move.take_normal().unwrap();
+        let best_move = best_move.normal().unwrap();
 
         assert_eq!(
             best_move,
@@ -426,7 +426,7 @@ mod tests {
 
         assert_matches!(best_move, BestMove::Normal(_));
 
-        let best_move = best_move.take_normal().unwrap();
+        let best_move = best_move.normal().unwrap();
 
         assert_eq!(
             best_move,

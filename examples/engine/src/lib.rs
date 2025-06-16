@@ -71,7 +71,7 @@ where
 
                 match moves.iter().try_fold(position, |mut position, r#move| {
                     let r#move = r#move.to_move(&state.position)?;
-                    position.play_unchecked(&r#move);
+                    position.play_unchecked(r#move);
                     Ok::<Chess, IllegalUciMoveError>(position)
                 }) {
                     Ok(position) => {

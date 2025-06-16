@@ -1,6 +1,6 @@
 [package]
 name = "ruci"
-version = "2.1.0"
+version = "3.0.0-alpha"
 description = "A UCI (Universal Chess Interface) crate."
 categories = ["parser-implementations", "game-development", "no-std"]
 keywords = ["chess", "uci", "parser"]
@@ -39,11 +39,12 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dev-dependencies]
-pretty_assertions = { version = "1", features = ["unstable"] }
-shakmaty-uci = { version = "~0.1" }
+pretty_assertions = { version = "1.4.1", features = ["unstable"] }
+shakmaty-uci = { version = "0.1.1" }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-trybuild = "1"
-vampirc-uci = { version = "~0.11" }
+trybuild = "1.0.105"
+vampirc-uci = { version = "0.11.1" }
+shakmaty_0_27_3 = { package = "shakmaty", version = "0.27.3", default-features = false }
 
 [[bench]]
 name = "to_str"
@@ -55,10 +56,10 @@ name = "from_str"
 members = ["examples/engine", "examples/engine-client", "examples/engine-server", "examples/engine-stdio", "examples/go-std", "examples/go-tokio"]
 
 [workspace.dependencies]
-ruci = { version = "2", path = "." }
+ruci = { version = "3.0.0-alpha", path = "." }
 tokio = { version = "1.18.2", default-features = false }
 serde = { version = "1.0.197", default-features = false }
 paste = { version = "1", default-features = false }
-shakmaty = { version = "0.27.3", default-features = false }
+shakmaty = { version = "0.28.0", default-features = false }
 anyhow = { version = "1.0.87", default-features = false }
-dry-mods = { version = "~0.1", default-features = false }
+dry-mods = { version = "0.1.5", default-features = false }

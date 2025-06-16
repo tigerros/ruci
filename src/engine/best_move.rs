@@ -6,7 +6,7 @@ use crate::dev_macros::{from_str_parts, impl_message, message_from_impl};
 use crate::OptionReplaceIf;
 use super::{pointers, traits};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum BestMove {
     /// This variant exists because engines can send "valid" [`BestMove`] messages, which will fail to parse.
@@ -27,15 +27,7 @@ pub enum BestMove {
 
 impl BestMove {
     /// Returns the inner [`NormalBestMove`], if [`Self`] matches [`Self::Normal`].
-    pub const fn normal(&self) -> Option<&NormalBestMove> {
-        match self {
-            Self::Other => None,
-            Self::Normal(n) => Some(n),
-        }
-    }
-
-    /// Returns the inner [`NormalBestMove`], if [`Self`] matches [`Self::Normal`].
-    pub const fn take_normal(self) -> Option<NormalBestMove> {
+    pub const fn normal(self) -> Option<NormalBestMove> {
         match self {
             Self::Other => None,
             Self::Normal(n) => Some(n),
@@ -43,7 +35,7 @@ impl BestMove {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// The engine's best move, with an optional pondering move.
 ///
@@ -130,7 +122,7 @@ mod tests {
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
 
-        assert_from_str_message!(engine "bestmove oops d2d4 ponder c7c5 ignorethis", Ok(m.clone()));
+        assert_from_str_message!(engine "bestmove oops d2d4 ponder c7c5 ignorethis", Ok(m));
         assert_message_to_str!(engine m, "bestmove d2d4 ponder c7c5");
     }
 
@@ -141,7 +133,7 @@ mod tests {
             ponder: Some(UciMove::from_ascii(b"c7c5").unwrap()),
         }.into();
 
-        assert_from_str_message!(engine "bestmove junk e2e4 ponder c7c5\n", Ok(m.clone()));
+        assert_from_str_message!(engine "bestmove junk e2e4 ponder c7c5\n", Ok(m));
         assert_message_to_str!(engine m, "bestmove e2e4 ponder c7c5");
     }
 
@@ -149,7 +141,7 @@ mod tests {
     fn to_from_str_other() {
         let m: BestMove = BestMove::Other;
 
-        assert_from_str_message!(engine "bestmove (none)\n", Ok(m.clone()));
+        assert_from_str_message!(engine "bestmove (none)\n", Ok(m));
         assert_message_to_str!(engine m, "bestmove");
     }
 }
