@@ -11,12 +11,28 @@ license = "GPL-3.0"
 repository = "https://github.com/tigerros/ruci"
 rust-version = "1.85.1"
 
-[dependencies]
-dry-mods = { workspace = true }
-paste = { workspace = true }
-serde = { workspace = true, optional = true, features = ["derive"] }
-shakmaty = { workspace = true }
-tokio = { workspace = true, optional = true, features = ["io-util"] }
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[workspace]
+members = [
+    "examples/engine",
+    "examples/engine-client",
+    "examples/engine-server",
+    "examples/engine-stdio",
+    "examples/go-std",
+    "examples/go-tokio",
+]
+
+[workspace.dependencies]
+anyhow = { version = "1.0.87", default-features = false }
+dry-mods = { version = "0.1.5", default-features = false }
+paste = { version = "1", default-features = false }
+ruci = { version = "3.0.0-alpha", path = "." }
+serde = { version = "1.0.197", default-features = false }
+shakmaty = { version = "0.28.0", default-features = false }
+tokio = { version = "1.18.2", default-features = false }
 
 [features]
 # Enables serde support for most types. All implementations are derived with no parameters.
@@ -34,32 +50,23 @@ gui-sync = ["io"]
 # Adds async versions of `Gui` functions.
 gui-async = ["gui-sync", "dep:tokio"]
 
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+[dependencies]
+dry-mods = { workspace = true }
+paste = { workspace = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
+shakmaty = { workspace = true }
+tokio = { workspace = true, optional = true, features = ["io-util"] }
 
 [dev-dependencies]
 pretty_assertions = { version = "1.4.1", features = ["unstable"] }
 shakmaty-uci = { version = "0.1.1" }
+shakmaty_0_27_3 = { package = "shakmaty", version = "0.27.3", default-features = false }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 trybuild = "1.0.105"
 vampirc-uci = { version = "0.11.1" }
-shakmaty_0_27_3 = { package = "shakmaty", version = "0.27.3", default-features = false }
 
 [[bench]]
 name = "to_str"
 
 [[bench]]
 name = "from_str"
-
-[workspace]
-members = ["examples/engine", "examples/engine-client", "examples/engine-server", "examples/engine-stdio", "examples/go-std", "examples/go-tokio"]
-
-[workspace.dependencies]
-ruci = { version = "3.0.0-alpha", path = "." }
-tokio = { version = "1.18.2", default-features = false }
-serde = { version = "1.0.197", default-features = false }
-paste = { version = "1", default-features = false }
-shakmaty = { version = "0.28.0", default-features = false }
-anyhow = { version = "1.0.87", default-features = false }
-dry-mods = { version = "0.1.5", default-features = false }
