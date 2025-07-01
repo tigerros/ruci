@@ -21,6 +21,18 @@ pub struct SetOption<'a> {
     pub value: Option<Cow<'a, str>>,
 }
 
+impl SetOption<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> SetOption<'static> {
+        SetOption {
+            name: Cow::Owned(self.name.into_owned()),
+            value: self.value.map(Cow::into_owned).map(Cow::Owned)
+        }
+    }
+}
+
 impl_message!(SetOption<'_>);
 message_from_impl!(gui SetOption<'a>);
 from_str_parts!(impl SetOption<'_> for parts -> Result {

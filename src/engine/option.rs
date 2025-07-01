@@ -83,6 +83,26 @@ pub enum OptionType<'a> {
     },
 }
 
+impl OptionType<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> OptionType<'static> {
+        match self {
+            Self::Check { default } => OptionType::Check { default },
+            Self::Spin { default, min, max } => OptionType::Spin { default, min, max },
+            Self::Combo { default, var } => OptionType::Combo {
+                default: default.map(Cow::into_owned).map(Cow::Owned),
+                var: Cow::Owned(var.into_owned().into_iter().map(Cow::into_owned).map(Cow::Owned).collect::<Vec<_>>())
+            },
+            Self::Button => OptionType::Button,
+            Self::String { default } => OptionType::String {
+                default: default.map(Cow::into_owned).map(Cow::Owned)
+            },
+        }
+    }
+}
+
 impl Display for OptionType<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str("type ")?;

@@ -31,6 +31,18 @@ pub enum Position<'a> {
     }
 }
 
+impl Position<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> Position<'static> {
+        match self {
+            Self::StartPos { moves } => Position::StartPos { moves: Cow::Owned(moves.into_owned()) },
+            Self::Fen { fen, moves } => Position::Fen { fen: Cow::Owned(fen.into_owned()), moves: Cow::Owned(moves.into_owned()) },
+        }
+    }
+}
+
 impl_message!(Position<'_>);
 message_from_impl!(gui Position<'a>);
 from_str_parts!(impl Position<'_> for parts -> Result {

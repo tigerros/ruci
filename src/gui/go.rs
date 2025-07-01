@@ -52,6 +52,43 @@ pub struct Go<'a> {
     pub infinite: bool,
 }
 
+impl Go<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> Go<'static> {
+        let Go {
+            search_moves,
+            ponder,
+            w_time,
+            b_time,
+            w_inc,
+            b_inc,
+            moves_to_go,
+            depth,
+            nodes,
+            mate,
+            move_time,
+            infinite
+        } = self;
+
+        Go {
+            search_moves: Cow::Owned(search_moves.into_owned()),
+            ponder,
+            w_time,
+            b_time,
+            w_inc,
+            b_inc,
+            moves_to_go,
+            depth,
+            nodes,
+            mate,
+            move_time,
+            infinite,
+        }
+    }
+}
+
 impl_message!(Go<'_>);
 message_from_impl!(gui Go<'a>);
 from_str_parts!(impl Go<'_> for parts -> Self {

@@ -22,6 +22,23 @@ pub enum Register<'a> {
     NameAndCode { name: Cow<'a, str>, code: Cow<'a, str> },
 }
 
+impl Register<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> Register<'static> {
+        match self {
+            Self::Later => Register::Later,
+            Self::Name(name) => Register::Name(Cow::Owned(name.into_owned())),
+            Self::Code(code) => Register::Code(Cow::Owned(code.into_owned())),
+            Self::NameAndCode { name, code } => Register::NameAndCode {
+                name: Cow::Owned(name.into_owned()),
+                code: Cow::Owned(code.into_owned()),
+            }
+        }
+    }
+}
+
 impl_message!(Register<'_>);
 message_from_impl!(gui Register<'a>);
 from_str_parts!(impl Register<'_> for parts -> Result {

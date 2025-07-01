@@ -145,6 +145,18 @@ pub struct Refutation<'a> {
     pub refutation: Cow<'a, [UciMove]>,
 }
 
+impl Refutation<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> Refutation<'static> {
+        Refutation {
+            refuted_move: self.refuted_move,
+            refutation: Cow::Owned(self.refutation.into_owned()),
+        }
+    }
+}
+
 impl Refutation<'static> {
     fn from_str(s: &str) -> Option<Self> {
         let mut moves = uci_moves::from_str(s);
@@ -168,6 +180,18 @@ impl Refutation<'static> {
 pub struct CurrLine<'a> {
     pub used_cpu: Option<usize>,
     pub line: Cow<'a, [UciMove]>,
+}
+
+impl CurrLine<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> CurrLine<'static> {
+        CurrLine {
+            used_cpu: self.used_cpu,
+            line: Cow::Owned(self.line.into_owned()),
+        }
+    }
 }
 
 impl CurrLine<'static> {
@@ -240,6 +264,51 @@ pub struct Info<'a> {
     pub refutation: Option<Refutation<'a>>,
     /// <https://backscattering.de/chess/uci/#engine-info-currline>
     pub curr_line: Option<CurrLine<'a>>,
+}
+
+impl Info<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> Info<'static> {
+        let Info {
+            depth,
+            time,
+            nodes,
+            pv,
+            multi_pv,
+            score,
+            curr_move,
+            curr_move_number,
+            hash_full,
+            nps,
+            tb_hits,
+            sb_hits,
+            cpu_load,
+            string,
+            refutation,
+            curr_line
+        } = self;
+        
+        Info {
+            depth,
+            time,
+            nodes,
+            pv: Cow::Owned(pv.into_owned()),
+            multi_pv,
+            score,
+            curr_move,
+            curr_move_number,
+            hash_full,
+            nps,
+            tb_hits,
+            sb_hits,
+            cpu_load,
+            string: string.map(Cow::into_owned).map(Cow::Owned),
+            refutation: refutation.map(Refutation::into_owned),
+            curr_line: curr_line.map(CurrLine::into_owned),
+        }
+    }
 }
 
 impl<'a> From<Info<'a>> for crate::Message<'a> {

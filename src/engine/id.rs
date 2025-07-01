@@ -25,6 +25,20 @@ pub enum Id<'a> {
 }
 
 impl Id<'_> {
+    /// Calls [`Cow::into_owned`] on each [`Cow`] field.
+    /// The resulting value has a `'static` lifetime.
+    #[must_use]
+    pub fn into_owned(self) -> Id<'static> {
+        match self {
+            Self::Name(name) => Id::Name(Cow::Owned(name.into_owned())),
+            Self::Author(author) => Id::Author(Cow::Owned(author.into_owned())),
+            Self::NameAndAuthor { name, author } => Id::NameAndAuthor {
+                name: Cow::Owned(name.into_owned()),
+                author: Cow::Owned(author.into_owned()),
+            },
+        }
+    }
+    
     #[must_use]
     /// Returns a new [`Id`] that is updated with values of the `new` parameter.
     ///
