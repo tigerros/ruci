@@ -1,1 +1,0 @@
-Run each example with `cargo run -p {example-name}`.
