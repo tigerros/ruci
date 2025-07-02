@@ -18,6 +18,16 @@ Specifically, this crate contains:
 
 `#![no_std]` compatible.
 
+## Features
+No features are enabled by default.
+
+- `engine-sync`: adds the `Engine` struct for communicating with an engine.
+- `engine-async`: adds async versions of `Engine` functions.
+- `tokio-process`: adds a tokio version of `Engine::from_process`.
+- `gui-sync`: adds the `Gui` struct for communicating with a GUI.
+- `gui-async`: adds async versions of `Gui` functions.
+- `serde`: enables serde support for most types. All implementations are derived with no parameters.
+
 ## Comparison
 There's two other crates that I'm aware of which serve a similar purpose; [`vampirc-uci`](https://crates.io/crates/vampirc-uci) and [`shakmaty-uci`](https://crates.io/crates/shakmaty-uci).
 `shakmaty-uci` is basically an improved version of `vampirc-uci`, so I'll only cover `shakmaty-uci`. Anyways, it:
@@ -31,16 +41,6 @@ There's two other crates that I'm aware of which serve a similar purpose; [`vamp
 
 ## Benches
 `ruci` has more benches per scenario than the other two. This is because it uses `Cow`s to allow for borrowed or owned data. So, the suffix `borrowed` in bench names means that it is using a statically borrowed type rather than the owned type, e.g. `&'static str` instead of `String`. The flip side is the suffix `owned`.
-
-## Features
-No features are enabled by default.
-
-- `engine-sync`: adds the `Engine` struct for communicating with an engine.
-- `engine-async`: adds async versions of `Engine` functions.
-- `tokio-process`: adds a tokio version of `Engine::from_process`.
-- `gui-sync`: adds the `Gui` struct for communicating with a GUI.
-- `gui-async`: adds async versions of `Gui` functions.
-- `serde`: enables serde support for most types. All implementations are derived with no parameters.
 
 ## Safety
 `ruci` declares `#![forbid(unsafe_code)]`.
