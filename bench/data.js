@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1753137624805,
+  "lastUpdate": 1756567685788,
   "repoUrl": "https://github.com/tigerros/ruci",
   "entries": {
     "Bench": [
@@ -9827,6 +9827,132 @@ window.BENCHMARK_DATA = {
             "name": "to_str::uci_ok::vampirc",
             "value": 47.56,
             "range": "± 0.28",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "76173380+tigerros@users.noreply.github.com",
+            "name": "Leonard",
+            "username": "tigerros"
+          },
+          "committer": {
+            "email": "76173380+tigerros@users.noreply.github.com",
+            "name": "Leonard",
+            "username": "tigerros"
+          },
+          "distinct": true,
+          "id": "8d74b3432722f2e56c5adb477b227874623a652b",
+          "message": "updates",
+          "timestamp": "2025-08-30T17:26:52+02:00",
+          "tree_id": "4b45a18f3edb6b7a30bcac459be1595dc242ca9e",
+          "url": "https://github.com/tigerros/ruci/commit/8d74b3432722f2e56c5adb477b227874623a652b"
+        },
+        "date": 1756567683454,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "from_str::info::ruci",
+            "value": 965.74,
+            "range": "± 14.99",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::shakmaty_uci",
+            "value": 3314,
+            "range": "± 22.70",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::info::vampirc",
+            "value": 27812.92,
+            "range": "± 364.88",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::ruci",
+            "value": 23.94,
+            "range": "± 0.33",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::shakmaty_uci",
+            "value": 652.7,
+            "range": "± 17.30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "from_str::uci_ok::vampirc",
+            "value": 2388.9,
+            "range": "± 31.06",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_borrowed",
+            "value": 204.25,
+            "range": "± 1.65",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::ruci_owned",
+            "value": 253.09,
+            "range": "± 3.42",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::shakmaty_uci",
+            "value": 465.68,
+            "range": "± 5.15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::go::vampirc",
+            "value": 504.85,
+            "range": "± 12.21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_borrowed",
+            "value": 107.46,
+            "range": "± 88.24",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::ruci_owned",
+            "value": 132.84,
+            "range": "± 2.63",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::shakmaty_uci",
+            "value": 244.15,
+            "range": "± 2.04",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::register::vampirc",
+            "value": 246.03,
+            "range": "± 3.90",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::ruci",
+            "value": 23.66,
+            "range": "± 0.16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::shakmaty_uci",
+            "value": 46.05,
+            "range": "± 0.42",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "to_str::uci_ok::vampirc",
+            "value": 47.28,
+            "range": "± 0.33",
             "unit": "ns/iter"
           }
         ]
