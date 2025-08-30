@@ -117,10 +117,7 @@ impl ScoreWithBound {
         let is_upperbound = split.contains(&"upperbound");
         let centipawns = isize_at_plus1_position(&split, centipawns_position);
         let mate_in = isize_at_plus1_position(&split, mate_in_position);
-        let kind = centipawns.map_or(
-            mate_in.map(Score::MateIn),
-            |centipawns| Some(Score::Centipawns(centipawns))
-        )?;
+        let kind = centipawns.map_or_else(|| mate_in.map(Score::MateIn), |centipawns| Some(Score::Centipawns(centipawns)))?;
 
         Some(Self {
             kind,

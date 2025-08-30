@@ -28,13 +28,13 @@ jobs:
   scan-scheduled:
     needs: generate-lockfile
     if: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.1.0"
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.2.1"
     with:
       scan-args: --lockfile=Cargo.lock
       download-artifact: cargo-lock
   scan-pr:
     needs: generate-lockfile
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.1.0"
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.2.1"
     with:
       scan-args: --lockfile=Cargo.lock

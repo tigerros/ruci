@@ -1,6 +1,5 @@
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
-#![deny(clippy::unwrap_used, clippy::expect_used)]
 #![allow(clippy::must_use_candidate)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_copy_implementations)]
@@ -19,6 +18,7 @@
 )]
 #![deny(
     clippy::unwrap_used,
+    clippy::expect_used,
     clippy::panic,
     clippy::exit,
     clippy::todo,
