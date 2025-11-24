@@ -14,7 +14,7 @@ jobs:
       options: --security-opt seccomp=unconfined
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Make stockfish executable
         run: chmod +x resources/stockfish-ubuntu-x86-64-avx2
