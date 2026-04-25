@@ -100,11 +100,8 @@ where
         }
 
         if let Some(last_parameter) = last_parameter {
-            if let Some(p) = parameter_fn(last_parameter, Some(parameter), value.trim(), parts) {
-                parts = p;
-            } else {
-                return None;
-            }
+            let p = parameter_fn(last_parameter, Some(parameter), value.trim(), parts)?;
+            parts = p;
 
             value.clear();
         }

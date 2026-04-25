@@ -5,7 +5,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(
     clippy::arithmetic_side_effects,
-    clippy::unchecked_duration_subtraction,
+    clippy::unchecked_time_subtraction,
     clippy::as_conversions,
     clippy::large_futures,
     clippy::large_stack_arrays,
